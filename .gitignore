@@ -1,0 +1,130 @@
+# Build directories
+build/
+dist/
+*.app/
+*.exe
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+Makefile
+cmake-build-*/
+.cmake/
+
+# Qt specific
+*.pro.user
+*.pro.user.*
+*.qbs.user
+*.qbs.user.*
+*.moc
+moc_*.cpp
+moc_*.h
+qrc_*.cpp
+ui_*.h
+*.qmlc
+*.jsc
+
+# Qt Creator
+CMakeLists.txt.user*
+qtcreator-build-*
+
+# C++ objects and libs
+*.o
+*.a
+*.so
+*.so.*
+*.dylib
+*.dll
+*.lib
+*.exp
+*.pdb
+*.slo
+*.lo
+*.obj
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Compiler-specific
+*~
+*.autosave
+*.orig
+.#*
+\#*#
+*.tmp
+*.temp
+
+# IDE specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~.nib
+
+# OS specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+[Tt]humbs.db
+*.lnk
+
+# Qt Installer Framework
+packages/*/meta/
+packages/*/data/
+
+# Installation directories
+/install/
+/package/
+
+# Conan
+conaninfo.txt
+conanbuildinfo.*
+conan.lock
+
+# vcpkg
+vcpkg_installed/
+.vcpkg-root
+
+# Testing
+Testing/
+test_results/
+*.gcov
+*.gcda
+*.gcno
+coverage/
+
+# Documentation
+docs/html/
+docs/latex/
+docs/xml/
+*.qhc
+*.qch
+
+# Temporary files
+*.tmp
+*.log
+core
+*core*
+
+# Platform specific build artifacts
+# Windows
+*.pdb
+*.ilk
+*.manifest
+*.res
+*.rc2
+*.aps
+
+# macOS
+*.dSYM/
+.DS_Store
+
+# Linux
+*.debug

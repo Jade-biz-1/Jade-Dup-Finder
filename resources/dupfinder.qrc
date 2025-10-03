@@ -1,0 +1,27 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/icons">
+        <file>icons/dupfinder.png</file>
+        <file>icons/dupfinder.ico</file>
+        <file>icons/dupfinder.icns</file>
+        <file>icons/scan.png</file>
+        <file>icons/folder.png</file>
+        <file>icons/file.png</file>
+        <file>icons/duplicate.png</file>
+        <file>icons/delete.png</file>
+        <file>icons/settings.png</file>
+        <file>icons/help.png</file>
+    </qresource>
+    <qresource prefix="/ui">
+        <file>ui/main_window.ui</file>
+        <file>ui/scan_dialog.ui</file>
+        <file>ui/settings_dialog.ui</file>
+        <file>ui/confirmation_dialog.ui</file>
+    </qresource>
+    <qresource prefix="/translations">
+        <file>translations/dupfinder_en.qm</file>
+        <file>translations/dupfinder_es.qm</file>
+        <file>translations/dupfinder_fr.qm</file>
+        <file>translations/dupfinder_de.qm</file>
+    </qresource>
+</RCC>
