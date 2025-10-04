@@ -42,7 +42,7 @@ This document defines the technical architecture for DupFinder, a cross-platform
 #### 1. Presentation Layer (Qt6 GUI)
 - **Responsibility:** User interface, user interaction, visual feedback
 - **Technology:** Qt6 Widgets, Qt6 Concurrent for background operations
-- **Components:** Main Window, Dialogs, Custom Widgets, Progress Indicators
+- **Components:** Main Window, **Advanced Results Window** ✅, Scan Setup Dialog, Custom Widgets, Progress Indicators
 
 #### 2. Business Logic Layer
 - **Responsibility:** Application workflow, business rules, validation
@@ -226,6 +226,101 @@ private:
 - **Command Pattern:** Undo/redo operations
 - **Memento Pattern:** Store operation state for recovery
 - **Chain of Responsibility:** Validation chain before operations
+
+### 5. Results Window Component ✅ **IMPLEMENTED**
+
+```cpp
+class ResultsWindow : public QMainWindow {
+    Q_OBJECT
+    
+public:
+    struct DuplicateFile {
+        QString filePath;
+        QString fileName;
+        qint64 fileSize;
+        QDateTime lastModified;
+        QString hash;
+        bool isSelected;
+        QString fileType;
+    };
+    
+    struct DuplicateGroup {
+        QString groupId;
+        QList<DuplicateFile> files;
+        qint64 totalSize;
+        QString primaryFile;  // Recommended to keep
+        qint64 getWastedSpace() const;
+    };
+    
+    void displayResults(const ScanResults& results);
+    void clearResults();
+    
+signals:
+    void windowClosed();
+    void fileOperationRequested(const QString& operation, const QStringList& files);
+    void resultsUpdated(const ScanResults& results);
+    
+private:
+    // Advanced 3-panel layout
+    QWidget* m_headerPanel;          // Title, summary, action buttons
+    QSplitter* m_mainSplitter;       // Results | Details | Actions (60% | 25% | 15%)
+    QTreeWidget* m_resultsTree;      // Hierarchical duplicate display
+    QTabWidget* m_detailsTabs;       // File info and group details
+    QWidget* m_actionsPanel;         // File operations and bulk actions
+    
+    // Smart selection and operations
+    QList<DuplicateFile> getSelectedFiles() const;
+    void selectRecommended();        // Smart selection algorithm
+    void performBulkOperations(const QString& operation);
+    void updateSelectionSummary();   // Real-time statistics
+};
+```
+
+**Design Patterns:**
+- **Model-View Pattern:** Tree widget displays hierarchical duplicate data
+- **Observer Pattern:** Qt signals/slots for UI updates and file operations  
+- **Command Pattern:** File operations encapsulated as commands with undo capability
+- **Strategy Pattern:** Different selection strategies (smart, all, by type, by size)
+- **Template Method Pattern:** Common file operation workflow with varying implementations
+
+**Key Responsibilities:**
+- **Professional 3-Panel Interface:** Header + Splitter layout for optimal information display
+- **Hierarchical Data Display:** Group-based view of duplicate files with expandable tree structure
+- **Smart Selection System:** AI-driven recommendations for files to keep vs delete
+- **Comprehensive File Operations:** Delete, move, ignore, preview with full system integration
+- **Real-time Statistics:** Live updates of selection counts, space savings, and operation progress
+- **Safety-First Design:** Detailed confirmations and non-destructive operations
+
+**Advanced Features Implemented:**
+- **Smart Recommendations:** Algorithm recommends oldest files (likely originals) to keep
+- **Bulk Operations:** Multi-file operations with detailed impact summaries and confirmations
+- **System Integration:** File manager integration, clipboard operations, location opening
+- **Advanced Filtering:** Real-time search, size filters, type filters, sorting options
+- **Selection Management:** Checkbox-based selection with bulk selection tools
+- **Progress Tracking:** Real-time updates during operations with cancellation support
+
+**UI Layout Architecture:**
+```
+┌─ Header Panel (Actions & Summary) ────────────────────────────┐
+│ 🔍 Duplicate Files Results    2 groups, 3.1GB potential savings    │
+│                                  [Refresh] [Export] [Settings]       │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Results Tree (60%)     │ Details (25%)  │ Actions (15%)        │
+│ ┌─ Filter & Search ─┐   │ ┌─ File Info ────┐   │ ┌─ File Actions ──┐  │
+│ │ [____________] │   │ │ Preview Area  │   │ │ Delete File   │  │
+│ │ Size:[All▼] Type:│   │ │ Name: file.jpg│   │ │ Move File     │  │
+│ └─────────────────┘   │ │ Size: 2.1 MB  │   │ │ Ignore File   │  │
+│ ┌─ Selection ───────┐   │ └───────────────┘   │ │ Preview       │  │
+│ │ Select All    │   │ ┌─ Group Info ───┐   │ └───────────────┘  │
+│ │ [Recommended] │   │ │ Group Summary │   │ ┌─ Bulk Actions ──┐  │
+│ └───────────────┘   │ │ 2 files       │   │ │ Delete Selected│  │
+│ ┌─ Hierarchical Tree ─┐   │ │ 3.1 GB total  │   │ │ Move Selected  │  │
+│ │ 📁 Group: 2 files  │   │ └───────────────┘   │ │ Ignore Selected│  │
+│ │ ├─☐ file1.jpg     │   │                 │ └───────────────┘  │
+│ │ └─☑️ file2.jpg     │   │                 │ 2 files selected  │
+│ └─────────────────┘   │                 │ 1.5 GB savings    │
+└─────────────────────┴─────────────────┴───────────────────┘
+```
 
 ---
 

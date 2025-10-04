@@ -12,6 +12,20 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# Build optimization settings
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)  # Enable LTO
+endif()
+
+# Enable parallel builds
+if(CMAKE_GENERATOR MATCHES "Makefiles")
+    include(ProcessorCount)
+    ProcessorCount(N)
+    if(NOT N EQUAL 0)
+        set(CMAKE_MAKE_PROGRAM "${CMAKE_MAKE_PROGRAM} -j${N}")
+    endif()
+endif()
+
 # Set default build type to Release if not specified
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING
@@ -42,11 +56,19 @@ if(MSVC)
     add_compile_options(/W4 /WX)
     # Enable parallel compilation
     add_compile_options(/MP)
+    # Security features
+    add_compile_options(/guard:cf /DYNAMICBASE /NXCOMPAT)
 else()
-    # Enable all warnings and treat warnings as errors for GCC/Clang
+    # Enable comprehensive warnings for GCC/Clang
     add_compile_options(-Wall -Wextra -Werror -pedantic)
-    # Enable additional security features
-    add_compile_options(-fstack-protector-strong)
+    # Additional useful warnings
+    add_compile_options(-Wconversion -Wsign-conversion -Wunused -Wcast-align)
+    # Security features
+    add_compile_options(-fstack-protector-strong -D_FORTIFY_SOURCE=2)
+    # Debug info in release builds for profiling
+    if(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+        add_compile_options(-g -O2)
+    endif()
 endif()
 
 # Include directories
@@ -66,8 +88,10 @@ set(CORE_SOURCES
 
 set(GUI_SOURCES
     src/gui/main_window.cpp
+    src/gui/main_window_widgets.cpp
     src/gui/scan_dialog.cpp
     src/gui/results_widget.cpp
+    src/gui/results_window.cpp
     src/gui/settings_dialog.cpp
     src/gui/confirmation_dialog.cpp
 )
@@ -87,6 +111,7 @@ set(HEADER_FILES
     include/main_window.h
     include/scan_dialog.h
     include/results_widget.h
+    src/gui/results_window.h
     include/settings_dialog.h
     include/confirmation_dialog.h
     include/platform_file_ops.h
@@ -136,6 +161,12 @@ set_target_properties(dupfinder PROPERTIES
     AUTOMOC ON
     AUTOUIC ON
     AUTORCC ON
+    # Optimization properties
+    CXX_VISIBILITY_PRESET hidden
+    VISIBILITY_INLINES_HIDDEN ON
+    # Version information
+    VERSION ${PROJECT_VERSION}
+    SOVERSION ${PROJECT_VERSION_MAJOR}
 )
 
 # Resources
@@ -145,6 +176,7 @@ set(RESOURCE_FILES
 
 # Add resources to target
 target_sources(dupfinder PRIVATE ${RESOURCE_FILES})
+
 
 # Install configuration
 install(TARGETS dupfinder
@@ -186,6 +218,8 @@ enable_testing()
 # Add subdirectories for tests
 add_subdirectory(tests)
 
+# Note: Test files have been moved to tests/ directory and are handled by tests/CMakeLists.txt
+
 # Custom target for running all tests
 add_custom_target(check
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
@@ -204,6 +238,112 @@ if(CLANG_FORMAT_EXECUTABLE)
     )
 endif()
 
+# Code analysis tools
+find_program(CPPCHECK_EXECUTABLE cppcheck)
+if(CPPCHECK_EXECUTABLE)
+    add_custom_target(cppcheck
+        COMMAND ${CPPCHECK_EXECUTABLE}
+            --enable=all
+            --std=c++17
+            --verbose
+            --error-exitcode=1
+            --suppress=missingIncludeSystem
+            ${CMAKE_CURRENT_SOURCE_DIR}/src
+            ${CMAKE_CURRENT_SOURCE_DIR}/include
+        COMMENT "Running static analysis with cppcheck"
+        VERBATIM
+    )
+endif()
+
+# Memory check target (valgrind on Linux)
+if(UNIX AND NOT APPLE)
+    find_program(VALGRIND_EXECUTABLE valgrind)
+    if(VALGRIND_EXECUTABLE)
+        add_custom_target(memcheck
+            COMMAND ${VALGRIND_EXECUTABLE}
+                --tool=memcheck
+                --leak-check=full
+                --show-reachable=yes
+                --track-origins=yes
+                --error-exitcode=1
+                $<TARGET_FILE:dupfinder>
+            DEPENDS dupfinder
+            COMMENT "Running memory check with valgrind"
+            VERBATIM
+        )
+    endif()
+endif()
+
+# Coverage analysis (only in Debug mode)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    option(ENABLE_COVERAGE "Enable coverage analysis" OFF)
+    if(ENABLE_COVERAGE)
+        if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+            add_compile_options(--coverage)
+            add_link_options(--coverage)
+            
+            find_program(GCOV_EXECUTABLE gcov)
+            find_program(LCOV_EXECUTABLE lcov)
+            find_program(GENHTML_EXECUTABLE genhtml)
+            
+            if(GCOV_EXECUTABLE AND LCOV_EXECUTABLE AND GENHTML_EXECUTABLE)
+                add_custom_target(coverage
+                    COMMAND ${CMAKE_COMMAND} -E make_directory coverage
+                    COMMAND ${LCOV_EXECUTABLE} --capture --directory . --output-file coverage/coverage.info
+                    COMMAND ${LCOV_EXECUTABLE} --remove coverage/coverage.info '/usr/*' --output-file coverage/coverage.info
+                    COMMAND ${LCOV_EXECUTABLE} --remove coverage/coverage.info '*/tests/*' --output-file coverage/coverage.info
+                    COMMAND ${GENHTML_EXECUTABLE} coverage/coverage.info --output-directory coverage/html
+                    COMMENT "Generating coverage report"
+                    VERBATIM
+                )
+            endif()
+        endif()
+    endif()
+endif()
+
+# Documentation build (optional)
+find_package(Doxygen QUIET)
+if(DOXYGEN_FOUND)
+    set(DOXYGEN_IN ${CMAKE_CURRENT_SOURCE_DIR}/docs/Doxyfile.in)
+    set(DOXYGEN_OUT ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
+    
+    if(EXISTS ${DOXYGEN_IN})
+        configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
+        add_custom_target(docs ALL
+            COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
+            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+            COMMENT "Generating API documentation with Doxygen"
+            VERBATIM
+        )
+    else()
+        add_custom_target(docs
+            COMMAND ${DOXYGEN_EXECUTABLE} -g
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/docs
+            COMMENT "Generate Doxygen configuration file"
+            VERBATIM
+        )
+    endif()
+endif()
+
+# Build summary target
+add_custom_target(summary
+    COMMAND ${CMAKE_COMMAND} -E echo "Build Summary:"
+    COMMAND ${CMAKE_COMMAND} -E echo "=============="
+    COMMAND ${CMAKE_COMMAND} -E echo "Available targets:"
+    COMMAND ${CMAKE_COMMAND} -E echo "  dupfinder      - Main application"
+    COMMAND ${CMAKE_COMMAND} -E echo "  unit_tests     - Unit tests"
+    COMMAND ${CMAKE_COMMAND} -E echo "  integration_tests - Integration tests"
+    COMMAND ${CMAKE_COMMAND} -E echo "  check          - Run all tests"
+    COMMAND ${CMAKE_COMMAND} -E echo "  package        - Create distribution package"
+    COMMAND ${CMAKE_COMMAND} -E echo "Development targets (if available):"
+    COMMAND ${CMAKE_COMMAND} -E echo "  format         - Format source code"
+    COMMAND ${CMAKE_COMMAND} -E echo "  cppcheck       - Static analysis"
+    COMMAND ${CMAKE_COMMAND} -E echo "  memcheck       - Memory analysis (Linux)"
+    COMMAND ${CMAKE_COMMAND} -E echo "  coverage       - Coverage report (Debug)"
+    COMMAND ${CMAKE_COMMAND} -E echo "  docs           - API documentation"
+    VERBATIM
+)
+
 # Print build configuration summary
 message(STATUS "")
 message(STATUS "DupFinder Build Configuration Summary")
@@ -212,6 +352,28 @@ message(STATUS "Version: ${PROJECT_VERSION}")
 message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "Platform: ${PLATFORM_NAME}")
 message(STATUS "C++ Standard: ${CMAKE_CXX_STANDARD}")
+message(STATUS "Compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
 message(STATUS "Install Prefix: ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "Qt6 Version: ${Qt6_VERSION}")
+message(STATUS "Available Build Targets:")
+message(STATUS "  - dupfinder (main application)")
+message(STATUS "  - check (run all tests)")
+message(STATUS "  - package (create installer)")
+if(CLANG_FORMAT_EXECUTABLE)
+    message(STATUS "  - format (code formatting)")
+endif()
+if(CPPCHECK_EXECUTABLE)
+    message(STATUS "  - cppcheck (static analysis)")
+endif()
+if(VALGRIND_EXECUTABLE)
+    message(STATUS "  - memcheck (memory analysis)")
+endif()
+if(DOXYGEN_FOUND)
+    message(STATUS "  - docs (API documentation)")
+endif()
+if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND ENABLE_COVERAGE)
+    message(STATUS "  - coverage (test coverage)")
+endif()
+message(STATUS "")
+message(STATUS "Run 'make summary' for a complete target list")
 message(STATUS "")

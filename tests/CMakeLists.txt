@@ -20,10 +20,19 @@ set(TEST_COMMON_SOURCES
     ../src/core/safety_manager.cpp
 )
 
+# Header files needed for MOC processing
+set(TEST_COMMON_HEADERS
+    ../include/duplicate_detector.h
+    ../include/file_scanner.h
+    ../include/hash_calculator.h
+    ../include/file_manager.h
+    ../include/safety_manager.h
+)
+
 # Unit Tests
 set(UNIT_TEST_SOURCES
     unit/test_duplicate_detector.cpp
-    unit/test_file_scanner.cpp
+    # unit/test_file_scanner.cpp  # Included directly in main_test.cpp
     unit/test_hash_calculator.cpp
     unit/test_file_manager.cpp
     unit/test_safety_manager.cpp
@@ -33,6 +42,7 @@ set(UNIT_TEST_SOURCES
 set(INTEGRATION_TEST_SOURCES
     integration/test_full_workflow.cpp
     integration/test_cross_platform.cpp
+    integration/test_integration_workflow.cpp
 )
 
 # Create unit test executable
@@ -40,6 +50,7 @@ add_executable(unit_tests
     unit/main_test.cpp
     ${UNIT_TEST_SOURCES}
     ${TEST_COMMON_SOURCES}
+    ${TEST_COMMON_HEADERS}
 )
 
 target_link_libraries(unit_tests
@@ -53,6 +64,7 @@ add_executable(integration_tests
     integration/main_test.cpp
     ${INTEGRATION_TEST_SOURCES}
     ${TEST_COMMON_SOURCES}
+    ${TEST_COMMON_HEADERS}
 )
 
 target_link_libraries(integration_tests
@@ -62,8 +74,38 @@ target_link_libraries(integration_tests
 )
 
 # Add tests to CTest
+# Performance test sources
+set(PERFORMANCE_TEST_SOURCES
+    performance/test_thread_pool_performance.cpp
+    performance/test_hc002b_batch_processing.cpp
+    performance/test_hc002c_io_optimization.cpp
+    # TODO: Add remaining performance tests
+    # performance/test_progress_reporting_overhead.cpp
+    # performance/test_comprehensive_integration.cpp
+)
+
+# Create performance test executable
+add_executable(performance_tests
+    performance/main_performance_test.cpp
+    performance/performance_test_framework.cpp
+    ${PERFORMANCE_TEST_SOURCES}
+    ${TEST_COMMON_SOURCES}
+    ${TEST_COMMON_HEADERS}
+)
+
+target_link_libraries(performance_tests
+    Qt6::Core
+    Qt6::Test
+    Qt6::Concurrent
+)
+
+set_target_properties(performance_tests PROPERTIES
+    AUTOMOC ON
+)
+
 add_test(NAME UnitTests COMMAND unit_tests)
 add_test(NAME IntegrationTests COMMAND integration_tests)
+add_test(NAME PerformanceTests COMMAND performance_tests)
 
 # Set test properties
 set_tests_properties(UnitTests PROPERTIES
@@ -76,6 +118,11 @@ set_tests_properties(IntegrationTests PROPERTIES
     LABELS "integration"
 )
 
+set_tests_properties(PerformanceTests PROPERTIES
+    TIMEOUT 600
+    LABELS "performance"
+)
+
 # Enable Qt's test framework features
 set_target_properties(unit_tests PROPERTIES
     AUTOMOC ON
@@ -83,4 +130,75 @@ set_target_properties(unit_tests PROPERTIES
 
 set_target_properties(integration_tests PROPERTIES
     AUTOMOC ON
+)
+
+# Standalone Integration Test - Workflow
+add_executable(test_integration_workflow
+    integration/test_integration_workflow.cpp
+    ${TEST_COMMON_SOURCES}
+    ${TEST_COMMON_HEADERS}
+)
+
+target_link_libraries(test_integration_workflow
+    Qt6::Core
+    Qt6::Test
+    Qt6::Concurrent
+)
+
+set_target_properties(test_integration_workflow PROPERTIES
+    AUTOMOC ON
+)
+
+# Standalone Performance Tests
+add_executable(test_hc002b_batch_processing
+    performance/test_hc002b_batch_processing.cpp
+    ${TEST_COMMON_SOURCES}
+    ${TEST_COMMON_HEADERS}
+)
+
+target_link_libraries(test_hc002b_batch_processing
+    Qt6::Core
+    Qt6::Test
+    Qt6::Concurrent
+)
+
+set_target_properties(test_hc002b_batch_processing PROPERTIES
+    AUTOMOC ON
+)
+
+add_executable(test_hc002c_io_optimization
+    performance/test_hc002c_io_optimization.cpp
+    ${TEST_COMMON_SOURCES}
+    ${TEST_COMMON_HEADERS}
+)
+
+target_link_libraries(test_hc002c_io_optimization
+    Qt6::Core
+    Qt6::Test
+    Qt6::Concurrent
+)
+
+set_target_properties(test_hc002c_io_optimization PROPERTIES
+    AUTOMOC ON
+)
+
+# Add standalone tests to CTest
+add_test(NAME IntegrationWorkflowTest COMMAND test_integration_workflow)
+add_test(NAME BatchProcessingTest COMMAND test_hc002b_batch_processing)
+add_test(NAME IOOptimizationTest COMMAND test_hc002c_io_optimization)
+
+# Set standalone test properties
+set_tests_properties(IntegrationWorkflowTest PROPERTIES
+    TIMEOUT 300
+    LABELS "integration;standalone"
+)
+
+set_tests_properties(BatchProcessingTest PROPERTIES
+    TIMEOUT 600
+    LABELS "performance;standalone"
+)
+
+set_tests_properties(IOOptimizationTest PROPERTIES
+    TIMEOUT 600
+    LABELS "performance;standalone"
 )
