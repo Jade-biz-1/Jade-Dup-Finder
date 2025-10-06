@@ -1,8 +1,8 @@
-# DupFinder - Cross-Platform Duplicate File Finder
-
 <div align="center">
   <img src="docs/logo.png" alt="DupFinder Logo" width="200"/>
 </div>
+
+# DupFinder - Cross-Platform Duplicate File Finder
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)](https://github.com/yourusername/dupfinder)
