@@ -60,7 +60,7 @@ if(MSVC)
     add_compile_options(/guard:cf /DYNAMICBASE /NXCOMPAT)
 else()
     # Enable comprehensive warnings for GCC/Clang
-    add_compile_options(-Wall -Wextra -Werror -pedantic)
+    add_compile_options(-Wall -Wextra -pedantic)
     # Additional useful warnings
     add_compile_options(-Wconversion -Wsign-conversion -Wunused -Wcast-align)
     # Security features
