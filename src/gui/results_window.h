@@ -8,133 +8,142 @@
 #include <QtWidgets/QSplitter>
 #include <QtWidgets/QTreeWidget>
 #include <QtWidgets/QTreeWidgetItem>
-#include <QtWidgets/QTabWidget>
-#include <QtWidgets/QScrollArea>
+#include <QtWidgets/QTableWidget>
+#include <QtWidgets/QTableWidgetItem>
 #include <QtWidgets/QLabel>
 #include <QtWidgets/QPushButton>
-#include <QtWidgets/QLineEdit>
-#include <QtWidgets/QComboBox>
-#include <QtWidgets/QCheckBox>
-#include <QtWidgets/QGroupBox>
 #include <QtWidgets/QProgressBar>
+#include <QtWidgets/QGroupBox>
+#include <QtWidgets/QScrollArea>
+#include <QtWidgets/QFrame>
+#include <QtWidgets/QCheckBox>
+#include <QtWidgets/QComboBox>
+#include <QtWidgets/QLineEdit>
+#include <QtWidgets/QTextEdit>
+#include <QtWidgets/QTabWidget>
 #include <QtWidgets/QStatusBar>
-#include <QtWidgets/QTableWidget>
 #include <QtCore/QTimer>
+#include <QtCore/QFileInfo>
 #include <QtCore/QDateTime>
-#include <QtCore/QSize>
 #include <QtGui/QPixmap>
-#include <QtGui/QCloseEvent>
-#include <QtGui/QShowEvent>
+#include <QtGui/QIcon>
+
+// Include headers for types used in method signatures
+#include "duplicate_detector.h"
+
+// Forward declarations
+class ScanSetupDialog;
+class FileManager;
 
 class ResultsWindow : public QMainWindow
 {
     Q_OBJECT
 
 public:
-    // Window size constants
-    static const QSize MIN_WINDOW_SIZE;
-    static const QSize DEFAULT_WINDOW_SIZE;
-
-    // Data structures
+    // Duplicate file information structure
     struct DuplicateFile {
         QString filePath;
         QString fileName;
         QString directory;
-        qint64 fileSize = 0;
+        qint64 fileSize;
         QDateTime lastModified;
         QDateTime created;
         QString hash;
-        QPixmap thumbnail;
-        bool isSelected = false;
-        bool isMarkedForDeletion = false;
-        QString fileType;
+        QPixmap thumbnail;      // For image files
+        bool isSelected;
+        bool isMarkedForDeletion;
+        QString fileType;       // Extension/MIME type
         
-        // Comparison operator for QList::contains
         bool operator==(const DuplicateFile& other) const {
             return filePath == other.filePath;
         }
     };
-
+    
+    // Group of duplicate files
     struct DuplicateGroup {
         QString groupId;
         QList<DuplicateFile> files;
-        int fileCount = 0;
-        qint64 totalSize = 0;
-        QString primaryFile;  // Recommended file to keep
-        bool isExpanded = false;
-        bool hasSelection = false;
+        qint64 totalSize;
+        qint64 wastedSpace;     // Size that could be saved
+        int fileCount;
+        QString primaryFile;    // Recommended file to keep
+        bool isExpanded;
+        bool hasSelection;
         
-        // Helper methods
-        inline void calculateSize() {
-            totalSize = 0;
-            fileCount = static_cast<int>(files.size());
-            for (const auto& file : files) {
-                totalSize += file.fileSize;
-            }
-        }
-        
-        inline qint64 getWastedSpace() const {
-            return (fileCount > 0) ? totalSize - (totalSize / fileCount) : 0;
+        qint64 getWastedSpace() const {
+            return fileCount > 1 ? totalSize * (fileCount - 1) : 0;
         }
     };
     
+    // Scan results summary
     struct ScanResults {
+        QList<DuplicateGroup> duplicateGroups;
+        qint64 totalFilesScanned;
+        qint64 totalDuplicatesFound;
+        qint64 totalSpaceWasted;
+        qint64 potentialSavings;
         QString scanPath;
         QDateTime scanTime;
         QString scanDuration;
-        int totalFilesScanned = 0;
-        int totalDuplicatesFound = 0;
-        qint64 potentialSavings = 0;
-        QList<DuplicateGroup> duplicateGroups;
         
-        // Helper methods
-        inline void calculateTotals() {
+        void calculateTotals() {
             totalDuplicatesFound = 0;
-            potentialSavings = 0;
+            totalSpaceWasted = 0;
             for (const auto& group : duplicateGroups) {
                 totalDuplicatesFound += group.fileCount;
-                potentialSavings += group.getWastedSpace();
+                totalSpaceWasted += group.getWastedSpace();
             }
+            potentialSavings = totalSpaceWasted;
         }
-        
-        // Constructor
-        ScanResults() = default;
     };
 
-public:
     explicit ResultsWindow(QWidget* parent = nullptr);
-    virtual ~ResultsWindow();
+    ~ResultsWindow();
 
-    // Public interface
+    // Main interface
     void displayResults(const ScanResults& results);
+    void displayDuplicateGroups(const QList<DuplicateDetector::DuplicateGroup>& groups);
     void clearResults();
     void updateProgress(const QString& operation, int percentage);
+    void setFileManager(FileManager* fileManager);
+    
+    // Selection and actions
+    int getSelectedFilesCount() const;
+    qint64 getSelectedFilesSize() const;
+    QList<DuplicateFile> getSelectedFiles() const;
 
 public slots:
     void refreshResults();
     void exportResults();
+    void selectAllDuplicates();
+    void selectNoneFiles();
+    void selectBySize(qint64 minSize);
+    void selectByType(const QString& fileType);
+    void selectRecommended();
 
 signals:
+    void filesDeleted(const QStringList& filePaths);
+    void filesMoved(const QStringList& filePaths, const QString& destination);
+    void resultsExported(const QString& filePath);
     void windowClosed();
     void fileOperationRequested(const QString& operation, const QStringList& files);
-    void resultsUpdated(const ScanResults& results);
+    void resultsUpdated(const ResultsWindow::ScanResults& results);
 
 protected:
     void closeEvent(QCloseEvent* event) override;
     void showEvent(QShowEvent* event) override;
 
 private slots:
-    // UI update slots
-    void updateStatusBar();
-    void onFileSelectionChanged();
-    void updateSelectionSummary();
+    void initializeUI();
+    void setupConnections();
+    void applyTheme();
     
-    // Selection actions
-    void selectAllDuplicates();
-    void selectNoneFiles();
-    void selectRecommended();
-    void selectBySize(qint64 minSize = 1024 * 1024); // Default 1MB
-    void selectByType(const QString& fileType);
+    // Results display
+    void onGroupExpanded(QTreeWidgetItem* item);
+    void onGroupCollapsed(QTreeWidgetItem* item);
+    void onFileSelectionChanged();
+    void onGroupSelectionChanged();
+    void updateSelectionSummary();
     
     // File operations
     void deleteSelectedFiles();
@@ -149,18 +158,21 @@ private slots:
     void performBulkMove();
     void confirmBulkOperation(const QString& operation, int fileCount, qint64 totalSize);
     
-    // Filter and sort
+    // Filtering and sorting
+    void filterResults();
+    void sortResults();
     void onFilterChanged();
     void onSortChanged();
+    void applyFilters();
+    void applySorting();
     
-    // Tree widget events
-    void onGroupExpanded(QTreeWidgetItem* item);
-    void onGroupCollapsed(QTreeWidgetItem* item);
-    void onGroupSelectionChanged();
+    // Progress and status
+    void updateStatusBar();
+    void showProgressDialog(const QString& title);
+    void hideProgressDialog();
 
 private:
-    // Initialization methods
-    void initializeUI();
+    // UI Creation methods
     void createHeaderPanel();
     void createMainContent();
     void createResultsTree();
@@ -168,38 +180,44 @@ private:
     void createActionsPanel();
     void createStatusBar();
     void createToolBar();
-    void setupConnections();
-    void applyTheme();
-
-    // Data population methods
-    void loadSampleData();
+    
+    // Utility methods
     void populateResultsTree();
     void updateGroupItem(QTreeWidgetItem* groupItem, const DuplicateGroup& group);
     void updateFileItem(QTreeWidgetItem* fileItem, const DuplicateFile& file);
-
-    // Utility methods
+    void convertDetectorGroupToDisplayGroup(const DuplicateDetector::DuplicateGroup& source, 
+                                            DuplicateGroup& target);
+    void updateStatisticsDisplay();
+    void removeFilesFromDisplay(const QStringList& filePaths);
+    void generateFileThumbnail(DuplicateFile& file);
     QString formatFileSize(qint64 bytes) const;
-    QString getRecommendedFileToKeep(const DuplicateGroup& group) const;
+    QString getFileIcon(const QString& filePath) const;
+    QPixmap createThumbnail(const QString& filePath, const QSize& size = QSize(64, 64));
+    void selectGroupFiles(const DuplicateGroup& group, bool select);
+    
+    // Export helper methods
+    bool exportToCSV(QTextStream& out);
+    bool exportToJSON(QTextStream& out);
+    bool exportToText(QTextStream& out);
+    
+    // Preview helper methods
+    void previewImageFile(const QString& filePath);
+    void previewTextFile(const QString& filePath);
+    void showFileInfo(const QString& filePath);
+    bool isTextFile(const QString& filePath) const;
+    
+    // Data management
+    void loadSampleData();  // For testing purposes
     bool isImageFile(const QString& filePath) const;
     bool isVideoFile(const QString& filePath) const;
-    QList<DuplicateFile> getSelectedFiles() const;
-    qint64 getSelectedFilesSize() const;
-    int getSelectedFilesCount() const;
-    
-    // Filter and sort helpers
-    void applyFilters();
-    void applySorting();
+    QString getRecommendedFileToKeep(const DuplicateGroup& group) const;
     bool matchesCurrentFilters(const DuplicateGroup& group) const;
 
-private:
-    // Current state
-    ScanResults m_currentResults;
-
-    // Main layout widgets
+    // UI Components
     QWidget* m_centralWidget;
     QVBoxLayout* m_mainLayout;
     
-    // Header panel
+    // Header Panel
     QWidget* m_headerPanel;
     QHBoxLayout* m_headerLayout;
     QLabel* m_titleLabel;
@@ -208,14 +226,15 @@ private:
     QPushButton* m_exportButton;
     QPushButton* m_settingsButton;
     
-    // Main content splitter
+    // Main Content (Splitter)
     QSplitter* m_mainSplitter;
     
-    // Results panel (left)
+    // Results Tree (Left side)
     QWidget* m_resultsPanel;
     QVBoxLayout* m_resultsPanelLayout;
+    QTreeWidget* m_resultsTree;
     
-    // Filter controls
+    // Filter Panel
     QWidget* m_filterPanel;
     QHBoxLayout* m_filterLayout;
     QLabel* m_filterLabel;
@@ -225,7 +244,7 @@ private:
     QComboBox* m_sortCombo;
     QPushButton* m_clearFiltersButton;
     
-    // Selection controls
+    // Selection Panel
     QWidget* m_selectionPanel;
     QHBoxLayout* m_selectionLayout;
     QCheckBox* m_selectAllCheckbox;
@@ -234,19 +253,16 @@ private:
     QPushButton* m_clearSelectionButton;
     QLabel* m_selectionSummaryLabel;
     
-    // Results tree
-    QTreeWidget* m_resultsTree;
-    
-    // Details panel (middle)
+    // Details Panel (Right side)
     QWidget* m_detailsPanel;
     QVBoxLayout* m_detailsPanelLayout;
     QTabWidget* m_detailsTabs;
     
-    // File info tab
+    // File Info Tab
     QWidget* m_fileInfoTab;
     QVBoxLayout* m_fileInfoLayout;
-    QScrollArea* m_previewScrollArea;
     QLabel* m_previewLabel;
+    QScrollArea* m_previewScrollArea;
     QLabel* m_fileNameLabel;
     QLabel* m_fileSizeLabel;
     QLabel* m_filePathLabel;
@@ -254,17 +270,15 @@ private:
     QLabel* m_fileTypeLabel;
     QLabel* m_fileHashLabel;
     
-    // Group info tab
+    // Group Info Tab
     QWidget* m_groupInfoTab;
     QVBoxLayout* m_groupInfoLayout;
     QLabel* m_groupSummaryLabel;
     QTableWidget* m_groupFilesTable;
     
-    // Actions panel (right)
+    // Actions Panel
     QWidget* m_actionsPanel;
     QVBoxLayout* m_actionsPanelLayout;
-    
-    // File actions group
     QGroupBox* m_fileActionsGroup;
     QVBoxLayout* m_fileActionsLayout;
     QPushButton* m_deleteButton;
@@ -274,21 +288,84 @@ private:
     QPushButton* m_openLocationButton;
     QPushButton* m_copyPathButton;
     
-    // Bulk actions group
+    // Bulk Operations Group
     QGroupBox* m_bulkActionsGroup;
     QVBoxLayout* m_bulkActionsLayout;
     QPushButton* m_bulkDeleteButton;
     QPushButton* m_bulkMoveButton;
     QPushButton* m_bulkIgnoreButton;
     
-    // Status bar
+    // Progress and Status
     QLabel* m_statusLabel;
     QProgressBar* m_progressBar;
     QLabel* m_statisticsLabel;
     
-    // Utilities
+    // Data
+    ScanResults m_currentResults;
+    QList<DuplicateFile> m_selectedFiles;
     QTimer* m_thumbnailTimer;
+    FileManager* m_fileManager;
+    
+    // State
     bool m_isProcessingBulkOperation;
+    QString m_lastExportPath;
+    
+    // Constants
+    static const int THUMBNAIL_SIZE = 64;
+    static const int MAX_THUMBNAILS_PER_BATCH = 10;
+    static const QSize MIN_WINDOW_SIZE;
+    static const QSize DEFAULT_WINDOW_SIZE;
 };
+
+// Helper widget for custom duplicate group display
+// TODO: Implement DuplicateGroupWidget
+/*
+class DuplicateGroupWidget : public QWidget
+{
+    Q_OBJECT
+    
+public:
+    explicit DuplicateGroupWidget(const ResultsWindow::DuplicateGroup& group, QWidget* parent = nullptr);
+    
+    void updateGroup(const ResultsWindow::DuplicateGroup& group);
+    void setExpanded(bool expanded);
+    bool isExpanded() const { return m_isExpanded; }
+    
+    const ResultsWindow::DuplicateGroup& getGroup() const { return m_group; }
+    
+signals:
+    void expansionToggled(bool expanded);
+    void fileSelectionChanged(const QString& filePath, bool selected);
+    void groupSelectionChanged(bool selected);
+    
+private slots:
+    void onExpandButtonClicked();
+    void onFileCheckboxToggled(bool checked);
+    void updateDisplay();
+    
+private:
+    void createGroupHeader();
+    void createFilesList();
+    void updateGroupHeader();
+    void updateFilesList();
+    
+    ResultsWindow::DuplicateGroup m_group;
+    bool m_isExpanded;
+    
+    // UI Components
+    QVBoxLayout* m_layout;
+    QWidget* m_headerWidget;
+    QHBoxLayout* m_headerLayout;
+    QPushButton* m_expandButton;
+    QCheckBox* m_groupCheckbox;
+    QLabel* m_groupIcon;
+    QLabel* m_groupTitle;
+    QLabel* m_groupStats;
+    
+    QWidget* m_filesWidget;
+    QVBoxLayout* m_filesLayout;
+    QList<QCheckBox*> m_fileCheckboxes;
+};
+*/
 
 #endif // RESULTS_WINDOW_H

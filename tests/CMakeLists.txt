@@ -18,6 +18,14 @@ set(TEST_COMMON_SOURCES
     ../src/core/hash_calculator.cpp
     ../src/core/file_manager.cpp
     ../src/core/safety_manager.cpp
+    ../src/core/app_config.cpp
+)
+
+# GUI source files for integration tests
+set(TEST_GUI_SOURCES
+    ../src/gui/main_window.cpp
+    ../src/gui/main_window_widgets.cpp
+    ../src/gui/results_window.cpp
 )
 
 # Header files needed for MOC processing
@@ -27,11 +35,14 @@ set(TEST_COMMON_HEADERS
     ../include/hash_calculator.h
     ../include/file_manager.h
     ../include/safety_manager.h
+    ../include/app_config.h
+    ../include/main_window.h
+    ../src/gui/results_window.h
 )
 
 # Unit Tests
 set(UNIT_TEST_SOURCES
-    unit/test_duplicate_detector.cpp
+    # unit/test_duplicate_detector.cpp  # Included directly in main_test.cpp
     # unit/test_file_scanner.cpp  # Included directly in main_test.cpp
     unit/test_hash_calculator.cpp
     unit/test_file_manager.cpp
@@ -317,4 +328,78 @@ add_test(NAME FileScannerCoverageTest COMMAND test_file_scanner_coverage)
 set_tests_properties(FileScannerCoverageTest PROPERTIES
     TIMEOUT 300
     LABELS "unit;coverage;filescanner"
+)
+
+# Standalone Integration Test - Scan-to-Delete Workflow
+add_executable(test_scan_to_delete_workflow
+    integration/test_scan_to_delete_workflow.cpp
+    ${TEST_COMMON_SOURCES}
+    ../src/gui/results_window.cpp
+    ${TEST_COMMON_HEADERS}
+)
+
+target_link_libraries(test_scan_to_delete_workflow
+    Qt6::Core
+    Qt6::Widgets
+    Qt6::Test
+    Qt6::Concurrent
+)
+
+set_target_properties(test_scan_to_delete_workflow PROPERTIES
+    AUTOMOC ON
+)
+
+add_test(NAME ScanToDeleteWorkflowTest COMMAND test_scan_to_delete_workflow)
+
+set_tests_properties(ScanToDeleteWorkflowTest PROPERTIES
+    TIMEOUT 300
+    LABELS "integration;standalone;scan-to-delete;workflow"
+)
+
+# Standalone Integration Test - Restore Functionality
+add_executable(test_restore_functionality
+    integration/test_restore_functionality.cpp
+    ${TEST_COMMON_SOURCES}
+    ${TEST_COMMON_HEADERS}
+)
+
+target_link_libraries(test_restore_functionality
+    Qt6::Core
+    Qt6::Test
+    Qt6::Concurrent
+)
+
+set_target_properties(test_restore_functionality PROPERTIES
+    AUTOMOC ON
+)
+
+add_test(NAME RestoreFunctionalityTest COMMAND test_restore_functionality)
+
+set_tests_properties(RestoreFunctionalityTest PROPERTIES
+    TIMEOUT 300
+    LABELS "integration;standalone;restore;file-operations"
+)
+
+# Standalone Integration Test - Error Scenarios
+add_executable(test_error_scenarios
+    integration/test_error_scenarios.cpp
+    ${TEST_COMMON_SOURCES}
+    ${TEST_COMMON_HEADERS}
+)
+
+target_link_libraries(test_error_scenarios
+    Qt6::Core
+    Qt6::Test
+    Qt6::Concurrent
+)
+
+set_target_properties(test_error_scenarios PROPERTIES
+    AUTOMOC ON
+)
+
+add_test(NAME ErrorScenariosTest COMMAND test_error_scenarios)
+
+set_tests_properties(ErrorScenariosTest PROPERTIES
+    TIMEOUT 300
+    LABELS "integration;standalone;error-handling;robustness"
 )

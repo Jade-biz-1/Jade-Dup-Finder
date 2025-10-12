@@ -140,6 +140,8 @@ private:
     bool performDelete(const QString& filePath, const QString& operationId);
     bool performMove(const QString& sourceFile, const QString& targetFile, const QString& operationId);
     bool performCopy(const QString& sourceFile, const QString& targetFile, const QString& operationId);
+    bool performRestore(const QString& backupPath, const QString& operationId);
+    bool performBackupCreation(const QString& sourceFile, const QString& operationId);
     
     // Conflict handling
     ConflictResolution resolveConflict(const QString& sourceFile, const QString& targetFile, ConflictResolution mode);

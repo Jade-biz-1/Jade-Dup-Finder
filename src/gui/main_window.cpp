@@ -40,6 +40,7 @@ MainWindow::MainWindow(QWidget *parent)
     , m_duplicateDetector(nullptr)
     , m_hashCalculator(nullptr)
     , m_safetyManager(nullptr)
+    , m_fileManager(nullptr)
     , m_scanSetupDialog(nullptr)
     , m_resultsWindow(nullptr)
     , m_systemUpdateTimer(new QTimer(this))
@@ -89,6 +90,11 @@ void MainWindow::setSafetyManager(SafetyManager* manager)
     m_safetyManager = manager;
 }
 
+void MainWindow::setFileManager(FileManager* manager)
+{
+    m_fileManager = manager;
+}
+
 // Status management
 void MainWindow::updateScanProgress(int percentage, const QString& status)
 {
@@ -108,6 +114,11 @@ void MainWindow::showScanResults()
     
     if (!m_resultsWindow) {
         m_resultsWindow = new ResultsWindow(this);
+        
+        // Set FileManager reference
+        if (m_fileManager) {
+            m_resultsWindow->setFileManager(m_fileManager);
+        }
         
         // Connect results window signals
         connect(m_resultsWindow, &ResultsWindow::windowClosed,
@@ -304,37 +315,7 @@ void MainWindow::setupConnections()
             LOG_FILE("Currently scanning", currentPath);
         });
         
-        connect(m_fileScanner, &FileScanner::scanCompleted, this, [this]() {
-            int filesFound = m_fileScanner->getTotalFilesFound();
-            qint64 bytesScanned = m_fileScanner->getTotalBytesScanned();
-            int errorsEncountered = m_fileScanner->getTotalErrorsEncountered();
-            
-            LOG_INFO("=== FileScanner: Scan Completed ===");
-            LOG_INFO(QString("  - Files found: %1").arg(filesFound));
-            LOG_INFO(QString("  - Bytes scanned: %1 (%2)").arg(bytesScanned).arg(formatFileSize(bytesScanned)));
-            LOG_INFO(QString("  - Errors encountered: %1").arg(errorsEncountered));
-            
-            QString status = tr("Scan complete! Found %1 files (%2)")
-                .arg(filesFound)
-                .arg(formatFileSize(bytesScanned));
-            updateScanProgress(100, status);
-            
-            if (m_fileCountLabel) {
-                m_fileCountLabel->setText(tr("Files: %1").arg(filesFound));
-            }
-            
-            // Re-enable quick actions
-            if (m_quickActions) {
-                m_quickActions->setEnabled(true);
-                LOG_DEBUG("Quick actions re-enabled");
-            }
-            
-            // Show success message
-            showSuccess(tr("Scan Complete"), 
-                       tr("Found %1 files totaling %2")
-                       .arg(filesFound)
-                       .arg(formatFileSize(bytesScanned)));
-        });
+        connect(m_fileScanner, &FileScanner::scanCompleted, this, &MainWindow::onScanCompleted);
         
         connect(m_fileScanner, &FileScanner::scanCancelled, this, [this]() {
             LOG_WARNING("=== FileScanner: Scan Cancelled by User ===");
@@ -368,6 +349,21 @@ void MainWindow::setupConnections()
     
     // System update timer
     connect(m_systemUpdateTimer, &QTimer::timeout, this, &MainWindow::refreshSystemStats);
+    
+    // DuplicateDetector connections
+    if (m_duplicateDetector) {
+        connect(m_duplicateDetector, &DuplicateDetector::detectionStarted,
+                this, &MainWindow::onDuplicateDetectionStarted);
+        
+        connect(m_duplicateDetector, &DuplicateDetector::detectionProgress,
+                this, &MainWindow::onDuplicateDetectionProgress);
+        
+        connect(m_duplicateDetector, &DuplicateDetector::detectionCompleted,
+                this, &MainWindow::onDuplicateDetectionCompleted);
+        
+        connect(m_duplicateDetector, &DuplicateDetector::detectionError,
+                this, &MainWindow::onDuplicateDetectionError);
+    }
 }
 
 void MainWindow::updatePlanIndicator()
@@ -798,3 +794,169 @@ void MainWindow::handleScanConfiguration()
     }
 }
 
+
+// Duplicate detection handlers
+void MainWindow::onScanCompleted()
+{
+    int filesFound = m_fileScanner->getTotalFilesFound();
+    qint64 bytesScanned = m_fileScanner->getTotalBytesScanned();
+    int errorsEncountered = m_fileScanner->getTotalErrorsEncountered();
+    
+    LOG_INFO("=== FileScanner: Scan Completed ===");
+    LOG_INFO(QString("  - Files found: %1").arg(filesFound));
+    LOG_INFO(QString("  - Bytes scanned: %1 (%2)").arg(bytesScanned).arg(formatFileSize(bytesScanned)));
+    LOG_INFO(QString("  - Errors encountered: %1").arg(errorsEncountered));
+    
+    QString status = tr("Scan complete! Found %1 files (%2)")
+        .arg(filesFound)
+        .arg(formatFileSize(bytesScanned));
+    updateScanProgress(100, status);
+    
+    if (m_fileCountLabel) {
+        m_fileCountLabel->setText(tr("Files: %1").arg(filesFound));
+    }
+    
+    // Cache scan results for duplicate detection
+    m_lastScanResults = m_fileScanner->getScannedFiles();
+    
+    // Convert FileScanner::FileInfo to DuplicateDetector::FileInfo
+    QList<DuplicateDetector::FileInfo> detectorFiles;
+    detectorFiles.reserve(m_lastScanResults.size());
+    
+    for (const auto& scanFile : m_lastScanResults) {
+        detectorFiles.append(DuplicateDetector::FileInfo::fromScannerInfo(scanFile));
+    }
+    
+    LOG_INFO(QString("=== Starting Duplicate Detection ==="));
+    LOG_INFO(QString("  - Files to analyze: %1").arg(detectorFiles.size()));
+    
+    // Start duplicate detection if detector is available
+    if (m_duplicateDetector && !detectorFiles.isEmpty()) {
+        m_duplicateDetector->findDuplicates(detectorFiles);
+    } else {
+        if (!m_duplicateDetector) {
+            LOG_ERROR("DuplicateDetector not initialized!");
+            showError(tr("Error"), tr("Duplicate detector is not initialized. Please restart the application."));
+        } else {
+            LOG_WARNING("No files to analyze for duplicates");
+            showSuccess(tr("Scan Complete"), 
+                       tr("Found %1 files totaling %2, but no files to analyze for duplicates")
+                       .arg(filesFound)
+                       .arg(formatFileSize(bytesScanned)));
+        }
+        
+        // Re-enable quick actions
+        if (m_quickActions) {
+            m_quickActions->setEnabled(true);
+            LOG_DEBUG("Quick actions re-enabled");
+        }
+    }
+}
+
+void MainWindow::onDuplicateDetectionStarted(int totalFiles)
+{
+    LOG_INFO(QString("=== Duplicate Detection Started ==="));
+    LOG_INFO(QString("  - Total files to process: %1").arg(totalFiles));
+    
+    updateScanProgress(0, tr("Detecting duplicates..."));
+}
+
+void MainWindow::onDuplicateDetectionProgress(const DuplicateDetector::DetectionProgress& progress)
+{
+    QString phaseText;
+    switch (progress.currentPhase) {
+        case DuplicateDetector::DetectionProgress::SizeGrouping:
+            phaseText = tr("Grouping by size");
+            break;
+        case DuplicateDetector::DetectionProgress::HashCalculation:
+            phaseText = tr("Calculating hashes");
+            break;
+        case DuplicateDetector::DetectionProgress::DuplicateGrouping:
+            phaseText = tr("Finding duplicates");
+            break;
+        case DuplicateDetector::DetectionProgress::GeneratingRecommendations:
+            phaseText = tr("Generating recommendations");
+            break;
+        case DuplicateDetector::DetectionProgress::Complete:
+            phaseText = tr("Complete");
+            break;
+    }
+    
+    QString status = tr("Detecting duplicates: %1 (%2/%3 files)")
+        .arg(phaseText)
+        .arg(progress.filesProcessed)
+        .arg(progress.totalFiles);
+    
+    updateScanProgress(static_cast<int>(progress.percentComplete), status);
+    
+    LOG_DEBUG(QString("Detection progress: %1% - %2").arg(progress.percentComplete, 0, 'f', 1).arg(phaseText));
+}
+
+void MainWindow::onDuplicateDetectionCompleted(int totalGroups)
+{
+    LOG_INFO("=== Duplicate Detection Completed ===");
+    LOG_INFO(QString("  - Duplicate groups found: %1").arg(totalGroups));
+    
+    // Get results from detector
+    QList<DuplicateDetector::DuplicateGroup> groups = m_duplicateDetector->getDuplicateGroups();
+    qint64 totalWastedSpace = m_duplicateDetector->getTotalWastedSpace();
+    
+    LOG_INFO(QString("  - Total wasted space: %1").arg(formatFileSize(totalWastedSpace)));
+    
+    // Update status
+    QString status = tr("Detection complete! Found %1 duplicate groups")
+        .arg(totalGroups);
+    updateScanProgress(100, status);
+    
+    if (m_groupCountLabel) {
+        m_groupCountLabel->setText(tr("Groups: %1").arg(totalGroups));
+    }
+    
+    if (m_savingsLabel) {
+        m_savingsLabel->setText(tr("Savings: %1").arg(formatFileSize(totalWastedSpace)));
+    }
+    
+    // Re-enable quick actions
+    if (m_quickActions) {
+        m_quickActions->setEnabled(true);
+        LOG_DEBUG("Quick actions re-enabled");
+    }
+    
+    // Show results if duplicates were found
+    if (totalGroups > 0) {
+        showSuccess(tr("Detection Complete"), 
+                   tr("Found %1 duplicate groups with potential savings of %2")
+                   .arg(totalGroups)
+                   .arg(formatFileSize(totalWastedSpace)));
+        
+        // Pass results to ResultsWindow
+        if (m_resultsWindow) {
+            m_resultsWindow->displayDuplicateGroups(groups);
+            m_resultsWindow->show();
+            m_resultsWindow->raise();
+            m_resultsWindow->activateWindow();
+        } else {
+            showScanResults();
+        }
+    } else {
+        showSuccess(tr("Detection Complete"), 
+                   tr("No duplicate files found. Your files are unique!"));
+    }
+}
+
+void MainWindow::onDuplicateDetectionError(const QString& error)
+{
+    LOG_ERROR(QString("=== Duplicate Detection Error ==="));
+    LOG_ERROR(QString("  - Error: %1").arg(error));
+    
+    updateScanProgress(0, tr("Detection failed"));
+    
+    // Re-enable quick actions
+    if (m_quickActions) {
+        m_quickActions->setEnabled(true);
+        LOG_DEBUG("Quick actions re-enabled");
+    }
+    
+    showError(tr("Detection Error"), 
+             tr("An error occurred during duplicate detection:\n%1").arg(error));
+}

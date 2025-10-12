@@ -1,7 +1,7 @@
-#ifndef SAFETY_MANAGER_H
-#define SAFETY_MANAGER_H
+#ifndef SAFETY_MANAGER_PROXY_H
+#define SAFETY_MANAGER_PROXY_H
 
 // Proxy header for SafetyManager - includes the actual implementation
 #include "../src/core/safety_manager.h"
 
-#endif // SAFETY_MANAGER_H
+#endif // SAFETY_MANAGER_PROXY_H
