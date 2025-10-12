@@ -43,6 +43,7 @@ set(INTEGRATION_TEST_SOURCES
     integration/test_full_workflow.cpp
     integration/test_cross_platform.cpp
     integration/test_integration_workflow.cpp
+    integration/test_filescanner_hashcalculator.cpp
 )
 
 # Create unit test executable
@@ -149,7 +150,74 @@ set_target_properties(test_integration_workflow PROPERTIES
     AUTOMOC ON
 )
 
+# Standalone Integration Test - FileScanner <-> HashCalculator
+add_executable(test_filescanner_hashcalculator
+    integration/test_filescanner_hashcalculator.cpp
+    ${TEST_COMMON_SOURCES}
+    ${TEST_COMMON_HEADERS}
+)
+
+target_link_libraries(test_filescanner_hashcalculator
+    Qt6::Core
+    Qt6::Test
+    Qt6::Concurrent
+)
+
+set_target_properties(test_filescanner_hashcalculator PROPERTIES
+    AUTOMOC ON
+)
+
+# Standalone Integration Test - FileScanner <-> DuplicateDetector
+add_executable(test_filescanner_duplicatedetector
+    integration/test_filescanner_duplicatedetector.cpp
+    ${TEST_COMMON_SOURCES}
+    ${TEST_COMMON_HEADERS}
+)
+
+target_link_libraries(test_filescanner_duplicatedetector
+    Qt6::Core
+    Qt6::Test
+    Qt6::Concurrent
+)
+
+set_target_properties(test_filescanner_duplicatedetector PROPERTIES
+    AUTOMOC ON
+)
+
+# Standalone Integration Test - End-to-End Workflow
+add_executable(test_end_to_end_workflow
+    integration/test_end_to_end_workflow.cpp
+    ${TEST_COMMON_SOURCES}
+    ${TEST_COMMON_HEADERS}
+)
+
+target_link_libraries(test_end_to_end_workflow
+    Qt6::Core
+    Qt6::Test
+    Qt6::Concurrent
+)
+
+set_target_properties(test_end_to_end_workflow PROPERTIES
+    AUTOMOC ON
+)
+
 # Standalone Performance Tests
+add_executable(test_file_scanner_performance
+    performance/test_file_scanner_performance_simple.cpp
+    ${TEST_COMMON_SOURCES}
+    ${TEST_COMMON_HEADERS}
+)
+
+target_link_libraries(test_file_scanner_performance
+    Qt6::Core
+    Qt6::Test
+    Qt6::Concurrent
+)
+
+set_target_properties(test_file_scanner_performance PROPERTIES
+    AUTOMOC ON
+)
+
 add_executable(test_hc002b_batch_processing
     performance/test_hc002b_batch_processing.cpp
     ${TEST_COMMON_SOURCES}
@@ -183,14 +251,38 @@ set_target_properties(test_hc002c_io_optimization PROPERTIES
 )
 
 # Add standalone tests to CTest
+add_test(NAME FileScannerPerformanceTest COMMAND test_file_scanner_performance)
 add_test(NAME IntegrationWorkflowTest COMMAND test_integration_workflow)
+add_test(NAME FileScannerHashCalculatorTest COMMAND test_filescanner_hashcalculator)
+add_test(NAME FileScannerDuplicateDetectorTest COMMAND test_filescanner_duplicatedetector)
+add_test(NAME EndToEndWorkflowTest COMMAND test_end_to_end_workflow)
 add_test(NAME BatchProcessingTest COMMAND test_hc002b_batch_processing)
 add_test(NAME IOOptimizationTest COMMAND test_hc002c_io_optimization)
 
 # Set standalone test properties
+set_tests_properties(FileScannerPerformanceTest PROPERTIES
+    TIMEOUT 600
+    LABELS "performance;standalone;file_scanner"
+)
+
 set_tests_properties(IntegrationWorkflowTest PROPERTIES
     TIMEOUT 300
     LABELS "integration;standalone"
+)
+
+set_tests_properties(FileScannerHashCalculatorTest PROPERTIES
+    TIMEOUT 300
+    LABELS "integration;standalone;filescanner;hashcalculator"
+)
+
+set_tests_properties(FileScannerDuplicateDetectorTest PROPERTIES
+    TIMEOUT 300
+    LABELS "integration;standalone;filescanner;duplicatedetector"
+)
+
+set_tests_properties(EndToEndWorkflowTest PROPERTIES
+    TIMEOUT 300
+    LABELS "integration;standalone;end-to-end;workflow"
 )
 
 set_tests_properties(BatchProcessingTest PROPERTIES
@@ -201,4 +293,28 @@ set_tests_properties(BatchProcessingTest PROPERTIES
 set_tests_properties(IOOptimizationTest PROPERTIES
     TIMEOUT 600
     LABELS "performance;standalone"
+)
+
+# Standalone Coverage Test - FileScanner Coverage
+add_executable(test_file_scanner_coverage
+    unit/test_file_scanner_coverage.cpp
+    ${TEST_COMMON_SOURCES}
+    ${TEST_COMMON_HEADERS}
+)
+
+target_link_libraries(test_file_scanner_coverage
+    Qt6::Core
+    Qt6::Test
+    Qt6::Concurrent
+)
+
+set_target_properties(test_file_scanner_coverage PROPERTIES
+    AUTOMOC ON
+)
+
+add_test(NAME FileScannerCoverageTest COMMAND test_file_scanner_coverage)
+
+set_tests_properties(FileScannerCoverageTest PROPERTIES
+    TIMEOUT 300
+    LABELS "unit;coverage;filescanner"
 )

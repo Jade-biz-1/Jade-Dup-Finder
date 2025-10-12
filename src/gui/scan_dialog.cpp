@@ -133,7 +133,7 @@ ScanSetupDialog::ScanSetupDialog(QWidget* parent)
     
     // Initialize configuration with defaults
     m_currentConfig.detectionMode = DetectionMode::Smart;
-    m_currentConfig.minimumFileSize = 1024 * 1024; // 1MB
+    m_currentConfig.minimumFileSize = 0; // 0 MB - include all files
     m_currentConfig.maximumDepth = -1; // Unlimited
     m_currentConfig.includeHidden = false;
     m_currentConfig.includeSystem = false;
@@ -295,8 +295,8 @@ void ScanSetupDialog::createOptionsPanel()
     // Minimum size
     QLabel* sizeLabel = new QLabel(tr("Min Size:"), this);
     m_minimumSize = new QSpinBox(this);
-    m_minimumSize->setRange(1, 1024);
-    m_minimumSize->setValue(1);
+    m_minimumSize->setRange(0, 1024);
+    m_minimumSize->setValue(0);
     m_minimumSize->setSuffix(tr(" MB"));
     
     // Maximum depth
@@ -873,7 +873,7 @@ void ScanSetupDialog::applyPhotosPreset()
     
     // Configure for photos
     m_detectionMode->setCurrentIndex(3); // Media
-    m_minimumSize->setValue(1); // 1MB+
+    m_minimumSize->setValue(0); // Include all files
     
     // Select only image types
     m_allTypesCheck->setChecked(false);
@@ -894,7 +894,7 @@ void ScanSetupDialog::applyDocumentsPreset()
     
     // Configure for documents
     m_detectionMode->setCurrentIndex(2); // Deep
-    m_minimumSize->setValue(1); // 1MB+
+    m_minimumSize->setValue(0); // Include all files
     
     // Select only document types
     m_allTypesCheck->setChecked(false);
@@ -942,7 +942,7 @@ void ScanSetupDialog::applyCustomPreset()
     
     // Reset to defaults
     m_detectionMode->setCurrentIndex(1); // Smart
-    m_minimumSize->setValue(1); // 1MB
+    m_minimumSize->setValue(0); // Include all files
     m_allTypesCheck->setChecked(true);
     
     QMessageBox::information(this, tr("Custom Preset"), 
@@ -1285,7 +1285,7 @@ void ScanSetupDialog::resetToDefaults()
     // Reset to default configuration
     ScanConfiguration defaultConfig;
     defaultConfig.detectionMode = DetectionMode::Smart;
-    defaultConfig.minimumFileSize = 1024 * 1024; // 1MB
+    defaultConfig.minimumFileSize = 0; // 0 MB - include all files
     defaultConfig.maximumDepth = -1;
     defaultConfig.includeHidden = false;
     defaultConfig.includeSystem = false;

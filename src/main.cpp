@@ -1,4 +1,8 @@
 #include "main_window.h"
+#include "file_scanner.h"
+// #include "hash_calculator.h"
+// #include "duplicate_detector.h"
+// #include "safety_manager.h"
 #include <QtWidgets/QApplication>
 #include <QtCore/QTranslator>
 #include <QtCore/QLibraryInfo>
@@ -34,8 +38,28 @@ int main(int argc, char *argv[])
         app.installTranslator(&appTranslator);
     }
     
+    // Create core components
+    FileScanner fileScanner;
+    // HashCalculator hashCalculator;
+    // DuplicateDetector duplicateDetector;
+    // SafetyManager safetyManager;
+    
+    qDebug() << "Core components initialized:";
+    qDebug() << "  - FileScanner";
+    // qDebug() << "  - HashCalculator";
+    // qDebug() << "  - DuplicateDetector";
+    // qDebug() << "  - SafetyManager";
+    
     // Create and show main window
     MainWindow mainWindow;
+    
+    // Connect core components to main window
+    mainWindow.setFileScanner(&fileScanner);
+    // mainWindow.setHashCalculator(&hashCalculator);
+    // mainWindow.setDuplicateDetector(&duplicateDetector);
+    // mainWindow.setSafetyManager(&safetyManager);
+    
+    qDebug() << "Core components connected to MainWindow";
     
     // Connect application exit signal
     QObject::connect(&mainWindow, &MainWindow::applicationExit, &app, &QApplication::quit);

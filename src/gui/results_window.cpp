@@ -1,4 +1,5 @@
 #include "results_window.h"
+#include "app_config.h"
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QMessageBox>
 #include <QtWidgets/QFileDialog>
@@ -54,8 +55,8 @@ ResultsWindow::ResultsWindow(QWidget* parent)
     setupConnections();
     applyTheme();
     
-    // Load sample data for testing
-    loadSampleData();
+    // Don't load sample data - wait for real scan results
+    // loadSampleData();
 }
 
 ResultsWindow::~ResultsWindow()
@@ -877,19 +878,27 @@ void ResultsWindow::exportResults()
 
 void ResultsWindow::selectAllDuplicates()
 {
+    LOG_INFO("User clicked 'Select All' button");
+    
+    int selectedCount = 0;
     QTreeWidgetItemIterator it(m_resultsTree);
     while (*it) {
         QTreeWidgetItem* item = *it;
         if (item->parent() != nullptr) { // File item
             item->setCheckState(0, Qt::Checked);
+            selectedCount++;
         }
         ++it;
     }
+    
+    LOG_INFO(QString("Selected all %1 files").arg(selectedCount));
     updateSelectionSummary();
 }
 
 void ResultsWindow::selectNoneFiles()
 {
+    LOG_INFO("User clicked 'Clear Selection' button");
+    
     QTreeWidgetItemIterator it(m_resultsTree);
     while (*it) {
         QTreeWidgetItem* item = *it;
@@ -898,14 +907,20 @@ void ResultsWindow::selectNoneFiles()
         }
         ++it;
     }
+    
+    LOG_INFO("Cleared all selections");
     updateSelectionSummary();
 }
 
 void ResultsWindow::selectRecommended()
 {
+    LOG_INFO("User clicked 'Select Recommended' button");
+    
+    int selectedCount = 0;
     // Select all non-recommended files (files to delete)
     for (const auto& group : m_currentResults.duplicateGroups) {
         QString recommended = getRecommendedFileToKeep(group);
+        LOG_DEBUG(QString("Group recommended file: %1").arg(recommended));
         
         QTreeWidgetItemIterator it(m_resultsTree);
         while (*it) {
@@ -915,6 +930,7 @@ void ResultsWindow::selectRecommended()
                 if (filePath != recommended && 
                     group.files.contains(DuplicateFile{filePath, "", "", 0, QDateTime(), QDateTime(), "", QPixmap(), false, false, ""})) {
                     item->setCheckState(0, Qt::Checked);
+                    selectedCount++;
                 } else if (filePath == recommended) {
                     item->setCheckState(0, Qt::Unchecked);
                 }
@@ -922,11 +938,16 @@ void ResultsWindow::selectRecommended()
             ++it;
         }
     }
+    
+    LOG_INFO(QString("Selected %1 recommended files for deletion").arg(selectedCount));
     updateSelectionSummary();
 }
 
 void ResultsWindow::selectBySize(qint64 minSize)
 {
+    LOG_INFO(QString("Selecting files by size (min: %1 bytes)").arg(minSize));
+    
+    int selectedCount = 0;
     QTreeWidgetItemIterator it(m_resultsTree);
     while (*it) {
         QTreeWidgetItem* item = *it;
@@ -938,17 +959,23 @@ void ResultsWindow::selectBySize(qint64 minSize)
                 for (const auto& file : group.files) {
                     if (file.filePath == filePath && file.fileSize >= minSize) {
                         item->setCheckState(0, Qt::Checked);
+                        selectedCount++;
                     }
                 }
             }
         }
         ++it;
     }
+    
+    LOG_INFO(QString("Selected %1 files by size").arg(selectedCount));
     updateSelectionSummary();
 }
 
 void ResultsWindow::selectByType(const QString& fileType)
 {
+    LOG_INFO(QString("Selecting files by type: %1").arg(fileType));
+    
+    int selectedCount = 0;
     QTreeWidgetItemIterator it(m_resultsTree);
     while (*it) {
         QTreeWidgetItem* item = *it;
@@ -964,10 +991,13 @@ void ResultsWindow::selectByType(const QString& fileType)
             
             if (shouldSelect) {
                 item->setCheckState(0, Qt::Checked);
+                selectedCount++;
             }
         }
         ++it;
     }
+    
+    LOG_INFO(QString("Selected %1 files by type").arg(selectedCount));
     updateSelectionSummary();
 }
 
@@ -986,29 +1016,51 @@ void ResultsWindow::deleteSelectedFiles()
                                                               QMessageBox::Yes | QMessageBox::No);
     
     if (reply == QMessageBox::Yes) {
-        qDebug() << "Would delete" << selected.size() << "files";
-        // TODO: Implement actual file deletion
-        QMessageBox::information(this, tr("Delete"), tr("File deletion will be implemented soon."));
+        LOG_WARNING(QString("File deletion confirmed for %1 files (not yet implemented)").arg(selected.size()));
+        for (int i = 0; i < qMin(5, selected.size()); ++i) {
+            LOG_DEBUG(QString("  - Would delete: %1").arg(selected[i].filePath));
+        }
+        if (selected.size() > 5) {
+            LOG_DEBUG(QString("  ... and %1 more files").arg(selected.size() - 5));
+        }
+        // TODO: Implement actual file deletion with FileManager
+        QMessageBox::information(this, tr("Delete"), tr("File deletion will be implemented soon.\nThis will integrate with FileManager and SafetyManager."));
+    } else {
+        LOG_INFO("User cancelled file deletion");
     }
 }
 
 void ResultsWindow::moveSelectedFiles()
 {
+    LOG_INFO("User clicked 'Move Selected Files' button");
+    
     QList<DuplicateFile> selected = getSelectedFiles();
-    if (selected.isEmpty()) return;
+    if (selected.isEmpty()) {
+        LOG_WARNING("No files selected for moving");
+        return;
+    }
     
     QString destination = QFileDialog::getExistingDirectory(this, tr("Select Destination Folder"));
     if (!destination.isEmpty()) {
-        qDebug() << "Would move" << selected.size() << "files to" << destination;
-        // TODO: Implement actual file moving
-        QMessageBox::information(this, tr("Move"), tr("File moving will be implemented soon."));
+        LOG_INFO(QString("User selected destination: %1").arg(destination));
+        LOG_WARNING(QString("Would move %1 files (not yet implemented)").arg(selected.size()));
+        for (int i = 0; i < qMin(5, selected.size()); ++i) {
+            LOG_DEBUG(QString("  - Would move: %1 -> %2").arg(selected[i].filePath).arg(destination));
+        }
+        // TODO: Implement actual file moving with FileManager
+        QMessageBox::information(this, tr("Move"), tr("File moving will be implemented soon.\nThis will integrate with FileManager."));
+    } else {
+        LOG_INFO("User cancelled file move operation");
     }
 }
 
 void ResultsWindow::ignoreSelectedFiles()
 {
-    qDebug() << "Ignore selected files";
-    // TODO: Implement ignore functionality
+    LOG_INFO("User clicked 'Ignore Selected Files' button");
+    QList<DuplicateFile> selected = getSelectedFiles();
+    LOG_WARNING(QString("Ignore functionality not yet implemented (%1 files selected)").arg(selected.size()));
+    // TODO: Implement ignore functionality - add to ignore list
+    QMessageBox::information(this, tr("Ignore"), tr("Ignore functionality will be implemented soon.\nThis will add files to an ignore list."));
 }
 
 void ResultsWindow::previewSelectedFile()
@@ -1028,28 +1080,46 @@ void ResultsWindow::previewSelectedFile()
 
 void ResultsWindow::openFileLocation()
 {
+    LOG_INFO("User clicked 'Open File Location' button");
+    
     QList<QTreeWidgetItem*> selected = m_resultsTree->selectedItems();
-    if (selected.isEmpty()) return;
+    if (selected.isEmpty()) {
+        LOG_WARNING("No file selected");
+        return;
+    }
     
     QTreeWidgetItem* item = selected.first();
-    if (item->parent() == nullptr) return;
+    if (item->parent() == nullptr) {
+        LOG_WARNING("Group item selected, not a file");
+        return;
+    }
     
     QString filePath = item->data(0, Qt::UserRole).toString();
     QFileInfo fileInfo(filePath);
     QString dirPath = fileInfo.dir().absolutePath();
     
+    LOG_INFO(QString("Opening file location: %1").arg(dirPath));
     QDesktopServices::openUrl(QUrl::fromLocalFile(dirPath));
 }
 
 void ResultsWindow::copyFilePath()
 {
+    LOG_INFO("User clicked 'Copy File Path' button");
+    
     QList<QTreeWidgetItem*> selected = m_resultsTree->selectedItems();
-    if (selected.isEmpty()) return;
+    if (selected.isEmpty()) {
+        LOG_WARNING("No file selected");
+        return;
+    }
     
     QTreeWidgetItem* item = selected.first();
-    if (item->parent() == nullptr) return;
+    if (item->parent() == nullptr) {
+        LOG_WARNING("Group item selected, not a file");
+        return;
+    }
     
     QString filePath = item->data(0, Qt::UserRole).toString();
+    LOG_INFO(QString("Copying file path to clipboard: %1").arg(filePath));
     QApplication::clipboard()->setText(filePath);
     
     m_statusLabel->setText(tr("File path copied to clipboard"));
@@ -1100,32 +1170,82 @@ void ResultsWindow::confirmBulkOperation(const QString& operation, int fileCount
     }
 }
 
-// Filter and sort stubs
+// Filter and sort implementations
 void ResultsWindow::onFilterChanged()
 {
-    qDebug() << "Filter changed - not implemented yet";
+    LOG_INFO("User changed filter settings");
+    LOG_DEBUG(QString("  - Type filter: %1").arg(m_typeFilter->currentText()));
+    LOG_DEBUG(QString("  - Size filter: %1").arg(m_sizeFilter->currentText()));
+    LOG_DEBUG(QString("  - Search text: %1").arg(m_searchFilter->text()));
+    
+    // Apply filters to the tree view
+    applyFilters();
 }
 
 void ResultsWindow::onSortChanged()
 {
-    qDebug() << "Sort changed - not implemented yet";
+    LOG_INFO(QString("User changed sort order to: %1").arg(m_sortCombo->currentText()));
+    
+    // Apply sorting to the tree view
+    applySorting();
 }
 
 void ResultsWindow::onGroupExpanded(QTreeWidgetItem* item)
 {
-    Q_UNUSED(item)
-    qDebug() << "Group expanded";
+    if (!item) return;
+    
+    LOG_DEBUG(QString("Group expanded: %1").arg(item->text(0)));
+    
+    // Update the group's expanded state in our data
+    QString groupId = item->data(0, Qt::UserRole + 3).toString();
+    for (auto& group : m_currentResults.duplicateGroups) {
+        if (group.groupId == groupId) {
+            group.isExpanded = true;
+            break;
+        }
+    }
+    
+    // Load file details for this group if not already loaded
+    // This could trigger thumbnail loading, etc.
 }
 
 void ResultsWindow::onGroupCollapsed(QTreeWidgetItem* item)
 {
-    Q_UNUSED(item)
-    qDebug() << "Group collapsed";
+    if (!item) return;
+    
+    LOG_DEBUG(QString("Group collapsed: %1").arg(item->text(0)));
+    
+    // Update the group's expanded state in our data
+    QString groupId = item->data(0, Qt::UserRole + 3).toString();
+    for (auto& group : m_currentResults.duplicateGroups) {
+        if (group.groupId == groupId) {
+            group.isExpanded = false;
+            break;
+        }
+    }
 }
 
 void ResultsWindow::onGroupSelectionChanged()
 {
-    qDebug() << "Group selection changed";
+    LOG_DEBUG("Group selection changed");
+    
+    // Update the details panel with the selected group's information
+    QList<QTreeWidgetItem*> selected = m_resultsTree->selectedItems();
+    if (!selected.isEmpty()) {
+        QTreeWidgetItem* item = selected.first();
+        
+        // If it's a group item (no parent)
+        if (!item->parent()) {
+            QString groupId = item->data(0, Qt::UserRole + 3).toString();
+            LOG_DEBUG(QString("Selected group: %1").arg(groupId));
+            
+            // Update details panel with group information
+            // This could show group statistics, recommendations, etc.
+        }
+    }
+    
+    // Update selection summary
+    updateSelectionSummary();
 }
 
 // Event handlers
@@ -1156,4 +1276,130 @@ void ResultsWindow::updateProgress(const QString& operation, int percentage)
     m_statusLabel->setText(operation);
     m_progressBar->setValue(percentage);
     m_progressBar->setVisible(percentage > 0 && percentage < 100);
+}
+
+// Filter and sort helper implementations
+void ResultsWindow::applyFilters()
+{
+    LOG_DEBUG("Applying filters to results tree");
+    
+    if (!m_resultsTree) {
+        return;
+    }
+    
+    QString searchText = m_searchFilter ? m_searchFilter->text().toLower() : "";
+    int sizeFilterIndex = m_sizeFilter ? m_sizeFilter->currentIndex() : 0;
+    int typeFilterIndex = m_typeFilter ? m_typeFilter->currentIndex() : 0;
+    
+    int visibleGroups = 0;
+    int hiddenGroups = 0;
+    
+    // Iterate through all top-level items (groups)
+    for (int i = 0; i < m_resultsTree->topLevelItemCount(); ++i) {
+        QTreeWidgetItem* groupItem = m_resultsTree->topLevelItem(i);
+        bool shouldShow = true;
+        
+        // Apply search filter
+        if (!searchText.isEmpty()) {
+            QString groupText = groupItem->text(0).toLower();
+            bool matchFound = groupText.contains(searchText);
+            
+            // Also check child items
+            if (!matchFound) {
+                for (int j = 0; j < groupItem->childCount(); ++j) {
+                    QString childText = groupItem->child(j)->text(0).toLower();
+                    if (childText.contains(searchText)) {
+                        matchFound = true;
+                        break;
+                    }
+                }
+            }
+            
+            shouldShow = matchFound;
+        }
+        
+        // Apply size filter
+        if (shouldShow && sizeFilterIndex > 0) {
+            // Size filter logic based on index
+            // 0 = All sizes, 1 = < 1MB, 2 = 1-10MB, 3 = 10-100MB, 4 = > 100MB
+            qint64 groupSize = groupItem->data(0, Qt::UserRole + 1).toLongLong();
+            
+            switch (sizeFilterIndex) {
+                case 1: shouldShow = (groupSize < 1024 * 1024); break;
+                case 2: shouldShow = (groupSize >= 1024 * 1024 && groupSize < 10 * 1024 * 1024); break;
+                case 3: shouldShow = (groupSize >= 10 * 1024 * 1024 && groupSize < 100 * 1024 * 1024); break;
+                case 4: shouldShow = (groupSize >= 100 * 1024 * 1024); break;
+            }
+        }
+        
+        // Apply type filter
+        if (shouldShow && typeFilterIndex > 0) {
+            QString groupType = groupItem->data(0, Qt::UserRole + 2).toString();
+            QString filterType = m_typeFilter->currentText().toLower();
+            shouldShow = groupType.contains(filterType, Qt::CaseInsensitive);
+        }
+        
+        groupItem->setHidden(!shouldShow);
+        if (shouldShow) {
+            visibleGroups++;
+        } else {
+            hiddenGroups++;
+        }
+    }
+    
+    LOG_DEBUG(QString("Filter results: %1 visible, %2 hidden").arg(visibleGroups).arg(hiddenGroups));
+}
+
+void ResultsWindow::applySorting()
+{
+    LOG_DEBUG("Applying sorting to results tree");
+    
+    if (!m_resultsTree || !m_sortCombo) {
+        return;
+    }
+    
+    int sortIndex = m_sortCombo->currentIndex();
+    
+    // Sort options:
+    // 0 = Size (largest first)
+    // 1 = Size (smallest first)
+    // 2 = Name (A-Z)
+    // 3 = Name (Z-A)
+    // 4 = Count (most duplicates first)
+    
+    int column = 0;  // Default to first column
+    Qt::SortOrder order = Qt::DescendingOrder;
+    
+    switch (sortIndex) {
+        case 0: // Size (largest first)
+            column = 1;  // Size column
+            order = Qt::DescendingOrder;
+            break;
+        case 1: // Size (smallest first)
+            column = 1;
+            order = Qt::AscendingOrder;
+            break;
+        case 2: // Name (A-Z)
+            column = 0;  // Name column
+            order = Qt::AscendingOrder;
+            break;
+        case 3: // Name (Z-A)
+            column = 0;
+            order = Qt::DescendingOrder;
+            break;
+        case 4: // Count (most duplicates first)
+            column = 2;  // Count column (if exists)
+            order = Qt::DescendingOrder;
+            break;
+    }
+    
+    m_resultsTree->sortItems(column, order);
+    LOG_DEBUG(QString("Sorted by column %1, order %2").arg(column).arg(order == Qt::AscendingOrder ? "ascending" : "descending"));
+}
+
+bool ResultsWindow::matchesCurrentFilters(const DuplicateGroup& group) const
+{
+    // This method can be used when adding new groups dynamically
+    Q_UNUSED(group);
+    return true;  // Placeholder for now
 }

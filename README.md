@@ -123,6 +123,27 @@ dupfinder/
 └── dist/                 # Distribution packages
 ```
 
+## 📚 Documentation
+
+### Component Documentation
+
+#### FileScanner Component
+The FileScanner is the core component responsible for finding files to analyze. Complete documentation:
+
+- **[API Reference](docs/API_FILESCANNER.md)** - Complete API documentation with all methods, signals, and data structures
+- **[Usage Examples](docs/FILESCANNER_EXAMPLES.md)** - Practical examples for common use cases
+- **[Error Handling Guide](docs/FILESCANNER_ERROR_HANDLING.md)** - Best practices for handling scan errors
+- **[Performance Tuning](docs/FILESCANNER_PERFORMANCE.md)** - Optimization guide for large-scale scanning
+- **[Integration Guide](docs/FILESCANNER_INTEGRATION.md)** - How to integrate with HashCalculator and DuplicateDetector
+- **[Migration Guide](docs/FILESCANNER_MIGRATION.md)** - Upgrading from older versions
+
+### General Documentation
+- **[Product Requirements](docs/PRD.md)** - Product vision and requirements
+- **[Architecture Design](docs/ARCHITECTURE_DESIGN.md)** - System architecture overview
+- **[API Design](docs/API_DESIGN.md)** - API design for all components
+- **[Testing Status](docs/TESTING_STATUS.md)** - Current testing status and known issues
+- **[User Guide](docs/USER_GUIDE.md)** - End-user documentation
+
 ## 🔧 Development
 
 ### Code Style

@@ -1,6 +1,8 @@
 #include "main_window.h"
 #include "scan_dialog.h"
 #include "results_window.h"
+#include "file_scanner.h"
+#include "app_config.h"
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QMessageBox>
 #include <QtWidgets/QListWidgetItem>
@@ -156,7 +158,10 @@ void MainWindow::showSuccess(const QString& title, const QString& message)
 // Public slots
 void MainWindow::onNewScanRequested()
 {
+    LOG_INFO("User clicked 'New Scan' button");
+    
     if (!m_scanSetupDialog) {
+        LOG_DEBUG("Creating new ScanSetupDialog");
         m_scanSetupDialog = new ScanSetupDialog(this);
         
         // Connect scan configuration signal
@@ -166,11 +171,12 @@ void MainWindow::onNewScanRequested()
         // Connect preset saved signal
         connect(m_scanSetupDialog, &ScanSetupDialog::presetSaved,
                 this, [this](const QString& name) {
-                    qDebug() << "Preset saved:" << name;
-                    // TODO: Update quick actions with new preset
+                    LOG_INFO(QString("Preset saved: %1").arg(name));
+                    // Preset is automatically saved by the dialog
                 });
     }
     
+    LOG_DEBUG("Showing scan setup dialog");
     m_scanSetupDialog->show();
     m_scanSetupDialog->raise();
     m_scanSetupDialog->activateWindow();
@@ -178,33 +184,54 @@ void MainWindow::onNewScanRequested()
 
 void MainWindow::onPresetSelected(const QString& preset)
 {
-    qDebug() << "Preset selected:" << preset;
+    LOG_INFO(QString("User selected preset: %1").arg(preset));
     emit scanRequested(preset);
 }
 
 void MainWindow::onSettingsRequested()
 {
+    LOG_INFO("User clicked 'Settings' button");
     emit settingsRequested();
 }
 
 void MainWindow::onHelpRequested()
 {
+    LOG_INFO("User clicked 'Help' button");
     emit helpRequested();
 }
 
 void MainWindow::updateSystemInfo()
 {
+    LOG_DEBUG("Updating system information");
     refreshSystemStats();
 }
 
 void MainWindow::onScanHistoryItemClicked(int index)
 {
-    qDebug() << "History item clicked:" << index;
+    LOG_INFO(QString("User clicked history item: %1").arg(index));
+    
+    // Get the history item and load its results
+    if (m_scanHistory && index >= 0) {
+        QList<ScanHistoryWidget::ScanHistoryItem> history = m_scanHistory->getHistory();
+        if (index < history.size()) {
+            const auto& item = history[index];
+            LOG_INFO(QString("Loading scan results for: %1").arg(item.scanId));
+            
+            // TODO: Load the actual scan results from storage
+            // For now, show the results window
+            showScanResults();
+        }
+    }
 }
 
 void MainWindow::onViewAllHistoryClicked()
 {
-    qDebug() << "View all history clicked";
+    LOG_INFO("User clicked 'View All History'");
+    
+    // Show a dialog or window with full scan history
+    QMessageBox::information(this, tr("Scan History"),
+                           tr("Full scan history view will be implemented.\n"
+                              "This will show all past scans with detailed information."));
 }
 
 // Protected methods
@@ -256,6 +283,87 @@ void MainWindow::setupConnections()
     if (m_scanHistory) {
         connect(m_scanHistory, &ScanHistoryWidget::historyItemClicked, this, &MainWindow::onScanHistoryItemClicked);
         connect(m_scanHistory, &ScanHistoryWidget::viewAllRequested, this, &MainWindow::onViewAllHistoryClicked);
+    }
+    
+    // FileScanner connections
+    if (m_fileScanner) {
+        connect(m_fileScanner, &FileScanner::scanStarted, this, [this]() {
+            LOG_INFO("=== FileScanner: Scan Started ===");
+            updateScanProgress(0, tr("Scanning..."));
+            if (m_progressBar) m_progressBar->setVisible(true);
+        });
+        
+        connect(m_fileScanner, &FileScanner::scanProgress, this, [this](int filesProcessed, int totalFiles, const QString& currentPath) {
+            Q_UNUSED(totalFiles);
+            QString status = tr("Scanning... %1 files found").arg(filesProcessed);
+            updateScanProgress(50, status); // Show indeterminate progress
+            if (m_fileCountLabel) {
+                m_fileCountLabel->setText(tr("Files: %1").arg(filesProcessed));
+            }
+            LOG_DEBUG(QString("Scan progress: %1 files processed").arg(filesProcessed));
+            LOG_FILE("Currently scanning", currentPath);
+        });
+        
+        connect(m_fileScanner, &FileScanner::scanCompleted, this, [this]() {
+            int filesFound = m_fileScanner->getTotalFilesFound();
+            qint64 bytesScanned = m_fileScanner->getTotalBytesScanned();
+            int errorsEncountered = m_fileScanner->getTotalErrorsEncountered();
+            
+            LOG_INFO("=== FileScanner: Scan Completed ===");
+            LOG_INFO(QString("  - Files found: %1").arg(filesFound));
+            LOG_INFO(QString("  - Bytes scanned: %1 (%2)").arg(bytesScanned).arg(formatFileSize(bytesScanned)));
+            LOG_INFO(QString("  - Errors encountered: %1").arg(errorsEncountered));
+            
+            QString status = tr("Scan complete! Found %1 files (%2)")
+                .arg(filesFound)
+                .arg(formatFileSize(bytesScanned));
+            updateScanProgress(100, status);
+            
+            if (m_fileCountLabel) {
+                m_fileCountLabel->setText(tr("Files: %1").arg(filesFound));
+            }
+            
+            // Re-enable quick actions
+            if (m_quickActions) {
+                m_quickActions->setEnabled(true);
+                LOG_DEBUG("Quick actions re-enabled");
+            }
+            
+            // Show success message
+            showSuccess(tr("Scan Complete"), 
+                       tr("Found %1 files totaling %2")
+                       .arg(filesFound)
+                       .arg(formatFileSize(bytesScanned)));
+        });
+        
+        connect(m_fileScanner, &FileScanner::scanCancelled, this, [this]() {
+            LOG_WARNING("=== FileScanner: Scan Cancelled by User ===");
+            updateScanProgress(0, tr("Scan cancelled"));
+            if (m_quickActions) {
+                m_quickActions->setEnabled(true);
+            }
+        });
+        
+        connect(m_fileScanner, &FileScanner::scanError, this, [this](FileScanner::ScanError errorType, const QString& path, const QString& description) {
+            Q_UNUSED(errorType);
+            LOG_WARNING(QString("Scan error: %1 at %2").arg(description).arg(path));
+            // Don't show individual errors to avoid spam, they're accumulated
+        });
+        
+        connect(m_fileScanner, &FileScanner::scanErrorSummary, this, [this](int totalErrors, const QList<FileScanner::ScanErrorInfo>& errors) {
+            if (totalErrors > 0) {
+                LOG_WARNING(QString("=== Scan completed with %1 error(s) ===").arg(totalErrors));
+                for (int i = 0; i < qMin(5, errors.size()); ++i) {
+                    LOG_WARNING(QString("  Error %1: %2 - %3").arg(i+1).arg(errors[i].filePath).arg(errors[i].errorMessage));
+                }
+                if (errors.size() > 5) {
+                    LOG_WARNING(QString("  ... and %1 more errors").arg(errors.size() - 5));
+                }
+                // Optionally show a warning to the user
+                QString message = tr("Scan completed with %1 error(s). Some files or directories could not be accessed.").arg(totalErrors);
+                updateScanProgress(100, message);
+            }
+        });
     }
     
     // System update timer
@@ -635,36 +743,58 @@ void QuickActionsWidget::onCustomPresetClicked() { emit presetSelected("custom")
 // Main Window scan configuration handler
 void MainWindow::handleScanConfiguration()
 {
+    LOG_INFO("=== Starting New Scan ===");
+    
     // Get the configuration from the dialog
     if (!m_scanSetupDialog) {
+        LOG_ERROR("Scan dialog not initialized");
         return;
     }
     
     ScanSetupDialog::ScanConfiguration config = m_scanSetupDialog->getCurrentConfiguration();
     
-    qDebug() << "Starting scan with configuration:";
-    qDebug() << "Target paths:" << config.targetPaths;
-    qDebug() << "Excluded folders:" << config.excludeFolders;
-    qDebug() << "Detection mode:" << static_cast<int>(config.detectionMode);
-    qDebug() << "Minimum file size:" << config.minimumFileSize;
+    LOG_INFO(QString("Scan Configuration:"));
+    LOG_INFO(QString("  - Target paths (%1): %2").arg(config.targetPaths.size()).arg(config.targetPaths.join(", ")));
+    LOG_INFO(QString("  - Excluded folders: %1").arg(config.excludeFolders.join(", ")));
+    LOG_INFO(QString("  - Detection mode: %1").arg(static_cast<int>(config.detectionMode)));
+    LOG_INFO(QString("  - Minimum file size: %1 MB").arg(config.minimumFileSize));
+    LOG_INFO(QString("  - Include hidden: %1").arg(config.includeHidden ? "Yes" : "No"));
+    LOG_INFO(QString("  - Follow symlinks: %1").arg(config.followSymlinks ? "Yes" : "No"));
     
-    // TODO: Pass configuration to the core scanning engine
+    // Pass configuration to the FileScanner
     if (m_fileScanner) {
-        // This would be the actual implementation:
-        // m_fileScanner->startScan(config);
+        // Convert ScanSetupDialog configuration to FileScanner::ScanOptions
+        FileScanner::ScanOptions scanOptions;
+        scanOptions.targetPaths = config.targetPaths;
+        scanOptions.minimumFileSize = config.minimumFileSize * 1024 * 1024; // Convert MB to bytes
+        scanOptions.includeHiddenFiles = config.includeHidden;
+        scanOptions.scanSystemDirectories = config.includeSystem;
+        scanOptions.followSymlinks = config.followSymlinks;
         
-        // For now, just show a message
-        updateScanProgress(0, tr("Scan configured. Ready to start..."));
+        // Parse exclude patterns
+        if (!config.excludePatterns.isEmpty()) {
+            scanOptions.excludePatterns = config.excludePatterns;
+            LOG_DEBUG(QString("  - Exclude patterns: %1").arg(scanOptions.excludePatterns.join(", ")));
+        }
         
-        // Simulate starting the scan
-        QTimer::singleShot(1000, [this]() {
-            updateScanProgress(10, tr("Initializing scan..."));
-        });
+        LOG_INFO(QString("Initiating FileScanner with %1 target paths").arg(scanOptions.targetPaths.size()));
+        LOG_DEBUG(QString("  - Min file size (bytes): %1").arg(scanOptions.minimumFileSize));
+        
+        // Start the scan
+        m_fileScanner->startScan(scanOptions);
+        
+        // Update UI to show scanning state
+        updateScanProgress(0, tr("Scanning..."));
+        LOG_INFO("Scan initiated successfully");
+    } else {
+        LOG_ERROR("FileScanner not initialized!");
+        showError(tr("Error"), tr("File scanner is not initialized. Please restart the application."));
     }
     
     // Update UI to show scanning state
     if (m_quickActions) {
         m_quickActions->setEnabled(false);
+        LOG_DEBUG("Quick actions disabled during scan");
     }
 }
 

@@ -52,8 +52,8 @@ ScanHistoryWidget::ScanHistoryWidget(QWidget* parent)
             });
     connect(m_viewAllButton, &QPushButton::clicked, this, &ScanHistoryWidget::onViewAllClicked);
     
-    // Add some sample history items for demonstration
-    addSampleHistory();
+    // Don't add sample history - will be populated from real scans
+    // addSampleHistory();
 }
 
 void ScanHistoryWidget::addScanResult(const ScanHistoryItem& item)

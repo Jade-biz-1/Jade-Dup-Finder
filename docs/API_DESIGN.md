@@ -6,6 +6,21 @@
 
 ---
 
+## Documentation Updates
+
+**Note:** The FileScanner component has been completed and enhanced with new features. For the most up-to-date and comprehensive FileScanner documentation, please refer to:
+
+- [FileScanner API Documentation](API_FILESCANNER.md) - Complete API reference
+- [FileScanner Usage Examples](FILESCANNER_EXAMPLES.md) - Practical usage examples
+- [FileScanner Error Handling Guide](FILESCANNER_ERROR_HANDLING.md) - Error handling best practices
+- [FileScanner Performance Tuning](FILESCANNER_PERFORMANCE.md) - Performance optimization guide
+- [FileScanner Integration Guide](FILESCANNER_INTEGRATION.md) - Integration with other components
+- [FileScanner Migration Guide](FILESCANNER_MIGRATION.md) - Migration guide for existing code
+
+The FileScanner section below represents the original design. The actual implementation includes additional features such as pattern matching, enhanced error handling, performance optimizations, and comprehensive statistics.
+
+---
+
 ## Overview
 
 This document defines the public APIs and interfaces for all major components in the DupFinder application. These APIs serve as contracts between components and provide the foundation for testing, maintainability, and future extensibility.

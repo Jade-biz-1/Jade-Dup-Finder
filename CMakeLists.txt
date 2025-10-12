@@ -84,6 +84,7 @@ set(CORE_SOURCES
     src/core/hash_calculator.cpp
     src/core/file_manager.cpp
     src/core/safety_manager.cpp
+    src/core/app_config.cpp
 )
 
 set(GUI_SOURCES
@@ -108,6 +109,7 @@ set(HEADER_FILES
     include/hash_calculator.h
     include/file_manager.h
     include/safety_manager.h
+    include/app_config.h
     include/main_window.h
     include/scan_dialog.h
     include/results_widget.h

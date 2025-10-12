@@ -185,6 +185,11 @@ private:
     QList<DuplicateFile> getSelectedFiles() const;
     qint64 getSelectedFilesSize() const;
     int getSelectedFilesCount() const;
+    
+    // Filter and sort helpers
+    void applyFilters();
+    void applySorting();
+    bool matchesCurrentFilters(const DuplicateGroup& group) const;
 
 private:
     // Current state
