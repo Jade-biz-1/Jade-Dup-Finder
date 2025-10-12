@@ -16,11 +16,14 @@
 #include <QtWidgets/QScrollArea>
 #include <QtCore/QTimer>
 
+// Include headers for types used in method signatures
+#include "file_scanner.h"
+#include "duplicate_detector.h"
+
 // Forward declarations
-class FileScanner;
-class DuplicateDetector;
 class HashCalculator;
 class SafetyManager;
+class FileManager;
 class ScanSetupDialog;
 class ResultsWindow;
 
@@ -41,6 +44,7 @@ public:
     void setHashCalculator(HashCalculator* calculator);
     void setDuplicateDetector(DuplicateDetector* detector);
     void setSafetyManager(SafetyManager* manager);
+    void setFileManager(FileManager* manager);
 
     // Status management
     void updateScanProgress(int percentage, const QString& status);
@@ -73,6 +77,13 @@ private slots:
     void updatePlanIndicator();
     void refreshSystemStats();
     void handleScanConfiguration();
+    
+    // Duplicate detection handlers
+    void onScanCompleted();
+    void onDuplicateDetectionStarted(int totalFiles);
+    void onDuplicateDetectionProgress(const DuplicateDetector::DetectionProgress& progress);
+    void onDuplicateDetectionCompleted(int totalGroups);
+    void onDuplicateDetectionError(const QString& error);
 
 private:
     // UI Components
@@ -106,6 +117,7 @@ private:
     DuplicateDetector* m_duplicateDetector;
     HashCalculator* m_hashCalculator;
     SafetyManager* m_safetyManager;
+    FileManager* m_fileManager;
     
     // Child Windows
     ScanSetupDialog* m_scanSetupDialog;
@@ -113,6 +125,9 @@ private:
     
     // Utilities
     QTimer* m_systemUpdateTimer;
+    
+    // Scan results cache
+    QList<FileScanner::FileInfo> m_lastScanResults;
     
     void createHeaderWidget();
     void createContentWidgets();

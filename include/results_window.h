@@ -27,8 +27,12 @@
 #include <QtGui/QPixmap>
 #include <QtGui/QIcon>
 
+// Include headers for types used in method signatures
+#include "duplicate_detector.h"
+
 // Forward declarations
 class ScanSetupDialog;
+class FileManager;
 
 class ResultsWindow : public QMainWindow
 {
@@ -97,8 +101,10 @@ public:
 
     // Main interface
     void displayResults(const ScanResults& results);
+    void displayDuplicateGroups(const QList<DuplicateDetector::DuplicateGroup>& groups);
     void clearResults();
     void updateProgress(const QString& operation, int percentage);
+    void setFileManager(FileManager* fileManager);
     
     // Selection and actions
     int getSelectedFilesCount() const;
@@ -174,6 +180,10 @@ private:
     void populateResultsTree();
     void updateGroupItem(QTreeWidgetItem* groupItem, const DuplicateGroup& group);
     void updateFileItem(QTreeWidgetItem* fileItem, const DuplicateFile& file);
+    void convertDetectorGroupToDisplayGroup(const DuplicateDetector::DuplicateGroup& source, 
+                                            DuplicateGroup& target);
+    void updateStatisticsDisplay();
+    void removeFilesFromDisplay(const QStringList& filePaths);
     void generateFileThumbnail(DuplicateFile& file);
     QString formatFileSize(qint64 bytes) const;
     QString getFileIcon(const QString& filePath) const;
@@ -277,6 +287,7 @@ private:
     ScanResults m_currentResults;
     QList<DuplicateFile> m_selectedFiles;
     QTimer* m_thumbnailTimer;
+    FileManager* m_fileManager;
     
     // State
     bool m_isProcessingBulkOperation;

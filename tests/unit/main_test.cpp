@@ -1,6 +1,7 @@
 #include <QtTest>
 #include <QDebug>
 #include "file_scanner.h"
+#include "duplicate_detector.h"
 #include <QtTest/QSignalSpy>
 #include <QtCore/QTemporaryDir>
 #include <QtCore/QFile>
@@ -891,6 +892,155 @@ void TestFileScanner::cleanupTestCase()
     delete m_tempDir;
 };
 
+// ============================================================================
+// DuplicateDetector Tests
+// ============================================================================
+
+class TestDuplicateDetector : public QObject
+{
+    Q_OBJECT
+
+private slots:
+    void init();
+    void cleanup();
+    
+    // Synchronous detection tests
+    void testFindDuplicatesSync_EmptyList();
+    void testFindDuplicatesSync_UniqueFiles();
+    void testFindDuplicatesSync_DuplicateFiles();
+    void testFindDuplicatesSync_MixedFiles();
+
+private:
+    QTemporaryDir* m_tempDir;
+    DuplicateDetector* m_detector;
+    
+    // Helper methods
+    QString createTestFile(const QString& name, const QString& content);
+    DuplicateDetector::FileInfo createFileInfo(const QString& path);
+};
+
+void TestDuplicateDetector::init()
+{
+    m_tempDir = new QTemporaryDir();
+    QVERIFY(m_tempDir->isValid());
+    
+    m_detector = new DuplicateDetector();
+    QVERIFY(m_detector != nullptr);
+}
+
+void TestDuplicateDetector::cleanup()
+{
+    delete m_detector;
+    m_detector = nullptr;
+    
+    delete m_tempDir;
+    m_tempDir = nullptr;
+}
+
+void TestDuplicateDetector::testFindDuplicatesSync_EmptyList()
+{
+    QList<DuplicateDetector::FileInfo> files;
+    QList<DuplicateDetector::DuplicateGroup> groups = m_detector->findDuplicatesSync(files);
+    QCOMPARE(groups.size(), 0);
+}
+
+void TestDuplicateDetector::testFindDuplicatesSync_UniqueFiles()
+{
+    QString file1 = createTestFile("file1.txt", "Content A");
+    QString file2 = createTestFile("file2.txt", "Content BB");
+    QString file3 = createTestFile("file3.txt", "Content CCC");
+    
+    QList<DuplicateDetector::FileInfo> files;
+    files.append(createFileInfo(file1));
+    files.append(createFileInfo(file2));
+    files.append(createFileInfo(file3));
+    
+    QList<DuplicateDetector::DuplicateGroup> groups = m_detector->findDuplicatesSync(files);
+    QCOMPARE(groups.size(), 0);
+}
+
+void TestDuplicateDetector::testFindDuplicatesSync_DuplicateFiles()
+{
+    QString content = "This is duplicate content for testing";
+    QString file1 = createTestFile("duplicate1.txt", content);
+    QString file2 = createTestFile("duplicate2.txt", content);
+    QString file3 = createTestFile("duplicate3.txt", content);
+    
+    QList<DuplicateDetector::FileInfo> files;
+    files.append(createFileInfo(file1));
+    files.append(createFileInfo(file2));
+    files.append(createFileInfo(file3));
+    
+    QList<DuplicateDetector::DuplicateGroup> groups = m_detector->findDuplicatesSync(files);
+    
+    QCOMPARE(groups.size(), 1);
+    QCOMPARE(groups[0].fileCount, 3);
+    QVERIFY(groups[0].wastedSpace > 0);
+    QVERIFY(!groups[0].hash.isEmpty());
+}
+
+void TestDuplicateDetector::testFindDuplicatesSync_MixedFiles()
+{
+    QString content1 = "Duplicate content A";
+    QString file1a = createTestFile("dup1a.txt", content1);
+    QString file1b = createTestFile("dup1b.txt", content1);
+    
+    QString content2 = "Duplicate content B";
+    QString file2a = createTestFile("dup2a.txt", content2);
+    QString file2b = createTestFile("dup2b.txt", content2);
+    QString file2c = createTestFile("dup2c.txt", content2);
+    
+    QString unique1 = createTestFile("unique1.txt", "Unique content 1");
+    QString unique2 = createTestFile("unique2.txt", "Unique content 2");
+    
+    QList<DuplicateDetector::FileInfo> files;
+    files.append(createFileInfo(file1a));
+    files.append(createFileInfo(file1b));
+    files.append(createFileInfo(file2a));
+    files.append(createFileInfo(file2b));
+    files.append(createFileInfo(file2c));
+    files.append(createFileInfo(unique1));
+    files.append(createFileInfo(unique2));
+    
+    QList<DuplicateDetector::DuplicateGroup> groups = m_detector->findDuplicatesSync(files);
+    
+    QCOMPARE(groups.size(), 2);
+    QVERIFY(groups[0].wastedSpace >= groups[1].wastedSpace);
+    
+    bool hasThreeFiles = (groups[0].fileCount == 3 || groups[1].fileCount == 3);
+    bool hasTwoFiles = (groups[0].fileCount == 2 || groups[1].fileCount == 2);
+    QVERIFY(hasThreeFiles);
+    QVERIFY(hasTwoFiles);
+}
+
+QString TestDuplicateDetector::createTestFile(const QString& name, const QString& content)
+{
+    QString filePath = m_tempDir->filePath(name);
+    QFile file(filePath);
+    
+    if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QTextStream out(&file);
+        out << content;
+        file.close();
+    }
+    
+    return filePath;
+}
+
+DuplicateDetector::FileInfo TestDuplicateDetector::createFileInfo(const QString& path)
+{
+    QFileInfo fileInfo(path);
+    
+    DuplicateDetector::FileInfo info;
+    info.filePath = path;
+    info.fileSize = fileInfo.size();
+    info.fileName = fileInfo.fileName();
+    info.directory = fileInfo.absolutePath();
+    info.lastModified = fileInfo.lastModified();
+    
+    return info;
+}
+
 int main(int argc, char *argv[])
 {
     QCoreApplication app(argc, argv);
@@ -907,6 +1057,12 @@ int main(int argc, char *argv[])
     {
         TestFileScanner fileScannerTest;
         result |= QTest::qExec(&fileScannerTest, argc, argv);
+    }
+    
+    // Run DuplicateDetector tests
+    {
+        TestDuplicateDetector duplicateDetectorTest;
+        result |= QTest::qExec(&duplicateDetectorTest, argc, argv);
     }
     
     return result;
