@@ -1,5 +1,6 @@
 #include "scan_dialog.h"
 #include "file_scanner.h"
+#include "core/logger.h"
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QFileDialog>
 #include <QtWidgets/QTreeWidgetItem>
@@ -204,7 +205,9 @@ void ScanSetupDialog::createLocationsPanel()
     m_directoryButtonsLayout->setSpacing(8);
     
     m_addFolderButton = new QPushButton(tr("+ Add Folder..."), this);
+    m_addFolderButton->setToolTip(tr("Add a folder to scan for duplicate files"));
     m_removeFolderButton = new QPushButton(tr("- Remove"), this);
+    m_removeFolderButton->setToolTip(tr("Remove selected folder from scan list"));
     m_removeFolderButton->setEnabled(false);
     
     // Style the directory buttons
@@ -244,9 +247,13 @@ void ScanSetupDialog::createLocationsPanel()
     m_presetsLayout->setContentsMargins(0, 4, 0, 0);
     
     m_downloadsButton = new QPushButton(tr("Downloads"), this);
+    m_downloadsButton->setToolTip(tr("Scan Downloads folder"));
     m_photosButton = new QPushButton(tr("Photos"), this);
+    m_photosButton->setToolTip(tr("Scan Pictures folder"));
     m_documentsButton = new QPushButton(tr("Documents"), this);
+    m_documentsButton->setToolTip(tr("Scan Documents folder"));
     m_mediaButton = new QPushButton(tr("Media"), this);
+    m_mediaButton->setToolTip(tr("Scan Music and Videos folders"));
     m_customButton = new QPushButton(tr("Custom"), this);
     m_fullSystemButton = new QPushButton(tr("Full System"), this);
     
@@ -313,8 +320,11 @@ void ScanSetupDialog::createOptionsPanel()
     includeLabel->setStyleSheet("font-weight: bold; font-size: 11pt; margin-top: 12px; margin-bottom: 4px;");
     
     m_includeHidden = new QCheckBox(tr("Hidden files"), this);
+    m_includeHidden->setToolTip(tr("Include hidden files and folders in scan"));
     m_includeSystem = new QCheckBox(tr("System files"), this);
+    m_includeSystem->setToolTip(tr("Include system files (use with caution)"));
     m_followSymlinks = new QCheckBox(tr("Symlinks"), this);
+    m_followSymlinks->setToolTip(tr("Follow symbolic links to other directories"));
     m_followSymlinks->setChecked(true);
     m_scanArchives = new QCheckBox(tr("Archives"), this);
     
@@ -540,8 +550,11 @@ void ScanSetupDialog::createButtonBar()
     m_buttonBox->setContentsMargins(16, 8, 16, 8);
     
     m_cancelButton = new QPushButton(tr("Cancel"), this);
+    m_cancelButton->setToolTip(tr("Close dialog without starting scan"));
     m_savePresetButton = new QPushButton(tr("Save as Preset"), this);
+    m_savePresetButton->setToolTip(tr("Save current configuration as a preset for future use"));
     m_startScanButton = new QPushButton(tr("▶ Start Scan"), this);
+    m_startScanButton->setToolTip(tr("Start scanning with current configuration"));
     
     // Style buttons with better visibility
     QString cancelButtonStyle = 
@@ -1168,7 +1181,9 @@ ScanSetupDialog::ScanConfiguration ScanSetupDialog::getCurrentConfiguration() co
     config.detectionMode = static_cast<DetectionMode>(m_detectionMode->currentData().toInt());
     
     // Get size settings
+    qDebug() << "getCurrentConfiguration: m_minimumSize->value() =" << m_minimumSize->value() << "MB";
     config.minimumFileSize = static_cast<qint64>(m_minimumSize->value()) * 1024 * 1024; // Convert MB to bytes
+    qDebug() << "getCurrentConfiguration: config.minimumFileSize =" << config.minimumFileSize << "bytes";
     config.maximumDepth = m_maxDepth->currentData().toInt();
     
     // Get include options
@@ -1278,6 +1293,103 @@ QString ScanSetupDialog::formatFileSize(qint64 bytes) const
     } else {
         return tr("%1 GB").arg(QString::number(static_cast<double>(bytes) / (1024.0 * 1024.0 * 1024.0), 'f', 2));
     }
+}
+
+void ScanSetupDialog::loadPreset(const QString& presetName)
+{
+    Logger::instance()->info(LogCategories::UI, QString("Loading preset: %1").arg(presetName));
+    
+    // Clear current selections
+    clearAllSelections();
+    
+    if (presetName == "quick") {
+        // Quick scan: Home, Downloads, Documents
+        QStringList paths;
+        paths << QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
+        paths << QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
+        paths << QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+        
+        for (const QString& path : paths) {
+            if (!path.isEmpty() && QDir(path).exists()) {
+                selectPath(path);
+            }
+        }
+        
+        m_minimumSize->setValue(1); // 1 MB
+        m_includeHidden->setChecked(false);
+        m_followSymlinks->setChecked(true);
+        m_allTypesCheck->setChecked(true);
+        
+    } else if (presetName == "downloads") {
+        // Downloads cleanup
+        QString downloadsPath = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
+        if (!downloadsPath.isEmpty() && QDir(downloadsPath).exists()) {
+            selectPath(downloadsPath);
+        }
+        
+        qDebug() << "Downloads preset: Setting minimum size to 0";
+        m_minimumSize->setValue(0); // All files
+        qDebug() << "Downloads preset: Minimum size spinbox value is now:" << m_minimumSize->value();
+        m_includeHidden->setChecked(false);
+        m_allTypesCheck->setChecked(true);
+        
+    } else if (presetName == "photos") {
+        // Photo cleanup
+        QString picturesPath = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation);
+        if (!picturesPath.isEmpty() && QDir(picturesPath).exists()) {
+            selectPath(picturesPath);
+        }
+        
+        m_minimumSize->setValue(0);
+        m_includeHidden->setChecked(false);
+        
+        // Select only images
+        m_allTypesCheck->setChecked(false);
+        m_imagesCheck->setChecked(true);
+        m_documentsCheck->setChecked(false);
+        m_videosCheck->setChecked(false);
+        m_audioCheck->setChecked(false);
+        m_archivesCheck->setChecked(false);
+        
+    } else if (presetName == "documents") {
+        // Documents scan
+        QString documentsPath = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+        if (!documentsPath.isEmpty() && QDir(documentsPath).exists()) {
+            selectPath(documentsPath);
+        }
+        
+        m_minimumSize->setValue(0);
+        m_includeHidden->setChecked(false);
+        
+        // Select only documents
+        m_allTypesCheck->setChecked(false);
+        m_imagesCheck->setChecked(false);
+        m_documentsCheck->setChecked(true);
+        m_videosCheck->setChecked(false);
+        m_audioCheck->setChecked(false);
+        m_archivesCheck->setChecked(false);
+        
+    } else if (presetName == "fullsystem") {
+        // Full system scan
+        QString homePath = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
+        if (!homePath.isEmpty() && QDir(homePath).exists()) {
+            selectPath(homePath);
+        }
+        
+        m_minimumSize->setValue(1); // 1 MB
+        m_includeHidden->setChecked(true);
+        m_followSymlinks->setChecked(false);
+        m_allTypesCheck->setChecked(true);
+        
+    } else if (presetName == "custom") {
+        // Custom - just reset to defaults
+        resetToDefaults();
+    }
+    
+    // Update estimates
+    updateEstimates();
+    
+    Logger::instance()->info(LogCategories::UI, QString("Preset '%1' loaded successfully").arg(presetName));
 }
 
 void ScanSetupDialog::resetToDefaults()

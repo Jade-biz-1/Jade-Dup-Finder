@@ -4,6 +4,7 @@
 #include "duplicate_detector.h"
 #include "safety_manager.h"
 #include "file_manager.h"
+#include "core/logger.h"
 #include <QtWidgets/QApplication>
 #include <QtCore/QTranslator>
 #include <QtCore/QLibraryInfo>
@@ -39,12 +40,34 @@ int main(int argc, char *argv[])
         app.installTranslator(&appTranslator);
     }
     
+    qDebug() << "About to initialize logger...";
+    
+    // Initialize logging system
+    Logger* logger = Logger::instance();
+    
+    qDebug() << "Logger instance created";
+    
+    logger->setLogLevel(Logger::Info);
+    
+    qDebug() << "Log level set";
+    
+    logger->info(LogCategories::SYSTEM, "Starting DupFinder application...");
+    
+    qDebug() << "First log message sent";
+    
     // Create core components
     FileScanner fileScanner;
     HashCalculator hashCalculator;
     DuplicateDetector duplicateDetector;
     SafetyManager safetyManager;
     FileManager fileManager;
+    
+    logger->info(LogCategories::SYSTEM, "Core components initialized:");
+    logger->info(LogCategories::SYSTEM, "  - FileScanner");
+    logger->info(LogCategories::SYSTEM, "  - HashCalculator");
+    logger->info(LogCategories::SYSTEM, "  - DuplicateDetector");
+    logger->info(LogCategories::SYSTEM, "  - SafetyManager");
+    logger->info(LogCategories::SYSTEM, "  - FileManager");
     
     qDebug() << "Core components initialized:";
     qDebug() << "  - FileScanner";
@@ -66,6 +89,7 @@ int main(int argc, char *argv[])
     mainWindow.setSafetyManager(&safetyManager);
     mainWindow.setFileManager(&fileManager);
     
+    logger->info(LogCategories::SYSTEM, "Core components connected to MainWindow");
     qDebug() << "Core components connected to MainWindow";
     
     // Connect application exit signal
@@ -74,9 +98,15 @@ int main(int argc, char *argv[])
     // Show the main window
     mainWindow.show();
     
+    logger->info(LogCategories::UI, "Main window displayed");
+    logger->info(LogCategories::SYSTEM, "Application ready for user interaction");
+    
     qDebug() << "DupFinder started successfully";
     qDebug() << "Qt Version:" << QT_VERSION_STR;
     qDebug() << "Application Directory:" << app.applicationDirPath();
     
-    return app.exec();
+    int result = app.exec();
+    
+    logger->info(LogCategories::SYSTEM, QString("Application exiting with code: %1").arg(result));
+    return result;
 }

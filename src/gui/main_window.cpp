@@ -1,8 +1,20 @@
 #include "main_window.h"
 #include "scan_dialog.h"
 #include "results_window.h"
+#include "settings_dialog.h"
+#include "scan_history_dialog.h"
+#include "restore_dialog.h"
 #include "file_scanner.h"
 #include "app_config.h"
+#include "scan_history_manager.h"
+
+// Undefine old logging macros from app_config.h to use new logger
+#undef LOG_DEBUG
+#undef LOG_INFO
+#undef LOG_WARNING
+#undef LOG_ERROR
+
+#include "core/logger.h"
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QMessageBox>
 #include <QtWidgets/QListWidgetItem>
@@ -11,9 +23,12 @@
 #include <QtCore/QStorageInfo>
 #include <QtCore/QDir>
 #include <QtCore/QDebug>
+#include <QtCore/QUuid>
 #include <QtGui/QIcon>
 #include <QtGui/QCloseEvent>
 #include <QtGui/QPalette>
+#include <QtGui/QShortcut>
+#include <QtGui/QKeySequence>
 
 // Constructor
 MainWindow::MainWindow(QWidget *parent)
@@ -43,6 +58,7 @@ MainWindow::MainWindow(QWidget *parent)
     , m_fileManager(nullptr)
     , m_scanSetupDialog(nullptr)
     , m_resultsWindow(nullptr)
+    , m_settingsDialog(nullptr)
     , m_systemUpdateTimer(new QTimer(this))
 {
     setWindowTitle(tr("DupFinder - Duplicate File Finder"));
@@ -54,6 +70,7 @@ MainWindow::MainWindow(QWidget *parent)
     
     initializeUI();
     setupConnections();
+    setupKeyboardShortcuts();
     loadSettings();
     
     // Start system stats timer
@@ -73,6 +90,33 @@ MainWindow::~MainWindow()
 void MainWindow::setFileScanner(FileScanner* scanner)
 {
     m_fileScanner = scanner;
+    
+    // Set up connections now that we have the scanner
+    if (m_fileScanner) {
+        qDebug() << "Setting up FileScanner connections...";
+        
+        connect(m_fileScanner, &FileScanner::scanStarted, this, [this]() {
+            LOG_INFO(LogCategories::UI, "=== FileScanner: Scan Started ===");
+            updateScanProgress(0, tr("Scanning..."));
+            if (m_progressBar) m_progressBar->setVisible(true);
+        });
+        
+        connect(m_fileScanner, &FileScanner::scanProgress, this, [this](int filesProcessed, int totalFiles, const QString& currentPath) {
+            Q_UNUSED(totalFiles);
+            QString status = tr("Scanning... %1 files found").arg(filesProcessed);
+            updateScanProgress(50, status); // Show indeterminate progress
+            if (m_fileCountLabel) {
+                m_fileCountLabel->setText(tr("Files: %1").arg(filesProcessed));
+            }
+            LOG_DEBUG(LogCategories::UI, QString("Scan progress: %1 files processed").arg(filesProcessed));
+            LOG_DEBUG(LogCategories::SCAN, QString("File: %1 - %2").arg(currentPath).arg("Currently scanning"));
+        });
+        
+        bool connected = connect(m_fileScanner, &FileScanner::scanCompleted, this, &MainWindow::onScanCompleted);
+        qDebug() << "FileScanner::scanCompleted connection result:" << connected;
+        
+        qDebug() << "FileScanner connections complete";
+    }
 }
 
 void MainWindow::setHashCalculator(HashCalculator* calculator)
@@ -83,6 +127,25 @@ void MainWindow::setHashCalculator(HashCalculator* calculator)
 void MainWindow::setDuplicateDetector(DuplicateDetector* detector)
 {
     m_duplicateDetector = detector;
+    
+    // Set up connections now that we have the detector
+    if (m_duplicateDetector) {
+        qDebug() << "Setting up DuplicateDetector connections...";
+        
+        connect(m_duplicateDetector, &DuplicateDetector::detectionStarted,
+                this, &MainWindow::onDuplicateDetectionStarted);
+        
+        connect(m_duplicateDetector, &DuplicateDetector::detectionProgress,
+                this, &MainWindow::onDuplicateDetectionProgress);
+        
+        connect(m_duplicateDetector, &DuplicateDetector::detectionCompleted,
+                this, &MainWindow::onDuplicateDetectionCompleted);
+        
+        connect(m_duplicateDetector, &DuplicateDetector::detectionError,
+                this, &MainWindow::onDuplicateDetectionError);
+        
+        qDebug() << "DuplicateDetector connections complete";
+    }
 }
 
 void MainWindow::setSafetyManager(SafetyManager* manager)
@@ -127,11 +190,8 @@ void MainWindow::showScanResults()
                     // Results window will be deleted when parent (this) is deleted
                 });
         
-        connect(m_resultsWindow, &ResultsWindow::fileOperationRequested,
-                this, [this](const QString& operation, const QStringList& files) {
-                    qDebug() << "File operation requested:" << operation << "on" << files.size() << "files";
-                    // TODO: Forward to appropriate file operation handler
-                });
+        // Note: File operations are handled directly by ResultsWindow through its FileManager
+        // The fileOperationRequested signal doesn't exist - operations are self-contained
         
         connect(m_resultsWindow, &ResultsWindow::resultsUpdated,
                 this, [this](const ResultsWindow::ScanResults& results) {
@@ -169,10 +229,10 @@ void MainWindow::showSuccess(const QString& title, const QString& message)
 // Public slots
 void MainWindow::onNewScanRequested()
 {
-    LOG_INFO("User clicked 'New Scan' button");
+    LOG_INFO(LogCategories::UI, "User clicked 'New Scan' button");
     
     if (!m_scanSetupDialog) {
-        LOG_DEBUG("Creating new ScanSetupDialog");
+        LOG_DEBUG(LogCategories::UI, "Creating new ScanSetupDialog");
         m_scanSetupDialog = new ScanSetupDialog(this);
         
         // Connect scan configuration signal
@@ -182,12 +242,12 @@ void MainWindow::onNewScanRequested()
         // Connect preset saved signal
         connect(m_scanSetupDialog, &ScanSetupDialog::presetSaved,
                 this, [this](const QString& name) {
-                    LOG_INFO(QString("Preset saved: %1").arg(name));
+                    LOG_INFO(LogCategories::UI, QString("Preset saved: %1").arg(name));
                     // Preset is automatically saved by the dialog
                 });
     }
     
-    LOG_DEBUG("Showing scan setup dialog");
+    LOG_DEBUG(LogCategories::UI, "Showing scan setup dialog");
     m_scanSetupDialog->show();
     m_scanSetupDialog->raise();
     m_scanSetupDialog->activateWindow();
@@ -195,54 +255,272 @@ void MainWindow::onNewScanRequested()
 
 void MainWindow::onPresetSelected(const QString& preset)
 {
-    LOG_INFO(QString("User selected preset: %1").arg(preset));
-    emit scanRequested(preset);
+    qDebug() << "MainWindow::onPresetSelected called with preset:" << preset;
+    LOG_INFO(LogCategories::UI, QString("User selected preset: %1").arg(preset));
+    
+    // Create scan dialog if needed
+    if (!m_scanSetupDialog) {
+        LOG_DEBUG(LogCategories::UI, "Creating new ScanSetupDialog for preset");
+        m_scanSetupDialog = new ScanSetupDialog(this);
+        
+        // Connect scan configuration signal
+        connect(m_scanSetupDialog, &ScanSetupDialog::scanConfigured,
+                this, &MainWindow::handleScanConfiguration);
+        
+        // Connect preset saved signal
+        connect(m_scanSetupDialog, &ScanSetupDialog::presetSaved,
+                this, [this](const QString& name) {
+                    LOG_INFO(LogCategories::UI, QString("Preset saved: %1").arg(name));
+                });
+        
+        // Re-enable quick actions when dialog closes (if not scanning)
+        connect(m_scanSetupDialog, &QDialog::finished, this, [this](int result) {
+            Q_UNUSED(result);
+            // Only re-enable if we're not currently scanning
+            if (m_quickActions && m_fileScanner && !m_fileScanner->isScanning()) {
+                qDebug() << "Dialog closed, re-enabling quick actions";
+                m_quickActions->setEnabled(true);
+            }
+        });
+    }
+    
+    // Load the preset configuration
+    m_scanSetupDialog->loadPreset(preset);
+    
+    // Show the dialog
+    LOG_DEBUG(LogCategories::UI, "Showing scan setup dialog with preset");
+    m_scanSetupDialog->show();
+    m_scanSetupDialog->raise();
+    m_scanSetupDialog->activateWindow();
 }
 
 void MainWindow::onSettingsRequested()
 {
-    LOG_INFO("User clicked 'Settings' button");
-    emit settingsRequested();
+    LOG_INFO(LogCategories::UI, "User clicked 'Settings' button");
+    
+    if (!m_settingsDialog) {
+        m_settingsDialog = new SettingsDialog(this);
+        connect(m_settingsDialog, &SettingsDialog::settingsChanged,
+                this, [this]() {
+                    LOG_INFO(LogCategories::UI, "Settings changed, reloading configuration");
+                    // Reload settings in application
+                    loadSettings();
+                });
+    }
+    
+    m_settingsDialog->show();
+    m_settingsDialog->raise();
+    m_settingsDialog->activateWindow();
 }
 
 void MainWindow::onHelpRequested()
 {
-    LOG_INFO("User clicked 'Help' button");
-    emit helpRequested();
+    LOG_INFO(LogCategories::UI, "User clicked 'Help' button");
+    
+    QString helpText = tr(
+        "<h2>DupFinder - Duplicate File Finder</h2>"
+        "<p><b>Quick Start:</b></p>"
+        "<ol>"
+        "<li>Click 'New Scan' to configure a scan</li>"
+        "<li>Select folders to scan</li>"
+        "<li>Configure scan options (file size, types, etc.)</li>"
+        "<li>Click 'Start Scan' to begin</li>"
+        "<li>Review duplicate groups in results</li>"
+        "<li>Select files to delete or move</li>"
+        "</ol>"
+        "<p><b>Quick Actions:</b></p>"
+        "<ul>"
+        "<li><b>Quick Scan:</b> Scan common locations (Home, Downloads, Documents)</li>"
+        "<li><b>Downloads Cleanup:</b> Find duplicates in Downloads folder</li>"
+        "<li><b>Photo Cleanup:</b> Find duplicate photos in Pictures folder</li>"
+        "<li><b>Documents:</b> Scan document folders</li>"
+        "<li><b>Full System:</b> Comprehensive system scan</li>"
+        "</ul>"
+        "<p><b>Keyboard Shortcuts:</b></p>"
+        "<ul>"
+        "<li><b>Ctrl+N:</b> New Scan</li>"
+        "<li><b>Ctrl+O:</b> View Scan History</li>"
+        "<li><b>Ctrl+S:</b> Export Results (when results window is open)</li>"
+        "<li><b>Ctrl+,:</b> Settings</li>"
+        "<li><b>Ctrl+Q:</b> Quit Application</li>"
+        "<li><b>F1:</b> Help</li>"
+        "<li><b>F5 / Ctrl+R:</b> Refresh System Stats</li>"
+        "<li><b>Ctrl+1:</b> Quick Scan</li>"
+        "<li><b>Ctrl+2:</b> Downloads Cleanup</li>"
+        "<li><b>Ctrl+3:</b> Photo Cleanup</li>"
+        "<li><b>Ctrl+4:</b> Documents Scan</li>"
+        "<li><b>Ctrl+5:</b> Full System Scan</li>"
+        "<li><b>Ctrl+6:</b> Custom Scan</li>"
+        "</ul>"
+        "<p><b>Safety Features:</b></p>"
+        "<ul>"
+        "<li>Automatic backups before deletion</li>"
+        "<li>Protected system files</li>"
+        "<li>Undo functionality</li>"
+        "</ul>"
+        "<p>For more information, visit: <a href='https://dupfinder.org/docs'>dupfinder.org/docs</a></p>"
+    );
+    
+    QMessageBox::information(this, tr("DupFinder Help"), helpText);
+}
+
+void MainWindow::onRestoreRequested()
+{
+    LOG_INFO(LogCategories::UI, "User clicked 'Restore' button");
+    
+    if (!m_safetyManager) {
+        QMessageBox::warning(this, tr("Restore Files"),
+                           tr("Safety manager not initialized. Cannot access backups."));
+        return;
+    }
+    
+    // Create and show restore dialog
+    RestoreDialog* restoreDialog = new RestoreDialog(m_safetyManager, this);
+    
+    // Connect filesRestored signal
+    connect(restoreDialog, &RestoreDialog::filesRestored,
+            this, [this](const QStringList& backupPaths) {
+                LOG_INFO(LogCategories::FILE_OPS, QString("Restoring %1 files from backups").arg(backupPaths.size()));
+                
+                int successCount = 0;
+                int failCount = 0;
+                QStringList failedFiles;
+                
+                for (const QString& backupPath : backupPaths) {
+                    // Use SafetyManager to restore from backup
+                    bool success = m_safetyManager->restoreFromBackup(backupPath);
+                    if (success) {
+                        successCount++;
+                        LOG_INFO(LogCategories::FILE_OPS, QString("Restored: %1").arg(backupPath));
+                    } else {
+                        failCount++;
+                        failedFiles.append(backupPath);
+                        LOG_ERROR(LogCategories::FILE_OPS, QString("Failed to restore: %1").arg(backupPath));
+                    }
+                }
+                
+                // Show result message
+                if (failCount == 0) {
+                    QMessageBox::information(this, tr("Restore Complete"),
+                                           tr("Successfully restored %1 file(s).").arg(successCount));
+                } else {
+                    QString message = tr("Restored %1 file(s) successfully.\n%2 file(s) failed to restore.")
+                                        .arg(successCount).arg(failCount);
+                    if (!failedFiles.isEmpty()) {
+                        message += tr("\n\nFailed files:\n%1").arg(failedFiles.join("\n"));
+                    }
+                    QMessageBox::warning(this, tr("Restore Completed with Errors"), message);
+                }
+            });
+    
+    restoreDialog->setAttribute(Qt::WA_DeleteOnClose);
+    restoreDialog->show();
 }
 
 void MainWindow::updateSystemInfo()
 {
-    LOG_DEBUG("Updating system information");
+    LOG_DEBUG(LogCategories::UI, "Updating system information");
     refreshSystemStats();
 }
 
 void MainWindow::onScanHistoryItemClicked(int index)
 {
-    LOG_INFO(QString("User clicked history item: %1").arg(index));
+    LOG_INFO(LogCategories::UI, QString("User clicked history item: %1").arg(index));
     
     // Get the history item and load its results
     if (m_scanHistory && index >= 0) {
         QList<ScanHistoryWidget::ScanHistoryItem> history = m_scanHistory->getHistory();
         if (index < history.size()) {
             const auto& item = history[index];
-            LOG_INFO(QString("Loading scan results for: %1").arg(item.scanId));
+            LOG_INFO(LogCategories::UI, QString("Loading scan results for: %1").arg(item.scanId));
             
-            // TODO: Load the actual scan results from storage
-            // For now, show the results window
-            showScanResults();
+            // Load scan from history manager
+            ScanHistoryManager::ScanRecord record = 
+                ScanHistoryManager::instance()->loadScan(item.scanId);
+            
+            if (record.isValid()) {
+                LOG_INFO(LogCategories::UI, QString("Loaded scan with %1 groups").arg(record.groups.size()));
+                
+                // Create results window if needed
+                if (!m_resultsWindow) {
+                    m_resultsWindow = new ResultsWindow(this);
+                    
+                    // Set FileManager reference
+                    if (m_fileManager) {
+                        m_resultsWindow->setFileManager(m_fileManager);
+                    }
+                }
+                
+                // Display the loaded results
+                m_resultsWindow->displayDuplicateGroups(record.groups);
+                m_resultsWindow->show();
+                m_resultsWindow->raise();
+                m_resultsWindow->activateWindow();
+                
+                // Update stats
+                if (m_fileCountLabel) {
+                    m_fileCountLabel->setText(tr("Files: %1").arg(record.filesScanned));
+                }
+                if (m_groupCountLabel) {
+                    m_groupCountLabel->setText(tr("Groups: %1").arg(record.duplicateGroups));
+                }
+                if (m_savingsLabel) {
+                    m_savingsLabel->setText(tr("Savings: %1").arg(formatFileSize(record.potentialSavings)));
+                }
+            } else {
+                LOG_ERROR(LogCategories::UI, "Failed to load scan from history");
+                QMessageBox::warning(this, tr("Load Error"),
+                    tr("Could not load scan results. The scan may have been deleted."));
+            }
         }
     }
 }
 
 void MainWindow::onViewAllHistoryClicked()
 {
-    LOG_INFO("User clicked 'View All History'");
+    LOG_INFO(LogCategories::UI, "User clicked 'View All History'");
     
-    // Show a dialog or window with full scan history
-    QMessageBox::information(this, tr("Scan History"),
-                           tr("Full scan history view will be implemented.\n"
-                              "This will show all past scans with detailed information."));
+    // Create and show scan history dialog
+    ScanHistoryDialog* historyDialog = new ScanHistoryDialog(this);
+    
+    // Connect signals
+    connect(historyDialog, &ScanHistoryDialog::scanSelected,
+            this, [this](const QString& scanId) {
+                LOG_INFO(LogCategories::UI, QString("Loading scan from history: %1").arg(scanId));
+                
+                // Load scan from history manager
+                ScanHistoryManager::ScanRecord record = ScanHistoryManager::instance()->loadScan(scanId);
+                
+                if (record.isValid()) {
+                    // Show results in results window
+                    if (!m_resultsWindow) {
+                        m_resultsWindow = new ResultsWindow(this);
+                        if (m_fileManager) {
+                            m_resultsWindow->setFileManager(m_fileManager);
+                        }
+                    }
+                    
+                    m_resultsWindow->displayDuplicateGroups(record.groups);
+                    m_resultsWindow->show();
+                    m_resultsWindow->raise();
+                    m_resultsWindow->activateWindow();
+                } else {
+                    QMessageBox::warning(this, tr("Load Error"),
+                                       tr("Could not load scan results from history."));
+                }
+            });
+    
+    connect(historyDialog, &ScanHistoryDialog::scanDeleted,
+            this, [this](const QString& scanId) {
+                LOG_INFO(LogCategories::UI, QString("Scan deleted from history: %1").arg(scanId));
+                // Refresh the history widget
+                if (m_scanHistory) {
+                    m_scanHistory->refreshHistory();
+                }
+            });
+    
+    historyDialog->setAttribute(Qt::WA_DeleteOnClose);
+    historyDialog->show();
 }
 
 // Protected methods
@@ -287,7 +565,11 @@ void MainWindow::setupConnections()
     
     // Quick actions connections
     if (m_quickActions) {
-        connect(m_quickActions, &QuickActionsWidget::presetSelected, this, &MainWindow::onPresetSelected);
+        qDebug() << "Connecting QuickActionsWidget signals...";
+        bool connected = connect(m_quickActions, &QuickActionsWidget::presetSelected, this, &MainWindow::onPresetSelected);
+        qDebug() << "QuickActionsWidget connection result:" << connected;
+    } else {
+        qDebug() << "WARNING: m_quickActions is NULL!";
     }
     
     // Scan history connections
@@ -298,8 +580,10 @@ void MainWindow::setupConnections()
     
     // FileScanner connections
     if (m_fileScanner) {
+        qDebug() << "Setting up FileScanner connections...";
+        
         connect(m_fileScanner, &FileScanner::scanStarted, this, [this]() {
-            LOG_INFO("=== FileScanner: Scan Started ===");
+            LOG_INFO(LogCategories::UI, "=== FileScanner: Scan Started ===");
             updateScanProgress(0, tr("Scanning..."));
             if (m_progressBar) m_progressBar->setVisible(true);
         });
@@ -311,14 +595,15 @@ void MainWindow::setupConnections()
             if (m_fileCountLabel) {
                 m_fileCountLabel->setText(tr("Files: %1").arg(filesProcessed));
             }
-            LOG_DEBUG(QString("Scan progress: %1 files processed").arg(filesProcessed));
-            LOG_FILE("Currently scanning", currentPath);
+            LOG_DEBUG(LogCategories::UI, QString("Scan progress: %1 files processed").arg(filesProcessed));
+            LOG_DEBUG(LogCategories::SCAN, QString("File: %1 - %2").arg(currentPath).arg("Currently scanning"));
         });
         
-        connect(m_fileScanner, &FileScanner::scanCompleted, this, &MainWindow::onScanCompleted);
+        bool connected = connect(m_fileScanner, &FileScanner::scanCompleted, this, &MainWindow::onScanCompleted);
+        qDebug() << "FileScanner::scanCompleted connection result:" << connected;
         
         connect(m_fileScanner, &FileScanner::scanCancelled, this, [this]() {
-            LOG_WARNING("=== FileScanner: Scan Cancelled by User ===");
+            LOG_WARNING(LogCategories::UI, "=== FileScanner: Scan Cancelled by User ===");
             updateScanProgress(0, tr("Scan cancelled"));
             if (m_quickActions) {
                 m_quickActions->setEnabled(true);
@@ -327,18 +612,18 @@ void MainWindow::setupConnections()
         
         connect(m_fileScanner, &FileScanner::scanError, this, [this](FileScanner::ScanError errorType, const QString& path, const QString& description) {
             Q_UNUSED(errorType);
-            LOG_WARNING(QString("Scan error: %1 at %2").arg(description).arg(path));
+            LOG_WARNING(LogCategories::UI, QString("Scan error: %1 at %2").arg(description).arg(path));
             // Don't show individual errors to avoid spam, they're accumulated
         });
         
         connect(m_fileScanner, &FileScanner::scanErrorSummary, this, [this](int totalErrors, const QList<FileScanner::ScanErrorInfo>& errors) {
             if (totalErrors > 0) {
-                LOG_WARNING(QString("=== Scan completed with %1 error(s) ===").arg(totalErrors));
+                LOG_WARNING(LogCategories::UI, QString("=== Scan completed with %1 error(s) ===").arg(totalErrors));
                 for (int i = 0; i < qMin(5, errors.size()); ++i) {
-                    LOG_WARNING(QString("  Error %1: %2 - %3").arg(i+1).arg(errors[i].filePath).arg(errors[i].errorMessage));
+                    LOG_WARNING(LogCategories::UI, QString("  Error %1: %2 - %3").arg(i+1).arg(errors[i].filePath).arg(errors[i].errorMessage));
                 }
                 if (errors.size() > 5) {
-                    LOG_WARNING(QString("  ... and %1 more errors").arg(errors.size() - 5));
+                    LOG_WARNING(LogCategories::UI, QString("  ... and %1 more errors").arg(errors.size() - 5));
                 }
                 // Optionally show a warning to the user
                 QString message = tr("Scan completed with %1 error(s). Some files or directories could not be accessed.").arg(totalErrors);
@@ -350,20 +635,78 @@ void MainWindow::setupConnections()
     // System update timer
     connect(m_systemUpdateTimer, &QTimer::timeout, this, &MainWindow::refreshSystemStats);
     
-    // DuplicateDetector connections
-    if (m_duplicateDetector) {
-        connect(m_duplicateDetector, &DuplicateDetector::detectionStarted,
-                this, &MainWindow::onDuplicateDetectionStarted);
-        
-        connect(m_duplicateDetector, &DuplicateDetector::detectionProgress,
-                this, &MainWindow::onDuplicateDetectionProgress);
-        
-        connect(m_duplicateDetector, &DuplicateDetector::detectionCompleted,
-                this, &MainWindow::onDuplicateDetectionCompleted);
-        
-        connect(m_duplicateDetector, &DuplicateDetector::detectionError,
-                this, &MainWindow::onDuplicateDetectionError);
-    }
+    // DuplicateDetector connections are set up in setDuplicateDetector() method
+}
+
+void MainWindow::setupKeyboardShortcuts()
+{
+    // Ctrl+N - New Scan
+    QShortcut* newScanShortcut = new QShortcut(QKeySequence::New, this);
+    connect(newScanShortcut, &QShortcut::activated, this, &MainWindow::onNewScanRequested);
+    
+    // Ctrl+O - Open Results (View History)
+    QShortcut* openShortcut = new QShortcut(QKeySequence::Open, this);
+    connect(openShortcut, &QShortcut::activated, this, &MainWindow::onViewAllHistoryClicked);
+    
+    // Ctrl+S - Export Results (if results window is open)
+    QShortcut* saveShortcut = new QShortcut(QKeySequence::Save, this);
+    connect(saveShortcut, &QShortcut::activated, this, [this]() {
+        if (m_resultsWindow && m_resultsWindow->isVisible()) {
+            // Trigger export in results window
+            m_resultsWindow->exportResults();
+        }
+    });
+    
+    // Ctrl+, (Comma) - Settings
+    QShortcut* settingsShortcut = new QShortcut(QKeySequence::Preferences, this);
+    connect(settingsShortcut, &QShortcut::activated, this, &MainWindow::onSettingsRequested);
+    
+    // F1 - Help
+    QShortcut* helpShortcut = new QShortcut(QKeySequence::HelpContents, this);
+    connect(helpShortcut, &QShortcut::activated, this, &MainWindow::onHelpRequested);
+    
+    // Ctrl+Q - Quit
+    QShortcut* quitShortcut = new QShortcut(QKeySequence::Quit, this);
+    connect(quitShortcut, &QShortcut::activated, this, &QMainWindow::close);
+    
+    // Ctrl+R - Refresh System Stats
+    QShortcut* refreshShortcut = new QShortcut(QKeySequence::Refresh, this);
+    connect(refreshShortcut, &QShortcut::activated, this, &MainWindow::refreshSystemStats);
+    
+    // F5 - Refresh (alternative)
+    QShortcut* f5Shortcut = new QShortcut(QKeySequence(Qt::Key_F5), this);
+    connect(f5Shortcut, &QShortcut::activated, this, &MainWindow::refreshSystemStats);
+    
+    // Ctrl+1 through Ctrl+6 - Quick action presets
+    QShortcut* quickScanShortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_1), this);
+    connect(quickScanShortcut, &QShortcut::activated, this, [this]() {
+        onPresetSelected("quick");
+    });
+    
+    QShortcut* downloadsShortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_2), this);
+    connect(downloadsShortcut, &QShortcut::activated, this, [this]() {
+        onPresetSelected("downloads");
+    });
+    
+    QShortcut* photosShortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_3), this);
+    connect(photosShortcut, &QShortcut::activated, this, [this]() {
+        onPresetSelected("photos");
+    });
+    
+    QShortcut* documentsShortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_4), this);
+    connect(documentsShortcut, &QShortcut::activated, this, [this]() {
+        onPresetSelected("documents");
+    });
+    
+    QShortcut* fullSystemShortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_5), this);
+    connect(fullSystemShortcut, &QShortcut::activated, this, [this]() {
+        onPresetSelected("fullsystem");
+    });
+    
+    QShortcut* customShortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_6), this);
+    connect(customShortcut, &QShortcut::activated, this, [this]() {
+        onPresetSelected("custom");
+    });
 }
 
 void MainWindow::updatePlanIndicator()
@@ -412,12 +755,21 @@ void MainWindow::createHeaderWidget()
     m_newScanButton = new QPushButton(tr("📁 New Scan"), this);
     m_newScanButton->setFixedSize(120, 32);
     m_newScanButton->setStyleSheet("QPushButton { font-weight: bold; }");
+    m_newScanButton->setToolTip(tr("Start a new scan (Ctrl+N)"));
     
     m_settingsButton = new QPushButton(tr("⚙️ Settings"), this);
     m_settingsButton->setFixedSize(120, 32);
+    m_settingsButton->setToolTip(tr("Configure application settings (Ctrl+,)"));
     
     m_helpButton = new QPushButton(tr("❓ Help"), this);
     m_helpButton->setFixedSize(120, 32);
+    m_helpButton->setToolTip(tr("View help and keyboard shortcuts (F1)"));
+    
+    // Restore button
+    QPushButton* restoreButton = new QPushButton(tr("🔄 Restore"), this);
+    restoreButton->setFixedSize(120, 32);
+    restoreButton->setToolTip(tr("Restore files from backups"));
+    connect(restoreButton, &QPushButton::clicked, this, &MainWindow::onRestoreRequested);
     
     // Test button for results window (temporary)
     QPushButton* testResultsButton = new QPushButton(tr("🔍 View Results"), this);
@@ -429,6 +781,7 @@ void MainWindow::createHeaderWidget()
     m_headerLayout->addWidget(m_newScanButton);
     m_headerLayout->addWidget(m_settingsButton);
     m_headerLayout->addWidget(m_helpButton);
+    m_headerLayout->addWidget(restoreButton);
     m_headerLayout->addWidget(testResultsButton);
     m_headerLayout->addStretch();
     
@@ -654,21 +1007,27 @@ void QuickActionsWidget::createButtons()
     // Create buttons with icons and text
     m_quickScanButton = new QPushButton(tr("🚀 Start Quick Scan"), this);
     m_quickScanButton->setFixedSize(180, 60);
+    m_quickScanButton->setToolTip(tr("Scan common locations: Home, Downloads, Documents (Ctrl+1)"));
     
     m_downloadsButton = new QPushButton(tr("📂 Downloads Cleanup"), this);
     m_downloadsButton->setFixedSize(180, 60);
+    m_downloadsButton->setToolTip(tr("Find duplicates in Downloads folder (Ctrl+2)"));
     
     m_photoButton = new QPushButton(tr("📸 Photo Cleanup"), this);
     m_photoButton->setFixedSize(180, 60);
+    m_photoButton->setToolTip(tr("Find duplicate photos in Pictures folder (Ctrl+3)"));
     
     m_documentsButton = new QPushButton(tr("📄 Documents"), this);
     m_documentsButton->setFixedSize(180, 60);
+    m_documentsButton->setToolTip(tr("Scan Documents folder for duplicates (Ctrl+4)"));
     
     m_fullSystemButton = new QPushButton(tr("🖥️ Full System Scan"), this);
     m_fullSystemButton->setFixedSize(180, 60);
+    m_fullSystemButton->setToolTip(tr("Comprehensive scan of entire home directory (Ctrl+5)"));
     
     m_customButton = new QPushButton(tr("⭐ Custom Preset"), this);
     m_customButton->setFixedSize(180, 60);
+    m_customButton->setToolTip(tr("Configure custom scan settings (Ctrl+6)"));
     
     // Arrange in 2x3 grid
     m_layout->addWidget(m_quickScanButton, 0, 0);
@@ -729,40 +1088,51 @@ void QuickActionsWidget::setupButtonStyles()
 }
 
 // Preset button slots
-void QuickActionsWidget::onQuickScanClicked() { emit presetSelected("quick"); }
-void QuickActionsWidget::onDownloadsCleanupClicked() { emit presetSelected("downloads"); }
-void QuickActionsWidget::onPhotoCleanupClicked() { emit presetSelected("photos"); }
-void QuickActionsWidget::onDocumentsClicked() { emit presetSelected("documents"); }
-void QuickActionsWidget::onFullSystemClicked() { emit presetSelected("fullsystem"); }
-void QuickActionsWidget::onCustomPresetClicked() { emit presetSelected("custom"); }
+void QuickActionsWidget::onQuickScanClicked() { 
+    qDebug() << "Quick Scan button clicked!";
+    emit presetSelected("quick"); 
+}
+void QuickActionsWidget::onDownloadsCleanupClicked() { 
+    qDebug() << "Downloads button clicked!";
+    emit presetSelected("downloads"); 
+}
+void QuickActionsWidget::onPhotoCleanupClicked() { 
+    qDebug() << "Photo button clicked!";
+    emit presetSelected("photos"); 
+}
+void QuickActionsWidget::onDocumentsClicked() { 
+    qDebug() << "Documents button clicked!";
+    emit presetSelected("documents"); 
+}
+void QuickActionsWidget::onFullSystemClicked() { 
+    qDebug() << "Full System button clicked!";
+    emit presetSelected("fullsystem"); 
+}
+void QuickActionsWidget::onCustomPresetClicked() { 
+    qDebug() << "Custom button clicked!";
+    emit presetSelected("custom"); 
+}
 
 // Main Window scan configuration handler
-void MainWindow::handleScanConfiguration()
+void MainWindow::handleScanConfiguration(const ScanSetupDialog::ScanConfiguration& config)
 {
-    LOG_INFO("=== Starting New Scan ===");
+    LOG_INFO(LogCategories::UI, "=== Starting New Scan ===");
     
-    // Get the configuration from the dialog
-    if (!m_scanSetupDialog) {
-        LOG_ERROR("Scan dialog not initialized");
-        return;
-    }
-    
-    ScanSetupDialog::ScanConfiguration config = m_scanSetupDialog->getCurrentConfiguration();
-    
-    LOG_INFO(QString("Scan Configuration:"));
-    LOG_INFO(QString("  - Target paths (%1): %2").arg(config.targetPaths.size()).arg(config.targetPaths.join(", ")));
-    LOG_INFO(QString("  - Excluded folders: %1").arg(config.excludeFolders.join(", ")));
-    LOG_INFO(QString("  - Detection mode: %1").arg(static_cast<int>(config.detectionMode)));
-    LOG_INFO(QString("  - Minimum file size: %1 MB").arg(config.minimumFileSize));
-    LOG_INFO(QString("  - Include hidden: %1").arg(config.includeHidden ? "Yes" : "No"));
-    LOG_INFO(QString("  - Follow symlinks: %1").arg(config.followSymlinks ? "Yes" : "No"));
+    LOG_INFO(LogCategories::UI, QString("Scan Configuration:"));
+    LOG_INFO(LogCategories::UI, QString("  - Target paths (%1): %2").arg(config.targetPaths.size()).arg(config.targetPaths.join(", ")));
+    LOG_INFO(LogCategories::UI, QString("  - Excluded folders: %1").arg(config.excludeFolders.join(", ")));
+    LOG_INFO(LogCategories::UI, QString("  - Detection mode: %1").arg(static_cast<int>(config.detectionMode)));
+    qDebug() << "config.minimumFileSize (from dialog):" << config.minimumFileSize << "bytes";
+    LOG_INFO(LogCategories::UI, QString("  - Minimum file size: %1 bytes (from dialog)").arg(config.minimumFileSize));
+    LOG_INFO(LogCategories::UI, QString("  - Include hidden: %1").arg(config.includeHidden ? "Yes" : "No"));
+    LOG_INFO(LogCategories::UI, QString("  - Follow symlinks: %1").arg(config.followSymlinks ? "Yes" : "No"));
     
     // Pass configuration to the FileScanner
     if (m_fileScanner) {
         // Convert ScanSetupDialog configuration to FileScanner::ScanOptions
         FileScanner::ScanOptions scanOptions;
         scanOptions.targetPaths = config.targetPaths;
-        scanOptions.minimumFileSize = config.minimumFileSize * 1024 * 1024; // Convert MB to bytes
+        scanOptions.minimumFileSize = config.minimumFileSize; // Already in bytes from dialog
         scanOptions.includeHiddenFiles = config.includeHidden;
         scanOptions.scanSystemDirectories = config.includeSystem;
         scanOptions.followSymlinks = config.followSymlinks;
@@ -770,27 +1140,27 @@ void MainWindow::handleScanConfiguration()
         // Parse exclude patterns
         if (!config.excludePatterns.isEmpty()) {
             scanOptions.excludePatterns = config.excludePatterns;
-            LOG_DEBUG(QString("  - Exclude patterns: %1").arg(scanOptions.excludePatterns.join(", ")));
+            LOG_DEBUG(LogCategories::UI, QString("  - Exclude patterns: %1").arg(scanOptions.excludePatterns.join(", ")));
         }
         
-        LOG_INFO(QString("Initiating FileScanner with %1 target paths").arg(scanOptions.targetPaths.size()));
-        LOG_DEBUG(QString("  - Min file size (bytes): %1").arg(scanOptions.minimumFileSize));
+        LOG_INFO(LogCategories::UI, QString("Initiating FileScanner with %1 target paths").arg(scanOptions.targetPaths.size()));
+        LOG_DEBUG(LogCategories::UI, QString("  - Min file size (bytes): %1").arg(scanOptions.minimumFileSize));
         
         // Start the scan
         m_fileScanner->startScan(scanOptions);
         
         // Update UI to show scanning state
         updateScanProgress(0, tr("Scanning..."));
-        LOG_INFO("Scan initiated successfully");
+        LOG_INFO(LogCategories::UI, "Scan initiated successfully");
     } else {
-        LOG_ERROR("FileScanner not initialized!");
+        LOG_ERROR(LogCategories::UI, "FileScanner not initialized!");
         showError(tr("Error"), tr("File scanner is not initialized. Please restart the application."));
     }
     
     // Update UI to show scanning state
     if (m_quickActions) {
         m_quickActions->setEnabled(false);
-        LOG_DEBUG("Quick actions disabled during scan");
+        LOG_DEBUG(LogCategories::UI, "Quick actions disabled during scan");
     }
 }
 
@@ -798,14 +1168,20 @@ void MainWindow::handleScanConfiguration()
 // Duplicate detection handlers
 void MainWindow::onScanCompleted()
 {
+    qDebug() << "!!! MainWindow::onScanCompleted() CALLED !!!";
     int filesFound = m_fileScanner->getTotalFilesFound();
     qint64 bytesScanned = m_fileScanner->getTotalBytesScanned();
     int errorsEncountered = m_fileScanner->getTotalErrorsEncountered();
     
-    LOG_INFO("=== FileScanner: Scan Completed ===");
-    LOG_INFO(QString("  - Files found: %1").arg(filesFound));
-    LOG_INFO(QString("  - Bytes scanned: %1 (%2)").arg(bytesScanned).arg(formatFileSize(bytesScanned)));
-    LOG_INFO(QString("  - Errors encountered: %1").arg(errorsEncountered));
+    qDebug() << "=== onScanCompleted called ===";
+    qDebug() << "Files found:" << filesFound;
+    qDebug() << "Bytes scanned:" << bytesScanned;
+    qDebug() << "Errors:" << errorsEncountered;
+    
+    LOG_INFO(LogCategories::UI, "=== FileScanner: Scan Completed ===");
+    LOG_INFO(LogCategories::UI, QString("  - Files found: %1").arg(filesFound));
+    LOG_INFO(LogCategories::UI, QString("  - Bytes scanned: %1 (%2)").arg(bytesScanned).arg(formatFileSize(bytesScanned)));
+    LOG_INFO(LogCategories::UI, QString("  - Errors encountered: %1").arg(errorsEncountered));
     
     QString status = tr("Scan complete! Found %1 files (%2)")
         .arg(filesFound)
@@ -827,18 +1203,25 @@ void MainWindow::onScanCompleted()
         detectorFiles.append(DuplicateDetector::FileInfo::fromScannerInfo(scanFile));
     }
     
-    LOG_INFO(QString("=== Starting Duplicate Detection ==="));
-    LOG_INFO(QString("  - Files to analyze: %1").arg(detectorFiles.size()));
+    LOG_INFO(LogCategories::UI, QString("=== Starting Duplicate Detection ==="));
+    LOG_INFO(LogCategories::UI, QString("  - Files to analyze: %1").arg(detectorFiles.size()));
     
     // Start duplicate detection if detector is available
+    qDebug() << "Checking duplicate detector...";
+    qDebug() << "m_duplicateDetector:" << (m_duplicateDetector ? "EXISTS" : "NULL");
+    qDebug() << "detectorFiles.size():" << detectorFiles.size();
+    
     if (m_duplicateDetector && !detectorFiles.isEmpty()) {
+        qDebug() << "Starting duplicate detection with" << detectorFiles.size() << "files";
         m_duplicateDetector->findDuplicates(detectorFiles);
     } else {
         if (!m_duplicateDetector) {
-            LOG_ERROR("DuplicateDetector not initialized!");
+            qDebug() << "ERROR: DuplicateDetector is NULL!";
+            LOG_ERROR(LogCategories::UI, "DuplicateDetector not initialized!");
             showError(tr("Error"), tr("Duplicate detector is not initialized. Please restart the application."));
         } else {
-            LOG_WARNING("No files to analyze for duplicates");
+            qDebug() << "WARNING: No files to analyze (detectorFiles is empty)";
+            LOG_WARNING(LogCategories::UI, "No files to analyze for duplicates");
             showSuccess(tr("Scan Complete"), 
                        tr("Found %1 files totaling %2, but no files to analyze for duplicates")
                        .arg(filesFound)
@@ -848,15 +1231,15 @@ void MainWindow::onScanCompleted()
         // Re-enable quick actions
         if (m_quickActions) {
             m_quickActions->setEnabled(true);
-            LOG_DEBUG("Quick actions re-enabled");
+            LOG_DEBUG(LogCategories::UI, "Quick actions re-enabled");
         }
     }
 }
 
 void MainWindow::onDuplicateDetectionStarted(int totalFiles)
 {
-    LOG_INFO(QString("=== Duplicate Detection Started ==="));
-    LOG_INFO(QString("  - Total files to process: %1").arg(totalFiles));
+    LOG_INFO(LogCategories::UI, QString("=== Duplicate Detection Started ==="));
+    LOG_INFO(LogCategories::UI, QString("  - Total files to process: %1").arg(totalFiles));
     
     updateScanProgress(0, tr("Detecting duplicates..."));
 }
@@ -889,19 +1272,19 @@ void MainWindow::onDuplicateDetectionProgress(const DuplicateDetector::Detection
     
     updateScanProgress(static_cast<int>(progress.percentComplete), status);
     
-    LOG_DEBUG(QString("Detection progress: %1% - %2").arg(progress.percentComplete, 0, 'f', 1).arg(phaseText));
+    LOG_DEBUG(LogCategories::UI, QString("Detection progress: %1% - %2").arg(progress.percentComplete, 0, 'f', 1).arg(phaseText));
 }
 
 void MainWindow::onDuplicateDetectionCompleted(int totalGroups)
 {
-    LOG_INFO("=== Duplicate Detection Completed ===");
-    LOG_INFO(QString("  - Duplicate groups found: %1").arg(totalGroups));
+    LOG_INFO(LogCategories::UI, "=== Duplicate Detection Completed ===");
+    LOG_INFO(LogCategories::UI, QString("  - Duplicate groups found: %1").arg(totalGroups));
     
     // Get results from detector
     QList<DuplicateDetector::DuplicateGroup> groups = m_duplicateDetector->getDuplicateGroups();
     qint64 totalWastedSpace = m_duplicateDetector->getTotalWastedSpace();
     
-    LOG_INFO(QString("  - Total wasted space: %1").arg(formatFileSize(totalWastedSpace)));
+    LOG_INFO(LogCategories::UI, QString("  - Total wasted space: %1").arg(formatFileSize(totalWastedSpace)));
     
     // Update status
     QString status = tr("Detection complete! Found %1 duplicate groups")
@@ -919,8 +1302,11 @@ void MainWindow::onDuplicateDetectionCompleted(int totalGroups)
     // Re-enable quick actions
     if (m_quickActions) {
         m_quickActions->setEnabled(true);
-        LOG_DEBUG("Quick actions re-enabled");
+        LOG_DEBUG(LogCategories::UI, "Quick actions re-enabled");
     }
+    
+    // Save scan to history
+    saveScanToHistory(groups);
     
     // Show results if duplicates were found
     if (totalGroups > 0) {
@@ -929,15 +1315,54 @@ void MainWindow::onDuplicateDetectionCompleted(int totalGroups)
                    .arg(totalGroups)
                    .arg(formatFileSize(totalWastedSpace)));
         
-        // Pass results to ResultsWindow
-        if (m_resultsWindow) {
-            m_resultsWindow->displayDuplicateGroups(groups);
-            m_resultsWindow->show();
-            m_resultsWindow->raise();
-            m_resultsWindow->activateWindow();
-        } else {
-            showScanResults();
+        // Create results window if needed
+        if (!m_resultsWindow) {
+            m_resultsWindow = new ResultsWindow(this);
+            
+            // Set FileManager reference
+            if (m_fileManager) {
+                m_resultsWindow->setFileManager(m_fileManager);
+            }
+            
+            // Connect results window signals
+            connect(m_resultsWindow, &ResultsWindow::windowClosed,
+                    this, [this]() {
+                        LOG_DEBUG(LogCategories::UI, "Results window closed");
+                    });
+            
+            connect(m_resultsWindow, &ResultsWindow::fileOperationRequested,
+                    this, [this](const QString& operation, const QStringList& files) {
+                        LOG_INFO(LogCategories::UI, QString("File operation requested: %1 on %2 files").arg(operation).arg(files.size()));
+                    });
+            
+            connect(m_resultsWindow, &ResultsWindow::resultsUpdated,
+                    this, [this](const ResultsWindow::ScanResults& results) {
+                        LOG_DEBUG(LogCategories::UI, QString("Results updated: %1 groups").arg(results.duplicateGroups.size()));
+                        
+                        // Update main window stats
+                        if (m_fileCountLabel) {
+                            m_fileCountLabel->setText(tr("Files: %1").arg(results.totalFilesScanned));
+                        }
+                        if (m_groupCountLabel) {
+                            m_groupCountLabel->setText(tr("Groups: %1").arg(results.duplicateGroups.size()));
+                        }
+                        if (m_savingsLabel) {
+                            m_savingsLabel->setText(tr("Savings: %1").arg(formatFileSize(results.potentialSavings)));
+                        }
+                    });
         }
+        
+        // Pass results to ResultsWindow and show it
+        qDebug() << "About to display" << groups.size() << "groups in ResultsWindow";
+        LOG_INFO(LogCategories::UI, QString("Displaying %1 duplicate groups in ResultsWindow").arg(groups.size()));
+        m_resultsWindow->displayDuplicateGroups(groups);
+        qDebug() << "Calling m_resultsWindow->show()";
+        m_resultsWindow->show();
+        qDebug() << "Calling m_resultsWindow->raise()";
+        m_resultsWindow->raise();
+        qDebug() << "Calling m_resultsWindow->activateWindow()";
+        m_resultsWindow->activateWindow();
+        qDebug() << "Results window should now be visible";
     } else {
         showSuccess(tr("Detection Complete"), 
                    tr("No duplicate files found. Your files are unique!"));
@@ -946,17 +1371,59 @@ void MainWindow::onDuplicateDetectionCompleted(int totalGroups)
 
 void MainWindow::onDuplicateDetectionError(const QString& error)
 {
-    LOG_ERROR(QString("=== Duplicate Detection Error ==="));
-    LOG_ERROR(QString("  - Error: %1").arg(error));
+    LOG_ERROR(LogCategories::UI, QString("=== Duplicate Detection Error ==="));
+    LOG_ERROR(LogCategories::UI, QString("  - Error: %1").arg(error));
     
     updateScanProgress(0, tr("Detection failed"));
     
     // Re-enable quick actions
     if (m_quickActions) {
         m_quickActions->setEnabled(true);
-        LOG_DEBUG("Quick actions re-enabled");
+        LOG_DEBUG(LogCategories::UI, "Quick actions re-enabled");
     }
     
     showError(tr("Detection Error"), 
              tr("An error occurred during duplicate detection:\n%1").arg(error));
+}
+
+void MainWindow::saveScanToHistory(const QList<DuplicateDetector::DuplicateGroup>& groups)
+{
+    LOG_INFO(LogCategories::UI, "Saving scan to history");
+    
+    // Create scan record
+    ScanHistoryManager::ScanRecord record;
+    record.scanId = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    record.timestamp = QDateTime::currentDateTime();
+    record.filesScanned = m_lastScanResults.size();
+    record.duplicateGroups = groups.size();
+    record.potentialSavings = calculatePotentialSavings(groups);
+    record.groups = groups;
+    
+    // Get target paths from last scan configuration
+    // For now, we'll use a placeholder - this should be stored from the scan configuration
+    record.targetPaths << tr("Recent Scan");
+    
+    // Save to history manager
+    ScanHistoryManager::instance()->saveScan(record);
+    
+    // Refresh history widget
+    if (m_scanHistory) {
+        m_scanHistory->refreshHistory();
+    }
+    
+    LOG_INFO(LogCategories::UI, QString("Scan saved to history: %1 groups, %2 potential savings")
+             .arg(record.duplicateGroups)
+             .arg(formatFileSize(record.potentialSavings)));
+}
+
+qint64 MainWindow::calculatePotentialSavings(const QList<DuplicateDetector::DuplicateGroup>& groups)
+{
+    qint64 totalSavings = 0;
+    
+    for (const auto& group : groups) {
+        // Potential savings is the wasted space (total size minus one file to keep)
+        totalSavings += group.wastedSpace;
+    }
+    
+    return totalSavings;
 }

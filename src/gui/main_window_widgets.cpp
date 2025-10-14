@@ -1,4 +1,5 @@
 #include "main_window.h"
+#include "scan_history_manager.h"
 #include <QtWidgets/QListWidgetItem>
 #include <QtCore/QStandardPaths>
 #include <QtCore/QStorageInfo>
@@ -81,8 +82,57 @@ QList<ScanHistoryWidget::ScanHistoryItem> ScanHistoryWidget::getHistory() const
 
 void ScanHistoryWidget::refreshHistory()
 {
-    // This would typically load from settings or database
-    // For now, we'll just update the display
+    // Clear existing history
+    m_historyItems.clear();
+    
+    // Load all scans from history manager
+    QList<ScanHistoryManager::ScanRecord> scans = 
+        ScanHistoryManager::instance()->getAllScans();
+    
+    // Convert to widget format
+    for (const auto& record : scans) {
+        ScanHistoryItem item;
+        item.scanId = record.scanId;
+        
+        // Format date
+        QDateTime now = QDateTime::currentDateTime();
+        qint64 daysDiff = record.timestamp.daysTo(now);
+        
+        if (daysDiff == 0) {
+            item.date = tr("Today, %1").arg(record.timestamp.toString("h:mm AP"));
+        } else if (daysDiff == 1) {
+            item.date = tr("Yesterday, %1").arg(record.timestamp.toString("h:mm AP"));
+        } else if (daysDiff < 7) {
+            item.date = record.timestamp.toString("dddd, h:mm AP");
+        } else {
+            item.date = record.timestamp.toString("MMM d, h:mm AP");
+        }
+        
+        // Determine scan type from paths
+        if (record.targetPaths.isEmpty()) {
+            item.type = tr("Unknown");
+        } else if (record.targetPaths.size() == 1) {
+            QString path = record.targetPaths.first();
+            if (path.contains("Download", Qt::CaseInsensitive)) {
+                item.type = tr("Downloads");
+            } else if (path.contains("Picture", Qt::CaseInsensitive) || path.contains("Photo", Qt::CaseInsensitive)) {
+                item.type = tr("Photos");
+            } else if (path.contains("Document", Qt::CaseInsensitive)) {
+                item.type = tr("Documents");
+            } else {
+                item.type = tr("Custom");
+            }
+        } else {
+            item.type = tr("Multiple Locations");
+        }
+        
+        item.duplicateCount = record.duplicateGroups;
+        item.spaceSaved = record.potentialSavings;
+        
+        m_historyItems.append(item);
+    }
+    
+    // Update the display
     updateHistoryDisplay();
 }
 

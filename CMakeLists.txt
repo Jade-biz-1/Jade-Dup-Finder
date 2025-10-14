@@ -85,6 +85,8 @@ set(CORE_SOURCES
     src/core/file_manager.cpp
     src/core/safety_manager.cpp
     src/core/app_config.cpp
+    src/core/logger.cpp
+    src/core/scan_history_manager.cpp
 )
 
 set(GUI_SOURCES
@@ -94,6 +96,8 @@ set(GUI_SOURCES
     src/gui/results_widget.cpp
     src/gui/results_window.cpp
     src/gui/settings_dialog.cpp
+    src/gui/scan_history_dialog.cpp
+    src/gui/restore_dialog.cpp
     src/gui/confirmation_dialog.cpp
 )
 
@@ -110,11 +114,15 @@ set(HEADER_FILES
     include/file_manager.h
     include/safety_manager.h
     include/app_config.h
+    src/core/logger.h
+    include/scan_history_manager.h
     include/main_window.h
     include/scan_dialog.h
     include/results_widget.h
     src/gui/results_window.h
     include/settings_dialog.h
+    include/scan_history_dialog.h
+    include/restore_dialog.h
     include/confirmation_dialog.h
     include/platform_file_ops.h
     include/trash_manager.h
