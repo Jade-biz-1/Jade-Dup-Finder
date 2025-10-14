@@ -2,6 +2,7 @@
 #include "app_config.h"
 #include "duplicate_detector.h"
 #include "file_manager.h"
+#include "core/logger.h"
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QMessageBox>
 #include <QtWidgets/QFileDialog>
@@ -17,6 +18,19 @@
 #include <QtCore/QMimeDatabase>
 #include <QtCore/QStandardPaths>
 #include <QtCore/QDebug>
+
+// Undefine old AppConfig logging macros to use new Logger system
+#undef LOG_DEBUG
+#undef LOG_INFO
+#undef LOG_WARNING
+#undef LOG_ERROR
+#undef LOG_FILE
+
+// Redefine for ResultsWindow to use UI category
+#define LOG_DEBUG(msg) Logger::instance()->debug(LogCategories::UI, msg)
+#define LOG_INFO(msg) Logger::instance()->info(LogCategories::UI, msg)
+#define LOG_WARNING(msg) Logger::instance()->warning(LogCategories::UI, msg)
+#define LOG_ERROR(msg) Logger::instance()->error(LogCategories::UI, msg)
 
 // Constants
 const QSize ResultsWindow::MIN_WINDOW_SIZE(800, 600);
@@ -98,8 +112,11 @@ void ResultsWindow::createHeaderPanel()
     
     // Action buttons
     m_refreshButton = new QPushButton(tr("🔄 Refresh"), this);
+    m_refreshButton->setToolTip(tr("Refresh results display"));
     m_exportButton = new QPushButton(tr("📤 Export"), this);
+    m_exportButton->setToolTip(tr("Export results to CSV, JSON, or text file (Ctrl+S)"));
     m_settingsButton = new QPushButton(tr("⚙️ Settings"), this);
+    m_settingsButton->setToolTip(tr("Open settings dialog"));
     
     // Style header buttons
     QString headerButtonStyle = 
@@ -214,9 +231,13 @@ void ResultsWindow::createResultsTree()
     m_selectionLayout->setSpacing(8);
     
     m_selectAllCheckbox = new QCheckBox(tr("Select All"), this);
+    m_selectAllCheckbox->setToolTip(tr("Select all duplicate files"));
     m_selectRecommendedButton = new QPushButton(tr("Select Recommended"), this);
+    m_selectRecommendedButton->setToolTip(tr("Select files recommended for deletion (keeps newest/largest)"));
     m_selectByTypeButton = new QPushButton(tr("Select by Type"), this);
+    m_selectByTypeButton->setToolTip(tr("Select files by type (images, documents, etc.)"));
     m_clearSelectionButton = new QPushButton(tr("Clear Selection"), this);
+    m_clearSelectionButton->setToolTip(tr("Deselect all files"));
     m_selectionSummaryLabel = new QLabel(tr("0 files selected"), this);
     
     m_selectionLayout->addWidget(m_selectAllCheckbox);
@@ -367,11 +388,17 @@ void ResultsWindow::createActionsPanel()
     m_fileActionsLayout->setSpacing(6);
     
     m_deleteButton = new QPushButton(tr("🗑️ Delete File"), this);
+    m_deleteButton->setToolTip(tr("Delete selected file (backup created automatically)"));
     m_moveButton = new QPushButton(tr("📁 Move File"), this);
+    m_moveButton->setToolTip(tr("Move selected file to another location"));
     m_ignoreButton = new QPushButton(tr("👁️ Ignore File"), this);
+    m_ignoreButton->setToolTip(tr("Ignore this file in current results"));
     m_previewButton = new QPushButton(tr("👀 Preview"), this);
+    m_previewButton->setToolTip(tr("Preview file content (images, text files)"));
     m_openLocationButton = new QPushButton(tr("📂 Open Location"), this);
+    m_openLocationButton->setToolTip(tr("Open file location in file manager"));
     m_copyPathButton = new QPushButton(tr("📋 Copy Path"), this);
+    m_copyPathButton->setToolTip(tr("Copy file path to clipboard"));
     
     // Style action buttons
     QString actionButtonStyle = 
@@ -415,8 +442,11 @@ void ResultsWindow::createActionsPanel()
     m_bulkActionsLayout->setSpacing(6);
     
     m_bulkDeleteButton = new QPushButton(tr("🗑️ Delete Selected"), this);
+    m_bulkDeleteButton->setToolTip(tr("Delete all selected files (backups created automatically)"));
     m_bulkMoveButton = new QPushButton(tr("📁 Move Selected"), this);
+    m_bulkMoveButton->setToolTip(tr("Move all selected files to another location"));
     m_bulkIgnoreButton = new QPushButton(tr("👁️ Ignore Selected"), this);
+    m_bulkIgnoreButton->setToolTip(tr("Ignore all selected files in current results"));
     
     // Style bulk buttons with warning colors
     QString bulkButtonStyle = 
@@ -523,9 +553,7 @@ void ResultsWindow::setupConnections()
     // Bulk actions
     connect(m_bulkDeleteButton, &QPushButton::clicked, this, &ResultsWindow::performBulkDelete);
     connect(m_bulkMoveButton, &QPushButton::clicked, this, &ResultsWindow::performBulkMove);
-    connect(m_bulkIgnoreButton, &QPushButton::clicked, this, [this]() {
-        qDebug() << "Bulk ignore not implemented yet";
-    });
+    connect(m_bulkIgnoreButton, &QPushButton::clicked, this, &ResultsWindow::ignoreSelectedFiles);
     
     // Thumbnail timer
     connect(m_thumbnailTimer, &QTimer::timeout, this, [this]() {
@@ -1372,9 +1400,43 @@ void ResultsWindow::ignoreSelectedFiles()
 {
     LOG_INFO("User clicked 'Ignore Selected Files' button");
     QList<DuplicateFile> selected = getSelectedFiles();
-    LOG_WARNING(QString("Ignore functionality not yet implemented (%1 files selected)").arg(selected.size()));
-    // TODO: Implement ignore functionality - add to ignore list
-    QMessageBox::information(this, tr("Ignore"), tr("Ignore functionality will be implemented soon.\nThis will add files to an ignore list."));
+    
+    if (selected.isEmpty()) {
+        QMessageBox::information(this, tr("Ignore"), tr("No files selected to ignore."));
+        return;
+    }
+    
+    LOG_INFO(QString("Ignoring %1 files").arg(selected.size()));
+    
+    // Remove ignored files from the display
+    for (const DuplicateFile& file : selected) {
+        // Find and remove the item from the tree
+        QTreeWidgetItemIterator it(m_resultsTree);
+        while (*it) {
+            QTreeWidgetItem* item = *it;
+            if (item->data(0, Qt::UserRole).toString() == file.filePath) {
+                // Remove from parent or tree
+                if (item->parent()) {
+                    item->parent()->removeChild(item);
+                } else {
+                    int index = m_resultsTree->indexOfTopLevelItem(item);
+                    if (index >= 0) {
+                        m_resultsTree->takeTopLevelItem(index);
+                    }
+                }
+                delete item;
+                break;
+            }
+            ++it;
+        }
+    }
+    
+    // Update statistics
+    updateStatisticsDisplay();
+    
+    QMessageBox::information(this, tr("Files Ignored"),
+                           tr("%1 file(s) have been removed from the results.\n\nNote: Files are only hidden from current results, not permanently ignored.")
+                           .arg(selected.size()));
 }
 
 void ResultsWindow::previewSelectedFile()
@@ -1502,9 +1564,21 @@ void ResultsWindow::confirmBulkOperation(const QString& operation, int fileCount
                                                               QMessageBox::Yes | QMessageBox::No);
     
     if (reply == QMessageBox::Yes) {
-        qDebug() << "Would" << operation << fileCount << "files";
-        // TODO: Implement actual bulk operations
-        QMessageBox::information(this, tr("Bulk Operation"), tr("Bulk operations will be implemented soon."));
+        LOG_INFO(QString("User confirmed bulk %1 operation for %2 files").arg(operation).arg(fileCount));
+        
+        // Get selected files
+        QList<DuplicateFile> selected = getSelectedFiles();
+        QStringList filePaths;
+        for (const DuplicateFile& file : selected) {
+            filePaths.append(file.filePath);
+        }
+        
+        // Perform the operation based on type
+        if (operation == "delete") {
+            deleteSelectedFiles();
+        } else if (operation == "move") {
+            moveSelectedFiles();
+        }
     }
 }
 

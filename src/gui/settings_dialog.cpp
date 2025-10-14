@@ -1,0 +1,578 @@
+#include "settings_dialog.h"
+#include "core/logger.h"
+#include <QSettings>
+#include <QFileDialog>
+#include <QStandardPaths>
+#include <QDesktopServices>
+#include <QUrl>
+#include <QMessageBox>
+
+SettingsDialog::SettingsDialog(QWidget* parent)
+    : QDialog(parent)
+    , m_tabWidget(nullptr)
+    , m_buttonBox(nullptr)
+    , m_applyButton(nullptr)
+    , m_restoreDefaultsButton(nullptr)
+{
+    setWindowTitle(tr("Settings"));
+    setMinimumSize(700, 500);
+    resize(750, 550);
+    setModal(true);
+    
+    setupUI();
+    loadSettings();
+    applyTheme();
+    
+    LOG_INFO(LogCategories::UI, "Settings dialog created");
+}
+
+SettingsDialog::~SettingsDialog()
+{
+    LOG_DEBUG(LogCategories::UI, "Settings dialog destroyed");
+}
+
+void SettingsDialog::setupUI()
+{
+    QVBoxLayout* mainLayout = new QVBoxLayout(this);
+    mainLayout->setContentsMargins(10, 10, 10, 10);
+    mainLayout->setSpacing(10);
+    
+    // Create tab widget
+    m_tabWidget = new QTabWidget(this);
+    
+    // Create tabs
+    createGeneralTab();
+    createScanningTab();
+    createSafetyTab();
+    createLoggingTab();
+    createAdvancedTab();
+    
+    mainLayout->addWidget(m_tabWidget);
+    
+    // Create button box
+    m_buttonBox = new QDialogButtonBox(this);
+    
+    QPushButton* okButton = m_buttonBox->addButton(QDialogButtonBox::Ok);
+    QPushButton* cancelButton = m_buttonBox->addButton(QDialogButtonBox::Cancel);
+    m_applyButton = m_buttonBox->addButton(QDialogButtonBox::Apply);
+    m_restoreDefaultsButton = new QPushButton(tr("Restore Defaults"), this);
+    
+    m_buttonBox->addButton(m_restoreDefaultsButton, QDialogButtonBox::ResetRole);
+    
+    connect(okButton, &QPushButton::clicked, this, &SettingsDialog::onOkClicked);
+    connect(cancelButton, &QPushButton::clicked, this, &SettingsDialog::onCancelClicked);
+    connect(m_applyButton, &QPushButton::clicked, this, &SettingsDialog::onApplyClicked);
+    connect(m_restoreDefaultsButton, &QPushButton::clicked, this, &SettingsDialog::onRestoreDefaultsClicked);
+    
+    mainLayout->addWidget(m_buttonBox);
+}
+
+void SettingsDialog::createGeneralTab()
+{
+    m_generalTab = new QWidget();
+    QVBoxLayout* layout = new QVBoxLayout(m_generalTab);
+    layout->setContentsMargins(20, 20, 20, 20);
+    layout->setSpacing(15);
+    
+    // Language
+    QGroupBox* languageGroup = new QGroupBox(tr("Language"), m_generalTab);
+    QFormLayout* languageLayout = new QFormLayout(languageGroup);
+    
+    m_languageCombo = new QComboBox(m_generalTab);
+    m_languageCombo->addItem(tr("English"), "en");
+    m_languageCombo->addItem(tr("Spanish"), "es");
+    m_languageCombo->addItem(tr("French"), "fr");
+    m_languageCombo->addItem(tr("German"), "de");
+    languageLayout->addRow(tr("Language:"), m_languageCombo);
+    
+    layout->addWidget(languageGroup);
+    
+    // Appearance
+    QGroupBox* appearanceGroup = new QGroupBox(tr("Appearance"), m_generalTab);
+    QFormLayout* appearanceLayout = new QFormLayout(appearanceGroup);
+    
+    m_themeCombo = new QComboBox(m_generalTab);
+    m_themeCombo->addItem(tr("System Default"), "system");
+    m_themeCombo->addItem(tr("Light"), "light");
+    m_themeCombo->addItem(tr("Dark"), "dark");
+    appearanceLayout->addRow(tr("Theme:"), m_themeCombo);
+    
+    layout->addWidget(appearanceGroup);
+    
+    // Startup
+    QGroupBox* startupGroup = new QGroupBox(tr("Startup"), m_generalTab);
+    QVBoxLayout* startupLayout = new QVBoxLayout(startupGroup);
+    
+    m_startupCheck = new QCheckBox(tr("Launch on system startup"), m_generalTab);
+    m_updateCheck = new QCheckBox(tr("Check for updates automatically"), m_generalTab);
+    
+    startupLayout->addWidget(m_startupCheck);
+    startupLayout->addWidget(m_updateCheck);
+    
+    layout->addWidget(startupGroup);
+    layout->addStretch();
+    
+    m_tabWidget->addTab(m_generalTab, tr("General"));
+}
+
+void SettingsDialog::createScanningTab()
+{
+    m_scanningTab = new QWidget();
+    QVBoxLayout* layout = new QVBoxLayout(m_scanningTab);
+    layout->setContentsMargins(20, 20, 20, 20);
+    layout->setSpacing(15);
+    
+    // Default Scan Options
+    QGroupBox* defaultsGroup = new QGroupBox(tr("Default Scan Options"), m_scanningTab);
+    QFormLayout* defaultsLayout = new QFormLayout(defaultsGroup);
+    
+    m_minFileSizeSpin = new QSpinBox(m_scanningTab);
+    m_minFileSizeSpin->setRange(0, 1024);
+    m_minFileSizeSpin->setSuffix(tr(" MB"));
+    m_minFileSizeSpin->setToolTip(tr("Default minimum file size for scans"));
+    defaultsLayout->addRow(tr("Minimum file size:"), m_minFileSizeSpin);
+    
+    m_includeHiddenCheck = new QCheckBox(tr("Include hidden files by default"), m_scanningTab);
+    m_followSymlinksCheck = new QCheckBox(tr("Follow symbolic links by default"), m_scanningTab);
+    
+    defaultsLayout->addRow("", m_includeHiddenCheck);
+    defaultsLayout->addRow("", m_followSymlinksCheck);
+    
+    layout->addWidget(defaultsGroup);
+    
+    // Performance
+    QGroupBox* performanceGroup = new QGroupBox(tr("Performance"), m_scanningTab);
+    QFormLayout* performanceLayout = new QFormLayout(performanceGroup);
+    
+    m_threadCountSpin = new QSpinBox(m_scanningTab);
+    m_threadCountSpin->setRange(1, 16);
+    m_threadCountSpin->setToolTip(tr("Number of threads for scanning (more = faster but more CPU)"));
+    performanceLayout->addRow(tr("Thread count:"), m_threadCountSpin);
+    
+    m_cacheSizeSpin = new QSpinBox(m_scanningTab);
+    m_cacheSizeSpin->setRange(10, 1000);
+    m_cacheSizeSpin->setSuffix(tr(" MB"));
+    m_cacheSizeSpin->setToolTip(tr("Cache size for scan results"));
+    performanceLayout->addRow(tr("Cache size:"), m_cacheSizeSpin);
+    
+    layout->addWidget(performanceGroup);
+    layout->addStretch();
+    
+    m_tabWidget->addTab(m_scanningTab, tr("Scanning"));
+}
+
+void SettingsDialog::createSafetyTab()
+{
+    m_safetyTab = new QWidget();
+    QVBoxLayout* layout = new QVBoxLayout(m_safetyTab);
+    layout->setContentsMargins(20, 20, 20, 20);
+    layout->setSpacing(15);
+    
+    // Backup Settings
+    QGroupBox* backupGroup = new QGroupBox(tr("Backup Settings"), m_safetyTab);
+    QVBoxLayout* backupLayout = new QVBoxLayout(backupGroup);
+    
+    QHBoxLayout* locationLayout = new QHBoxLayout();
+    QLabel* locationLabel = new QLabel(tr("Backup location:"), m_safetyTab);
+    m_backupLocationEdit = new QLineEdit(m_safetyTab);
+    m_backupLocationEdit->setReadOnly(true);
+    m_browseBackupButton = new QPushButton(tr("Browse..."), m_safetyTab);
+    connect(m_browseBackupButton, &QPushButton::clicked, this, &SettingsDialog::onBrowseBackupDirectory);
+    
+    locationLayout->addWidget(locationLabel);
+    locationLayout->addWidget(m_backupLocationEdit, 1);
+    locationLayout->addWidget(m_browseBackupButton);
+    backupLayout->addLayout(locationLayout);
+    
+    QFormLayout* retentionLayout = new QFormLayout();
+    m_backupRetentionSpin = new QSpinBox(m_safetyTab);
+    m_backupRetentionSpin->setRange(1, 365);
+    m_backupRetentionSpin->setSuffix(tr(" days"));
+    m_backupRetentionSpin->setToolTip(tr("How long to keep backup files"));
+    retentionLayout->addRow(tr("Backup retention:"), m_backupRetentionSpin);
+    backupLayout->addLayout(retentionLayout);
+    
+    layout->addWidget(backupGroup);
+    
+    // Protected Paths
+    QGroupBox* protectedGroup = new QGroupBox(tr("Protected Paths"), m_safetyTab);
+    QVBoxLayout* protectedLayout = new QVBoxLayout(protectedGroup);
+    
+    QLabel* protectedLabel = new QLabel(tr("Files in these paths cannot be deleted:"), m_safetyTab);
+    protectedLayout->addWidget(protectedLabel);
+    
+    m_protectedPathsList = new QListWidget(m_safetyTab);
+    m_protectedPathsList->setMaximumHeight(100);
+    protectedLayout->addWidget(m_protectedPathsList);
+    
+    QHBoxLayout* pathButtonsLayout = new QHBoxLayout();
+    m_addPathButton = new QPushButton(tr("Add Path..."), m_safetyTab);
+    m_removePathButton = new QPushButton(tr("Remove"), m_safetyTab);
+    connect(m_addPathButton, &QPushButton::clicked, this, &SettingsDialog::onAddProtectedPath);
+    connect(m_removePathButton, &QPushButton::clicked, this, &SettingsDialog::onRemoveProtectedPath);
+    
+    pathButtonsLayout->addWidget(m_addPathButton);
+    pathButtonsLayout->addWidget(m_removePathButton);
+    pathButtonsLayout->addStretch();
+    protectedLayout->addLayout(pathButtonsLayout);
+    
+    layout->addWidget(protectedGroup);
+    
+    // Confirmations
+    QGroupBox* confirmGroup = new QGroupBox(tr("Confirmations"), m_safetyTab);
+    QVBoxLayout* confirmLayout = new QVBoxLayout(confirmGroup);
+    
+    m_confirmDeleteCheck = new QCheckBox(tr("Confirm before deleting files"), m_safetyTab);
+    m_confirmMoveCheck = new QCheckBox(tr("Confirm before moving files"), m_safetyTab);
+    
+    confirmLayout->addWidget(m_confirmDeleteCheck);
+    confirmLayout->addWidget(m_confirmMoveCheck);
+    
+    layout->addWidget(confirmGroup);
+    layout->addStretch();
+    
+    m_tabWidget->addTab(m_safetyTab, tr("Safety"));
+}
+
+void SettingsDialog::createLoggingTab()
+{
+    m_loggingTab = new QWidget();
+    QVBoxLayout* layout = new QVBoxLayout(m_loggingTab);
+    layout->setContentsMargins(20, 20, 20, 20);
+    layout->setSpacing(15);
+    
+    // Log Level
+    QGroupBox* levelGroup = new QGroupBox(tr("Log Level"), m_loggingTab);
+    QFormLayout* levelLayout = new QFormLayout(levelGroup);
+    
+    m_logLevelCombo = new QComboBox(m_loggingTab);
+    m_logLevelCombo->addItem(tr("Debug (Most Verbose)"), "debug");
+    m_logLevelCombo->addItem(tr("Info"), "info");
+    m_logLevelCombo->addItem(tr("Warning"), "warning");
+    m_logLevelCombo->addItem(tr("Error"), "error");
+    m_logLevelCombo->addItem(tr("Critical (Least Verbose)"), "critical");
+    m_logLevelCombo->setToolTip(tr("Lower levels show more detailed information"));
+    levelLayout->addRow(tr("Log level:"), m_logLevelCombo);
+    
+    layout->addWidget(levelGroup);
+    
+    // Log Output
+    QGroupBox* outputGroup = new QGroupBox(tr("Log Output"), m_loggingTab);
+    QVBoxLayout* outputLayout = new QVBoxLayout(outputGroup);
+    
+    m_logToFileCheck = new QCheckBox(tr("Log to file"), m_loggingTab);
+    m_logToConsoleCheck = new QCheckBox(tr("Log to console"), m_loggingTab);
+    
+    outputLayout->addWidget(m_logToFileCheck);
+    outputLayout->addWidget(m_logToConsoleCheck);
+    
+    layout->addWidget(outputGroup);
+    
+    // Log Directory
+    QGroupBox* dirGroup = new QGroupBox(tr("Log Directory"), m_loggingTab);
+    QVBoxLayout* dirLayout = new QVBoxLayout(dirGroup);
+    
+    QHBoxLayout* dirPathLayout = new QHBoxLayout();
+    m_logDirectoryEdit = new QLineEdit(m_loggingTab);
+    m_logDirectoryEdit->setReadOnly(true);
+    m_browseLogButton = new QPushButton(tr("Browse..."), m_loggingTab);
+    m_openLogButton = new QPushButton(tr("Open Log Directory"), m_loggingTab);
+    connect(m_browseLogButton, &QPushButton::clicked, this, &SettingsDialog::onBrowseLogDirectory);
+    connect(m_openLogButton, &QPushButton::clicked, this, &SettingsDialog::onOpenLogDirectory);
+    
+    dirPathLayout->addWidget(m_logDirectoryEdit, 1);
+    dirPathLayout->addWidget(m_browseLogButton);
+    dirPathLayout->addWidget(m_openLogButton);
+    dirLayout->addLayout(dirPathLayout);
+    
+    layout->addWidget(dirGroup);
+    
+    // Log Rotation
+    QGroupBox* rotationGroup = new QGroupBox(tr("Log Rotation"), m_loggingTab);
+    QFormLayout* rotationLayout = new QFormLayout(rotationGroup);
+    
+    m_maxLogFilesSpin = new QSpinBox(m_loggingTab);
+    m_maxLogFilesSpin->setRange(1, 100);
+    m_maxLogFilesSpin->setToolTip(tr("Maximum number of log files to keep"));
+    rotationLayout->addRow(tr("Max log files:"), m_maxLogFilesSpin);
+    
+    m_maxLogSizeSpin = new QSpinBox(m_loggingTab);
+    m_maxLogSizeSpin->setRange(1, 100);
+    m_maxLogSizeSpin->setSuffix(tr(" MB"));
+    m_maxLogSizeSpin->setToolTip(tr("Maximum size of each log file"));
+    rotationLayout->addRow(tr("Max file size:"), m_maxLogSizeSpin);
+    
+    layout->addWidget(rotationGroup);
+    layout->addStretch();
+    
+    m_tabWidget->addTab(m_loggingTab, tr("Logging"));
+}
+
+void SettingsDialog::createAdvancedTab()
+{
+    m_advancedTab = new QWidget();
+    QVBoxLayout* layout = new QVBoxLayout(m_advancedTab);
+    layout->setContentsMargins(20, 20, 20, 20);
+    layout->setSpacing(15);
+    
+    // Storage
+    QGroupBox* storageGroup = new QGroupBox(tr("Storage"), m_advancedTab);
+    QFormLayout* storageLayout = new QFormLayout(storageGroup);
+    
+    m_databaseLocationEdit = new QLineEdit(m_advancedTab);
+    m_databaseLocationEdit->setReadOnly(true);
+    storageLayout->addRow(tr("Database location:"), m_databaseLocationEdit);
+    
+    m_cacheDirectoryEdit = new QLineEdit(m_advancedTab);
+    m_cacheDirectoryEdit->setReadOnly(true);
+    storageLayout->addRow(tr("Cache directory:"), m_cacheDirectoryEdit);
+    
+    layout->addWidget(storageGroup);
+    
+    // Export
+    QGroupBox* exportGroup = new QGroupBox(tr("Export Defaults"), m_advancedTab);
+    QFormLayout* exportLayout = new QFormLayout(exportGroup);
+    
+    m_exportFormatCombo = new QComboBox(m_advancedTab);
+    m_exportFormatCombo->addItem(tr("CSV"), "csv");
+    m_exportFormatCombo->addItem(tr("JSON"), "json");
+    m_exportFormatCombo->addItem(tr("Text"), "txt");
+    exportLayout->addRow(tr("Default format:"), m_exportFormatCombo);
+    
+    layout->addWidget(exportGroup);
+    
+    // Performance
+    QGroupBox* perfGroup = new QGroupBox(tr("Performance Monitoring"), m_advancedTab);
+    QVBoxLayout* perfLayout = new QVBoxLayout(perfGroup);
+    
+    m_enablePerformanceCheck = new QCheckBox(tr("Enable performance monitoring"), m_advancedTab);
+    m_enablePerformanceCheck->setToolTip(tr("Track and log performance metrics"));
+    perfLayout->addWidget(m_enablePerformanceCheck);
+    
+    layout->addWidget(perfGroup);
+    layout->addStretch();
+    
+    m_tabWidget->addTab(m_advancedTab, tr("Advanced"));
+}
+
+void SettingsDialog::loadSettings()
+{
+    LOG_INFO(LogCategories::CONFIG, "Loading settings");
+    
+    QSettings settings("DupFinder Team", "DupFinder");
+    
+    // General
+    QString language = settings.value("general/language", "en").toString();
+    int langIndex = m_languageCombo->findData(language);
+    if (langIndex >= 0) m_languageCombo->setCurrentIndex(langIndex);
+    
+    QString theme = settings.value("general/theme", "system").toString();
+    int themeIndex = m_themeCombo->findData(theme);
+    if (themeIndex >= 0) m_themeCombo->setCurrentIndex(themeIndex);
+    
+    m_startupCheck->setChecked(settings.value("general/launchOnStartup", false).toBool());
+    m_updateCheck->setChecked(settings.value("general/checkUpdates", true).toBool());
+    
+    // Scanning
+    m_minFileSizeSpin->setValue(settings.value("scanning/minFileSize", 0).toInt());
+    m_includeHiddenCheck->setChecked(settings.value("scanning/includeHidden", false).toBool());
+    m_followSymlinksCheck->setChecked(settings.value("scanning/followSymlinks", true).toBool());
+    m_threadCountSpin->setValue(settings.value("scanning/threadCount", 4).toInt());
+    m_cacheSizeSpin->setValue(settings.value("scanning/cacheSize", 100).toInt());
+    
+    // Safety
+    QString defaultBackup = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/backups";
+    m_backupLocationEdit->setText(settings.value("safety/backupLocation", defaultBackup).toString());
+    m_backupRetentionSpin->setValue(settings.value("safety/backupRetention", 30).toInt());
+    m_confirmDeleteCheck->setChecked(settings.value("safety/confirmDelete", true).toBool());
+    m_confirmMoveCheck->setChecked(settings.value("safety/confirmMove", true).toBool());
+    
+    // Protected paths
+    QStringList protectedPaths = settings.value("safety/protectedPaths").toStringList();
+    m_protectedPathsList->clear();
+    m_protectedPathsList->addItems(protectedPaths);
+    
+    // Logging
+    QString logLevel = settings.value("logging/level", "info").toString();
+    int logIndex = m_logLevelCombo->findData(logLevel);
+    if (logIndex >= 0) m_logLevelCombo->setCurrentIndex(logIndex);
+    
+    m_logToFileCheck->setChecked(settings.value("logging/toFile", true).toBool());
+    m_logToConsoleCheck->setChecked(settings.value("logging/toConsole", true).toBool());
+    
+    QString defaultLogDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/logs";
+    m_logDirectoryEdit->setText(settings.value("logging/directory", defaultLogDir).toString());
+    m_maxLogFilesSpin->setValue(settings.value("logging/maxFiles", 10).toInt());
+    m_maxLogSizeSpin->setValue(settings.value("logging/maxSize", 10).toInt());
+    
+    // Advanced
+    QString defaultDb = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/dupfinder.db";
+    m_databaseLocationEdit->setText(settings.value("advanced/databaseLocation", defaultDb).toString());
+    
+    QString defaultCache = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
+    m_cacheDirectoryEdit->setText(settings.value("advanced/cacheDirectory", defaultCache).toString());
+    
+    QString exportFormat = settings.value("advanced/exportFormat", "csv").toString();
+    int exportIndex = m_exportFormatCombo->findData(exportFormat);
+    if (exportIndex >= 0) m_exportFormatCombo->setCurrentIndex(exportIndex);
+    
+    m_enablePerformanceCheck->setChecked(settings.value("advanced/enablePerformance", false).toBool());
+    
+    LOG_INFO(LogCategories::CONFIG, "Settings loaded successfully");
+}
+
+void SettingsDialog::saveSettings()
+{
+    LOG_INFO(LogCategories::CONFIG, "Saving settings");
+    
+    QSettings settings("DupFinder Team", "DupFinder");
+    
+    // General
+    settings.setValue("general/language", m_languageCombo->currentData());
+    settings.setValue("general/theme", m_themeCombo->currentData());
+    settings.setValue("general/launchOnStartup", m_startupCheck->isChecked());
+    settings.setValue("general/checkUpdates", m_updateCheck->isChecked());
+    
+    // Scanning
+    settings.setValue("scanning/minFileSize", m_minFileSizeSpin->value());
+    settings.setValue("scanning/includeHidden", m_includeHiddenCheck->isChecked());
+    settings.setValue("scanning/followSymlinks", m_followSymlinksCheck->isChecked());
+    settings.setValue("scanning/threadCount", m_threadCountSpin->value());
+    settings.setValue("scanning/cacheSize", m_cacheSizeSpin->value());
+    
+    // Safety
+    settings.setValue("safety/backupLocation", m_backupLocationEdit->text());
+    settings.setValue("safety/backupRetention", m_backupRetentionSpin->value());
+    settings.setValue("safety/confirmDelete", m_confirmDeleteCheck->isChecked());
+    settings.setValue("safety/confirmMove", m_confirmMoveCheck->isChecked());
+    
+    // Protected paths
+    QStringList protectedPaths;
+    for (int i = 0; i < m_protectedPathsList->count(); ++i) {
+        protectedPaths << m_protectedPathsList->item(i)->text();
+    }
+    settings.setValue("safety/protectedPaths", protectedPaths);
+    
+    // Logging
+    settings.setValue("logging/level", m_logLevelCombo->currentData());
+    settings.setValue("logging/toFile", m_logToFileCheck->isChecked());
+    settings.setValue("logging/toConsole", m_logToConsoleCheck->isChecked());
+    settings.setValue("logging/directory", m_logDirectoryEdit->text());
+    settings.setValue("logging/maxFiles", m_maxLogFilesSpin->value());
+    settings.setValue("logging/maxSize", m_maxLogSizeSpin->value());
+    
+    // Advanced
+    settings.setValue("advanced/databaseLocation", m_databaseLocationEdit->text());
+    settings.setValue("advanced/cacheDirectory", m_cacheDirectoryEdit->text());
+    settings.setValue("advanced/exportFormat", m_exportFormatCombo->currentData());
+    settings.setValue("advanced/enablePerformance", m_enablePerformanceCheck->isChecked());
+    
+    settings.sync();
+    
+    LOG_INFO(LogCategories::CONFIG, "Settings saved successfully");
+    emit settingsChanged();
+}
+
+void SettingsDialog::onApplyClicked()
+{
+    LOG_INFO(LogCategories::UI, "User clicked 'Apply' in settings dialog");
+    saveSettings();
+    QMessageBox::information(this, tr("Settings Applied"), 
+                           tr("Settings have been saved. Some changes may require restarting the application."));
+}
+
+void SettingsDialog::onOkClicked()
+{
+    LOG_INFO(LogCategories::UI, "User clicked 'OK' in settings dialog");
+    saveSettings();
+    accept();
+}
+
+void SettingsDialog::onCancelClicked()
+{
+    LOG_INFO(LogCategories::UI, "User clicked 'Cancel' in settings dialog");
+    reject();
+}
+
+void SettingsDialog::onRestoreDefaultsClicked()
+{
+    LOG_INFO(LogCategories::UI, "User clicked 'Restore Defaults' in settings dialog");
+    
+    QMessageBox::StandardButton reply = QMessageBox::question(this, tr("Restore Defaults"),
+        tr("Are you sure you want to restore all settings to their default values?"),
+        QMessageBox::Yes | QMessageBox::No);
+    
+    if (reply == QMessageBox::Yes) {
+        QSettings settings("DupFinder Team", "DupFinder");
+        settings.clear();
+        loadSettings();
+        LOG_INFO(LogCategories::CONFIG, "Settings restored to defaults");
+        QMessageBox::information(this, tr("Defaults Restored"), 
+                               tr("All settings have been restored to their default values."));
+    }
+}
+
+void SettingsDialog::onBrowseLogDirectory()
+{
+    QString dir = QFileDialog::getExistingDirectory(this, tr("Select Log Directory"),
+                                                    m_logDirectoryEdit->text());
+    if (!dir.isEmpty()) {
+        m_logDirectoryEdit->setText(dir);
+        LOG_INFO(LogCategories::CONFIG, QString("Log directory changed to: %1").arg(dir));
+    }
+}
+
+void SettingsDialog::onBrowseBackupDirectory()
+{
+    QString dir = QFileDialog::getExistingDirectory(this, tr("Select Backup Directory"),
+                                                    m_backupLocationEdit->text());
+    if (!dir.isEmpty()) {
+        m_backupLocationEdit->setText(dir);
+        LOG_INFO(LogCategories::CONFIG, QString("Backup directory changed to: %1").arg(dir));
+    }
+}
+
+void SettingsDialog::onAddProtectedPath()
+{
+    QString dir = QFileDialog::getExistingDirectory(this, tr("Select Protected Path"));
+    if (!dir.isEmpty()) {
+        m_protectedPathsList->addItem(dir);
+        LOG_INFO(LogCategories::CONFIG, QString("Added protected path: %1").arg(dir));
+    }
+}
+
+void SettingsDialog::onRemoveProtectedPath()
+{
+    QListWidgetItem* item = m_protectedPathsList->currentItem();
+    if (item) {
+        QString path = item->text();
+        delete item;
+        LOG_INFO(LogCategories::CONFIG, QString("Removed protected path: %1").arg(path));
+    }
+}
+
+void SettingsDialog::onOpenLogDirectory()
+{
+    QString logDir = m_logDirectoryEdit->text();
+    QDesktopServices::openUrl(QUrl::fromLocalFile(logDir));
+    LOG_INFO(LogCategories::UI, QString("Opened log directory: %1").arg(logDir));
+}
+
+void SettingsDialog::applyTheme()
+{
+    // Apply consistent styling
+    setStyleSheet(R"(
+        QGroupBox {
+            font-weight: bold;
+            border: 1px solid palette(mid);
+            border-radius: 4px;
+            margin-top: 10px;
+            padding-top: 10px;
+        }
+        QGroupBox::title {
+            subcontrol-origin: margin;
+            left: 10px;
+            padding: 0 5px;
+        }
+    )");
+}

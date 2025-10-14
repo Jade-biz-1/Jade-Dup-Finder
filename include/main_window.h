@@ -19,13 +19,14 @@
 // Include headers for types used in method signatures
 #include "file_scanner.h"
 #include "duplicate_detector.h"
+#include "scan_dialog.h"
 
 // Forward declarations
 class HashCalculator;
 class SafetyManager;
 class FileManager;
-class ScanSetupDialog;
 class ResultsWindow;
+class SettingsDialog;
 
 class QuickActionsWidget;
 class ScanHistoryWidget;
@@ -57,6 +58,7 @@ public slots:
     void onPresetSelected(const QString& preset);
     void onSettingsRequested();
     void onHelpRequested();
+    void onRestoreRequested();
     void updateSystemInfo();
     void onScanHistoryItemClicked(int index);
     void onViewAllHistoryClicked();
@@ -74,9 +76,10 @@ protected:
 private slots:
     void initializeUI();
     void setupConnections();
+    void setupKeyboardShortcuts();
     void updatePlanIndicator();
     void refreshSystemStats();
-    void handleScanConfiguration();
+    void handleScanConfiguration(const ScanSetupDialog::ScanConfiguration& config);
     
     // Duplicate detection handlers
     void onScanCompleted();
@@ -86,6 +89,11 @@ private slots:
     void onDuplicateDetectionError(const QString& error);
 
 private:
+    // Helper methods
+    void saveScanToHistory(const QList<DuplicateDetector::DuplicateGroup>& groups);
+    qint64 calculatePotentialSavings(const QList<DuplicateDetector::DuplicateGroup>& groups);
+    
+    // UI creation methods
     // UI Components
     QWidget* m_centralWidget;
     QVBoxLayout* m_mainLayout;
@@ -122,6 +130,7 @@ private:
     // Child Windows
     ScanSetupDialog* m_scanSetupDialog;
     ResultsWindow* m_resultsWindow;
+    SettingsDialog* m_settingsDialog;
     
     // Utilities
     QTimer* m_systemUpdateTimer;
