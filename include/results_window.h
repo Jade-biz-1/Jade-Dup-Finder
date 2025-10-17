@@ -33,6 +33,8 @@
 // Forward declarations
 class ScanSetupDialog;
 class FileManager;
+class ThumbnailCache;
+class ThumbnailDelegate;
 
 class ResultsWindow : public QMainWindow
 {
@@ -105,6 +107,11 @@ public:
     void clearResults();
     void updateProgress(const QString& operation, int percentage);
     void setFileManager(FileManager* fileManager);
+    
+    // Thumbnail support
+    void enableThumbnails(bool enable);
+    void setThumbnailSize(int size);
+    void preloadVisibleThumbnails();
     
     // Selection and actions
     int getSelectedFilesCount() const;
@@ -194,7 +201,13 @@ private:
     void loadSampleData();  // For testing purposes
     bool isImageFile(const QString& filePath) const;
     bool isVideoFile(const QString& filePath) const;
+    bool isTextFile(const QString& filePath) const;
     QString getRecommendedFileToKeep(const DuplicateGroup& group) const;
+    
+    // Preview helper methods
+    void previewImageFile(const QString& filePath);
+    void previewTextFile(const QString& filePath);
+    void showFileInfo(const QString& filePath);
 
     // UI Components
     QWidget* m_centralWidget;
@@ -288,6 +301,8 @@ private:
     QList<DuplicateFile> m_selectedFiles;
     QTimer* m_thumbnailTimer;
     FileManager* m_fileManager;
+    ThumbnailCache* m_thumbnailCache;
+    ThumbnailDelegate* m_thumbnailDelegate;
     
     // State
     bool m_isProcessingBulkOperation;

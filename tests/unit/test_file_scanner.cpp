@@ -44,6 +44,17 @@ private slots:
     void testFilesPerSecond();
     void testErrorsInStatistics();
     
+    // Pause/Resume tests (Task 9)
+    void testPauseScan();
+    void testResumeScan();
+    void testPauseResumeSignals();
+    void testPauseStopsScanning();
+    void testResumeAfterPause();
+    void testMultiplePauseResume();
+    void testPauseBeforeScanStart();
+    void testPauseAfterScanComplete();
+    void testCancelWhilePaused();
+    
     void cleanupTestCase();
 
 private:
@@ -855,6 +866,284 @@ void TestFileScanner::testErrorsInStatistics()
     QVERIFY(stats.errorsEncountered == scanner.getTotalErrorsEncountered());
     
     qDebug() << "testErrorsInStatistics: Recorded" << stats.errorsEncountered << "errors in statistics";
+}
+
+// Pause/Resume tests (Task 9)
+
+void TestFileScanner::testPauseScan()
+{
+    FileScanner scanner;
+    
+    FileScanner::ScanOptions options;
+    options.targetPaths << m_tempDir->path();
+    options.minimumFileSize = 1;
+    
+    scanner.startScan(options);
+    
+    // Wait a bit for scan to start
+    QTest::qWait(50);
+    
+    // Pause the scan
+    scanner.pauseScan();
+    
+    // Verify paused state
+    QVERIFY(scanner.isPaused());
+    QVERIFY(scanner.isScanning());  // Still scanning, just paused
+    
+    qDebug() << "testPauseScan: Scan paused successfully";
+}
+
+void TestFileScanner::testResumeScan()
+{
+    FileScanner scanner;
+    
+    FileScanner::ScanOptions options;
+    options.targetPaths << m_tempDir->path();
+    options.minimumFileSize = 1;
+    
+    scanner.startScan(options);
+    QTest::qWait(50);
+    
+    // Pause then resume
+    scanner.pauseScan();
+    QVERIFY(scanner.isPaused());
+    
+    scanner.resumeScan();
+    QVERIFY(!scanner.isPaused());
+    QVERIFY(scanner.isScanning());
+    
+    // Wait for scan to complete
+    int maxWait = 5000;
+    while (scanner.isScanning() && maxWait > 0) {
+        QTest::qWait(10);
+        maxWait -= 10;
+    }
+    
+    // Should complete successfully
+    QVERIFY(!scanner.isScanning());
+    QVERIFY(scanner.getTotalFilesFound() > 0);
+    
+    qDebug() << "testResumeScan: Scan resumed and completed successfully";
+}
+
+void TestFileScanner::testPauseResumeSignals()
+{
+    FileScanner scanner;
+    
+    QSignalSpy pausedSpy(&scanner, &FileScanner::scanPaused);
+    QSignalSpy resumedSpy(&scanner, &FileScanner::scanResumed);
+    QSignalSpy completedSpy(&scanner, &FileScanner::scanCompleted);
+    
+    FileScanner::ScanOptions options;
+    options.targetPaths << m_tempDir->path();
+    options.minimumFileSize = 1;
+    
+    scanner.startScan(options);
+    QTest::qWait(50);
+    
+    // Pause
+    scanner.pauseScan();
+    QVERIFY(pausedSpy.count() == 1);
+    
+    // Resume
+    scanner.resumeScan();
+    QVERIFY(resumedSpy.count() == 1);
+    
+    // Wait for completion
+    int maxWait = 5000;
+    while (scanner.isScanning() && maxWait > 0) {
+        QTest::qWait(10);
+        maxWait -= 10;
+    }
+    
+    QVERIFY(completedSpy.count() == 1);
+    
+    qDebug() << "testPauseResumeSignals: Pause/resume signals emitted correctly";
+}
+
+void TestFileScanner::testPauseStopsScanning()
+{
+    FileScanner scanner;
+    
+    FileScanner::ScanOptions options;
+    options.targetPaths << m_tempDir->path();
+    options.minimumFileSize = 1;
+    
+    scanner.startScan(options);
+    QTest::qWait(50);
+    
+    // Pause the scan
+    scanner.pauseScan();
+    
+    // Record files found at pause
+    int filesAtPause = scanner.getTotalFilesFound();
+    
+    // Wait a bit while paused
+    QTest::qWait(200);
+    
+    // Files found should not increase while paused
+    int filesAfterWait = scanner.getTotalFilesFound();
+    QVERIFY(filesAfterWait == filesAtPause);
+    
+    qDebug() << "testPauseStopsScanning: Scanning stopped while paused";
+}
+
+void TestFileScanner::testResumeAfterPause()
+{
+    FileScanner scanner;
+    
+    FileScanner::ScanOptions options;
+    options.targetPaths << m_tempDir->path();
+    options.minimumFileSize = 1;
+    
+    scanner.startScan(options);
+    QTest::qWait(50);
+    
+    // Pause
+    scanner.pauseScan();
+    int filesAtPause = scanner.getTotalFilesFound();
+    
+    // Wait while paused
+    QTest::qWait(200);
+    
+    // Resume
+    scanner.resumeScan();
+    
+    // Wait for scan to complete
+    int maxWait = 5000;
+    while (scanner.isScanning() && maxWait > 0) {
+        QTest::qWait(10);
+        maxWait -= 10;
+    }
+    
+    // Should have found more files after resume
+    int finalFiles = scanner.getTotalFilesFound();
+    QVERIFY(finalFiles >= filesAtPause);
+    
+    qDebug() << "testResumeAfterPause: Scan continued after resume";
+}
+
+void TestFileScanner::testMultiplePauseResume()
+{
+    FileScanner scanner;
+    
+    QSignalSpy pausedSpy(&scanner, &FileScanner::scanPaused);
+    QSignalSpy resumedSpy(&scanner, &FileScanner::scanResumed);
+    
+    FileScanner::ScanOptions options;
+    options.targetPaths << m_tempDir->path();
+    options.minimumFileSize = 1;
+    
+    scanner.startScan(options);
+    QTest::qWait(50);
+    
+    // Pause and resume multiple times
+    scanner.pauseScan();
+    QTest::qWait(100);
+    scanner.resumeScan();
+    QTest::qWait(50);
+    
+    scanner.pauseScan();
+    QTest::qWait(100);
+    scanner.resumeScan();
+    QTest::qWait(50);
+    
+    // Wait for completion
+    int maxWait = 5000;
+    while (scanner.isScanning() && maxWait > 0) {
+        QTest::qWait(10);
+        maxWait -= 10;
+    }
+    
+    // Should have emitted signals for each pause/resume
+    QVERIFY(pausedSpy.count() == 2);
+    QVERIFY(resumedSpy.count() == 2);
+    
+    // Should complete successfully
+    QVERIFY(!scanner.isScanning());
+    QVERIFY(scanner.getTotalFilesFound() > 0);
+    
+    qDebug() << "testMultiplePauseResume: Multiple pause/resume cycles handled correctly";
+}
+
+void TestFileScanner::testPauseBeforeScanStart()
+{
+    FileScanner scanner;
+    
+    // Try to pause before starting scan
+    scanner.pauseScan();
+    
+    // Should not be paused (no scan running)
+    QVERIFY(!scanner.isPaused());
+    QVERIFY(!scanner.isScanning());
+    
+    qDebug() << "testPauseBeforeScanStart: Pause before scan handled gracefully";
+}
+
+void TestFileScanner::testPauseAfterScanComplete()
+{
+    FileScanner scanner;
+    
+    FileScanner::ScanOptions options;
+    options.targetPaths << m_tempDir->path();
+    options.minimumFileSize = 1;
+    
+    scanner.startScan(options);
+    
+    // Wait for scan to complete
+    int maxWait = 5000;
+    while (scanner.isScanning() && maxWait > 0) {
+        QTest::qWait(10);
+        maxWait -= 10;
+    }
+    
+    // Try to pause after completion
+    scanner.pauseScan();
+    
+    // Should not be paused (scan already complete)
+    QVERIFY(!scanner.isPaused());
+    QVERIFY(!scanner.isScanning());
+    
+    qDebug() << "testPauseAfterScanComplete: Pause after completion handled gracefully";
+}
+
+void TestFileScanner::testCancelWhilePaused()
+{
+    FileScanner scanner;
+    
+    QSignalSpy pausedSpy(&scanner, &FileScanner::scanPaused);
+    QSignalSpy cancelledSpy(&scanner, &FileScanner::scanCancelled);
+    
+    FileScanner::ScanOptions options;
+    options.targetPaths << m_tempDir->path();
+    options.minimumFileSize = 1;
+    
+    scanner.startScan(options);
+    QTest::qWait(50);
+    
+    // Pause the scan
+    scanner.pauseScan();
+    QVERIFY(pausedSpy.count() == 1);
+    QVERIFY(scanner.isPaused());
+    
+    // Cancel while paused
+    scanner.cancelScan();
+    
+    // Resume to allow cancellation to process
+    scanner.resumeScan();
+    
+    // Wait for cancellation
+    int maxWait = 2000;
+    while (scanner.isScanning() && maxWait > 0) {
+        QTest::qWait(10);
+        maxWait -= 10;
+    }
+    
+    // Should be cancelled
+    QVERIFY(!scanner.isScanning());
+    QVERIFY(cancelledSpy.count() == 1);
+    
+    qDebug() << "testCancelWhilePaused: Cancel while paused handled correctly";
 }
 
 void TestFileScanner::cleanupTestCase()

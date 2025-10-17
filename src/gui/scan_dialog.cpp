@@ -1,4 +1,7 @@
 #include "scan_dialog.h"
+#include "exclude_pattern_widget.h"
+#include "preset_manager_dialog.h"
+#include "scan_scope_preview_widget.h"
 #include "file_scanner.h"
 #include "core/logger.h"
 #include <QtWidgets/QApplication>
@@ -17,50 +20,110 @@
 // ScanConfiguration validation methods
 bool ScanSetupDialog::ScanConfiguration::isValid() const
 {
-    if (targetPaths.isEmpty()) {
-        return false;
-    }
-    
-    if (minimumFileSize < 0) {
-        return false;
-    }
-    
-    // Check if at least one target path exists
-    for (const QString& path : targetPaths) {
-        if (QDir(path).exists()) {
-            return true;
-        }
-    }
-    
-    return false;
+    return validationError().isEmpty();
 }
 
 QString ScanSetupDialog::ScanConfiguration::validationError() const
 {
+    // Check if target paths are empty
     if (targetPaths.isEmpty()) {
-        return "No scan locations selected";
+        return QObject::tr("No scan locations selected. Please add at least one folder to scan.");
     }
     
+    // Check if minimum file size is valid
     if (minimumFileSize < 0) {
-        return "Invalid minimum file size";
+        return QObject::tr("Invalid minimum file size. Size must be 0 or greater.");
     }
     
-    // Check if paths exist
+    // Check if maximum depth is valid
+    if (maximumDepth < -1) {
+        return QObject::tr("Invalid maximum depth. Depth must be -1 (unlimited) or greater.");
+    }
+    
+    // Check if paths exist and are accessible
     QStringList invalidPaths;
+    QStringList inaccessiblePaths;
+    
     for (const QString& path : targetPaths) {
-        if (!QDir(path).exists()) {
+        QDir dir(path);
+        if (!dir.exists()) {
             invalidPaths << path;
+        } else if (!QFileInfo(path).isReadable()) {
+            inaccessiblePaths << path;
         }
     }
     
+    // If all paths are invalid
     if (invalidPaths.size() == targetPaths.size()) {
-        return "None of the selected paths exist";
+        return QObject::tr("None of the selected paths exist. Please verify the folder paths.");
     }
     
+    // If some paths are invalid
     if (!invalidPaths.isEmpty()) {
-        return QString("Some paths do not exist: %1").arg(invalidPaths.join(", "));
+        if (invalidPaths.size() == 1) {
+            return QObject::tr("Path does not exist: %1").arg(invalidPaths.first());
+        } else {
+            return QObject::tr("%1 paths do not exist: %2")
+                .arg(invalidPaths.size())
+                .arg(invalidPaths.join(", "));
+        }
     }
     
+    // If some paths are inaccessible
+    if (!inaccessiblePaths.isEmpty()) {
+        if (inaccessiblePaths.size() == 1) {
+            return QObject::tr("Path is not readable (permission denied): %1").arg(inaccessiblePaths.first());
+        } else {
+            return QObject::tr("%1 paths are not readable (permission denied): %2")
+                .arg(inaccessiblePaths.size())
+                .arg(inaccessiblePaths.join(", "));
+        }
+    }
+    
+    // Validate exclude patterns
+    for (const QString& pattern : excludePatterns) {
+        if (pattern.trimmed().isEmpty()) {
+            continue; // Skip empty patterns
+        }
+        
+        // Check for invalid regex patterns if they contain regex special chars
+        if (pattern.contains('[') || pattern.contains('(') || pattern.contains('{')) {
+            QRegularExpression regex(pattern);
+            if (!regex.isValid()) {
+                return QObject::tr("Invalid exclude pattern: %1 - %2")
+                    .arg(pattern)
+                    .arg(regex.errorString());
+            }
+        }
+    }
+    
+    // Validate exclude folders
+    for (const QString& folder : excludeFolders) {
+        if (folder.trimmed().isEmpty()) {
+            continue; // Skip empty folders
+        }
+        
+        // Check if exclude folder is a parent of any target path
+        for (const QString& targetPath : targetPaths) {
+            if (targetPath.startsWith(folder)) {
+                return QObject::tr("Exclude folder '%1' contains target path '%2'. This would exclude the entire scan location.")
+                    .arg(folder)
+                    .arg(targetPath);
+            }
+        }
+    }
+    
+    // Check for circular exclusions (target path inside exclude folder)
+    for (const QString& targetPath : targetPaths) {
+        for (const QString& excludeFolder : excludeFolders) {
+            if (excludeFolder.startsWith(targetPath) && excludeFolder != targetPath) {
+                // This is OK - excluding a subfolder of a target
+                continue;
+            }
+        }
+    }
+    
+    // All validation passed
     return QString();
 }
 
@@ -86,12 +149,29 @@ ScanSetupDialog::ScanSetupDialog(QWidget* parent)
     , m_optionsLayout(nullptr)
     , m_detectionMode(nullptr)
     , m_minimumSize(nullptr)
+    , m_maximumSize(nullptr)  // T11
     , m_maxDepth(nullptr)
     , m_includeHidden(nullptr)
     , m_includeSystem(nullptr)
     , m_followSymlinks(nullptr)
     , m_scanArchives(nullptr)
     , m_excludePatterns(nullptr)
+    , m_excludePatternWidget(nullptr)
+    // T11: Advanced options
+    , m_advancedGroup(nullptr)
+    , m_advancedLayout(nullptr)
+    , m_threadCount(nullptr)
+    , m_enableCaching(nullptr)
+    , m_skipEmptyFiles(nullptr)
+    , m_skipDuplicateNames(nullptr)
+    , m_hashAlgorithm(nullptr)
+    , m_enablePrefiltering(nullptr)
+    // T11: Performance options
+    , m_performanceGroup(nullptr)
+    , m_performanceLayout(nullptr)
+    , m_bufferSize(nullptr)
+    , m_useMemoryMapping(nullptr)
+    , m_enableParallelHashing(nullptr)
     , m_excludeFoldersTree(nullptr)
     , m_addExcludeFolderButton(nullptr)
     , m_removeExcludeFolderButton(nullptr)
@@ -107,10 +187,13 @@ ScanSetupDialog::ScanSetupDialog(QWidget* parent)
     , m_estimateLabel(nullptr)
     , m_estimationProgress(nullptr)
     , m_limitWarning(nullptr)
+    , m_validationLabel(nullptr)
     , m_upgradeButton(nullptr)
+    , m_scopePreviewWidget(nullptr)
     , m_buttonBox(nullptr)
     , m_startScanButton(nullptr)
     , m_savePresetButton(nullptr)
+    , m_managePresetsButton(nullptr)
     , m_cancelButton(nullptr)
     , m_estimationTimer(new QTimer(this))
     , m_estimationInProgress(false)
@@ -135,12 +218,26 @@ ScanSetupDialog::ScanSetupDialog(QWidget* parent)
     // Initialize configuration with defaults
     m_currentConfig.detectionMode = DetectionMode::Smart;
     m_currentConfig.minimumFileSize = 0; // 0 MB - include all files
+    m_currentConfig.maximumFileSize = 0; // T11: 0 = unlimited
     m_currentConfig.maximumDepth = -1; // Unlimited
     m_currentConfig.includeHidden = false;
     m_currentConfig.includeSystem = false;
     m_currentConfig.followSymlinks = true;
     m_currentConfig.scanArchives = false;
     m_currentConfig.excludePatterns << "*.tmp" << "*.log" << "Thumbs.db";
+    
+    // T11: Advanced options defaults
+    m_currentConfig.threadCount = QThread::idealThreadCount();
+    m_currentConfig.enableCaching = true;
+    m_currentConfig.skipEmptyFiles = true;
+    m_currentConfig.skipDuplicateNames = false;
+    m_currentConfig.hashAlgorithm = 1; // SHA1
+    m_currentConfig.enablePrefiltering = true;
+    
+    // T11: Performance options defaults
+    m_currentConfig.bufferSize = 1024; // 1MB
+    m_currentConfig.useMemoryMapping = false;
+    m_currentConfig.enableParallelHashing = true;
     
     // Set up estimation timer
     m_estimationTimer->setSingleShot(true);
@@ -166,6 +263,8 @@ void ScanSetupDialog::setupUI()
     
     createLocationsPanel();
     createOptionsPanel();
+    createAdvancedOptionsPanel();     // T11: Advanced options
+    createPerformanceOptionsPanel();  // T11: Performance options
     createPreviewPanel();
     createButtonBar();
 }
@@ -306,6 +405,14 @@ void ScanSetupDialog::createOptionsPanel()
     m_minimumSize->setValue(0);
     m_minimumSize->setSuffix(tr(" MB"));
     
+    // T11: Maximum size
+    QLabel* maxSizeLabel = new QLabel(tr("Max Size:"), this);
+    m_maximumSize = new QSpinBox(this);
+    m_maximumSize->setRange(0, 10240); // Up to 10GB
+    m_maximumSize->setValue(0); // 0 = unlimited
+    m_maximumSize->setSuffix(tr(" MB"));
+    m_maximumSize->setSpecialValueText(tr("Unlimited"));
+    
     // Maximum depth
     QLabel* depthLabel = new QLabel(tr("Max Depth:"), this);
     m_maxDepth = new QComboBox(this);
@@ -367,18 +474,13 @@ void ScanSetupDialog::createOptionsPanel()
     typesLayout->addWidget(m_audioCheck, 1, 1);
     typesLayout->addWidget(m_archivesCheck, 1, 2);
     
-    // Exclude patterns
-    QLabel* excludeLabel = new QLabel(tr("Exclude Patterns:"), this);
-    excludeLabel->setStyleSheet("font-weight: bold; font-size: 11pt; margin-top: 12px; margin-bottom: 4px;");
-    m_excludePatterns = new QLineEdit("*.tmp, *.log, Thumbs.db", this);
-    m_excludePatterns->setStyleSheet(
-        "QLineEdit {"
-        "    padding: 6px;"
-        "    border: 1px solid palette(mid);"
-        "    border-radius: 4px;"
-        "    background: palette(base);"
-        "}"
-    );
+    // Exclude patterns - using new ExcludePatternWidget
+    m_excludePatternWidget = new ExcludePatternWidget(this);
+    m_excludePatternWidget->setPatterns(QStringList{"*.tmp", "*.log", "Thumbs.db"});
+    
+    // Keep the old QLineEdit for backward compatibility (hidden)
+    m_excludePatterns = new QLineEdit(this);
+    m_excludePatterns->setVisible(false);
     
     // Exclude folders
     QLabel* excludeFoldersLabel = new QLabel(tr("Exclude Folders:"), this);
@@ -446,8 +548,10 @@ void ScanSetupDialog::createOptionsPanel()
     optionsGrid->addWidget(m_detectionMode, 0, 1);
     optionsGrid->addWidget(sizeLabel, 1, 0);
     optionsGrid->addWidget(m_minimumSize, 1, 1);
-    optionsGrid->addWidget(depthLabel, 2, 0);
-    optionsGrid->addWidget(m_maxDepth, 2, 1);
+    optionsGrid->addWidget(maxSizeLabel, 2, 0);  // T11
+    optionsGrid->addWidget(m_maximumSize, 2, 1);  // T11
+    optionsGrid->addWidget(depthLabel, 3, 0);
+    optionsGrid->addWidget(m_maxDepth, 3, 1);
     
     m_optionsLayout->addLayout(optionsGrid);
     m_optionsLayout->addWidget(includeLabel);
@@ -455,14 +559,127 @@ void ScanSetupDialog::createOptionsPanel()
     m_optionsLayout->addWidget(m_followSymlinks);
     m_optionsLayout->addWidget(typesLabel);
     m_optionsLayout->addWidget(m_fileTypesWidget);
-    m_optionsLayout->addWidget(excludeLabel);
-    m_optionsLayout->addWidget(m_excludePatterns);
+    m_optionsLayout->addWidget(m_excludePatternWidget);
     m_optionsLayout->addWidget(excludeFoldersLabel);
     m_optionsLayout->addWidget(m_excludeFoldersTree);
     m_optionsLayout->addLayout(excludeFolderButtonsLayout);
     m_optionsLayout->addStretch();
     
     m_mainLayout->addWidget(m_optionsGroup);
+}
+
+// T11: Advanced Options Panel
+void ScanSetupDialog::createAdvancedOptionsPanel()
+{
+    m_advancedGroup = new QGroupBox(tr("🔧 Advanced Options"), this);
+    m_advancedLayout = new QVBoxLayout(m_advancedGroup);
+    m_advancedLayout->setContentsMargins(16, 25, 16, 16);
+    m_advancedLayout->setSpacing(10);
+    
+    // Thread count
+    QLabel* threadLabel = new QLabel(tr("Thread Count:"), this);
+    m_threadCount = new QSpinBox(this);
+    m_threadCount->setRange(1, QThread::idealThreadCount() * 2);
+    m_threadCount->setValue(QThread::idealThreadCount());
+    m_threadCount->setToolTip(tr("Number of threads for parallel processing"));
+    
+    // Hash algorithm
+    QLabel* hashLabel = new QLabel(tr("Hash Algorithm:"), this);
+    m_hashAlgorithm = new QComboBox(this);
+    m_hashAlgorithm->addItem(tr("MD5 (Fast)"), 0);
+    m_hashAlgorithm->addItem(tr("SHA1 (Balanced)"), 1);
+    m_hashAlgorithm->addItem(tr("SHA256 (Secure)"), 2);
+    m_hashAlgorithm->setCurrentIndex(1); // SHA1 by default
+    m_hashAlgorithm->setToolTip(tr("Hash algorithm for duplicate detection"));
+    
+    // Advanced checkboxes
+    m_enableCaching = new QCheckBox(tr("Enable hash caching"), this);
+    m_enableCaching->setChecked(true);
+    m_enableCaching->setToolTip(tr("Cache file hashes to speed up repeated scans"));
+    
+    m_skipEmptyFiles = new QCheckBox(tr("Skip empty files"), this);
+    m_skipEmptyFiles->setChecked(true);
+    m_skipEmptyFiles->setToolTip(tr("Ignore zero-byte files during scanning"));
+    
+    m_skipDuplicateNames = new QCheckBox(tr("Skip files with identical names"), this);
+    m_skipDuplicateNames->setChecked(false);
+    m_skipDuplicateNames->setToolTip(tr("Skip files that have the same name (faster but less thorough)"));
+    
+    m_enablePrefiltering = new QCheckBox(tr("Enable size-based prefiltering"), this);
+    m_enablePrefiltering->setChecked(true);
+    m_enablePrefiltering->setToolTip(tr("Group files by size before hash calculation (recommended)"));
+    
+    // Style checkboxes
+    QString checkboxStyle = "QCheckBox { padding: 2px; margin: 2px; } QCheckBox::indicator { width: 16px; height: 16px; }";
+    m_enableCaching->setStyleSheet(checkboxStyle);
+    m_skipEmptyFiles->setStyleSheet(checkboxStyle);
+    m_skipDuplicateNames->setStyleSheet(checkboxStyle);
+    m_enablePrefiltering->setStyleSheet(checkboxStyle);
+    
+    // Layout
+    QGridLayout* advancedGrid = new QGridLayout();
+    advancedGrid->setSpacing(8);
+    advancedGrid->setColumnStretch(1, 1);
+    
+    advancedGrid->addWidget(threadLabel, 0, 0);
+    advancedGrid->addWidget(m_threadCount, 0, 1);
+    advancedGrid->addWidget(hashLabel, 1, 0);
+    advancedGrid->addWidget(m_hashAlgorithm, 1, 1);
+    
+    m_advancedLayout->addLayout(advancedGrid);
+    m_advancedLayout->addWidget(m_enableCaching);
+    m_advancedLayout->addWidget(m_skipEmptyFiles);
+    m_advancedLayout->addWidget(m_skipDuplicateNames);
+    m_advancedLayout->addWidget(m_enablePrefiltering);
+    m_advancedLayout->addStretch();
+    
+    m_mainLayout->addWidget(m_advancedGroup);
+}
+
+// T11: Performance Options Panel
+void ScanSetupDialog::createPerformanceOptionsPanel()
+{
+    m_performanceGroup = new QGroupBox(tr("⚡ Performance Options"), this);
+    m_performanceLayout = new QVBoxLayout(m_performanceGroup);
+    m_performanceLayout->setContentsMargins(16, 25, 16, 16);
+    m_performanceLayout->setSpacing(10);
+    
+    // Buffer size
+    QLabel* bufferLabel = new QLabel(tr("I/O Buffer Size:"), this);
+    m_bufferSize = new QSpinBox(this);
+    m_bufferSize->setRange(64, 8192); // 64KB to 8MB
+    m_bufferSize->setValue(1024); // 1MB default
+    m_bufferSize->setSuffix(tr(" KB"));
+    m_bufferSize->setToolTip(tr("Size of I/O buffer for file reading (larger = faster but more memory)"));
+    
+    // Performance checkboxes
+    m_useMemoryMapping = new QCheckBox(tr("Use memory-mapped files"), this);
+    m_useMemoryMapping->setChecked(false); // Conservative default
+    m_useMemoryMapping->setToolTip(tr("Use memory mapping for large files (faster but uses more memory)"));
+    
+    m_enableParallelHashing = new QCheckBox(tr("Enable parallel hashing"), this);
+    m_enableParallelHashing->setChecked(true);
+    m_enableParallelHashing->setToolTip(tr("Calculate hashes in parallel (faster on multi-core systems)"));
+    
+    // Style checkboxes
+    QString checkboxStyle = "QCheckBox { padding: 2px; margin: 2px; } QCheckBox::indicator { width: 16px; height: 16px; }";
+    m_useMemoryMapping->setStyleSheet(checkboxStyle);
+    m_enableParallelHashing->setStyleSheet(checkboxStyle);
+    
+    // Layout
+    QGridLayout* performanceGrid = new QGridLayout();
+    performanceGrid->setSpacing(8);
+    performanceGrid->setColumnStretch(1, 1);
+    
+    performanceGrid->addWidget(bufferLabel, 0, 0);
+    performanceGrid->addWidget(m_bufferSize, 0, 1);
+    
+    m_performanceLayout->addLayout(performanceGrid);
+    m_performanceLayout->addWidget(m_useMemoryMapping);
+    m_performanceLayout->addWidget(m_enableParallelHashing);
+    m_performanceLayout->addStretch();
+    
+    m_mainLayout->addWidget(m_performanceGroup);
 }
 
 void ScanSetupDialog::createPreviewPanel()
@@ -503,14 +720,29 @@ void ScanSetupDialog::createPreviewPanel()
         "}"
     );
     
+    m_validationLabel = new QLabel(this);
+    m_validationLabel->setWordWrap(true);
+    m_validationLabel->setVisible(false);
+    m_validationLabel->setStyleSheet(
+        "QLabel {"
+        "    color: #d32f2f;"
+        "    background: #ffebee;"
+        "    padding: 12px;"
+        "    border: 2px solid #d32f2f;"
+        "    border-radius: 6px;"
+        "    font-weight: bold;"
+        "}"
+    );
+    
     m_limitWarning = new QLabel(this);
     m_limitWarning->setWordWrap(true);
+    m_limitWarning->setVisible(false);
     m_limitWarning->setStyleSheet(
         "QLabel {"
-        "    color: palette(window-text);"
-        "    background: palette(base);"
+        "    color: #f57c00;"
+        "    background: #fff3e0;"
         "    padding: 12px;"
-        "    border: 2px solid orange;"
+        "    border: 2px solid #f57c00;"
         "    border-radius: 6px;"
         "    font-weight: bold;"
         "}"
@@ -532,8 +764,13 @@ void ScanSetupDialog::createPreviewPanel()
         "}"
     );
     
+    // Add scope preview widget
+    m_scopePreviewWidget = new ScanScopePreviewWidget(this);
+    
     m_previewLayout->addWidget(m_estimateLabel);
     m_previewLayout->addWidget(m_estimationProgress);
+    m_previewLayout->addWidget(m_scopePreviewWidget);
+    m_previewLayout->addWidget(m_validationLabel);
     m_previewLayout->addWidget(m_limitWarning);
     m_previewLayout->addWidget(m_upgradeButton);
     m_previewLayout->addStretch();
@@ -551,6 +788,8 @@ void ScanSetupDialog::createButtonBar()
     
     m_cancelButton = new QPushButton(tr("Cancel"), this);
     m_cancelButton->setToolTip(tr("Close dialog without starting scan"));
+    m_managePresetsButton = new QPushButton(tr("📋 Manage Presets"), this);
+    m_managePresetsButton->setToolTip(tr("View, edit, and manage saved presets"));
     m_savePresetButton = new QPushButton(tr("Save as Preset"), this);
     m_savePresetButton->setToolTip(tr("Save current configuration as a preset for future use"));
     m_startScanButton = new QPushButton(tr("▶ Start Scan"), this);
@@ -607,11 +846,13 @@ void ScanSetupDialog::createButtonBar()
     ;
     
     m_cancelButton->setStyleSheet(cancelButtonStyle);
+    m_managePresetsButton->setStyleSheet(actionButtonStyle);
     m_savePresetButton->setStyleSheet(actionButtonStyle);
     m_startScanButton->setStyleSheet(primaryButtonStyle);
     m_startScanButton->setDefault(true);
     
     m_buttonBox->addButton(m_cancelButton, QDialogButtonBox::RejectRole);
+    m_buttonBox->addButton(m_managePresetsButton, QDialogButtonBox::ActionRole);
     m_buttonBox->addButton(m_savePresetButton, QDialogButtonBox::ActionRole);
     m_buttonBox->addButton(m_startScanButton, QDialogButtonBox::AcceptRole);
     
@@ -672,6 +913,10 @@ void ScanSetupDialog::setupConnections()
     connect(m_followSymlinks, &QCheckBox::toggled, this, &ScanSetupDialog::onOptionsChanged);
     connect(m_scanArchives, &QCheckBox::toggled, this, &ScanSetupDialog::onOptionsChanged);
     
+    // Connect exclude pattern widget
+    connect(m_excludePatternWidget, &ExcludePatternWidget::patternsChanged, this, &ScanSetupDialog::onOptionsChanged);
+    
+    // Keep old connection for backward compatibility
     connect(m_excludePatterns, &QLineEdit::textChanged, this, &ScanSetupDialog::onOptionsChanged);
     
     // Exclude folder connections
@@ -692,6 +937,7 @@ void ScanSetupDialog::setupConnections()
     
     // Buttons
     connect(m_startScanButton, &QPushButton::clicked, this, &ScanSetupDialog::startScan);
+    connect(m_managePresetsButton, &QPushButton::clicked, this, &ScanSetupDialog::managePresets);
     connect(m_savePresetButton, &QPushButton::clicked, this, &ScanSetupDialog::savePreset);
     connect(m_cancelButton, &QPushButton::clicked, this, &QDialog::reject);
     connect(m_upgradeButton, &QPushButton::clicked, this, &ScanSetupDialog::showUpgradeDialog);
@@ -786,6 +1032,39 @@ void ScanSetupDialog::performEstimation()
     m_estimateLabel->setText(tr("Estimated: %1").arg(estimate));
     m_estimationProgress->setVisible(false);
     m_estimationInProgress = false;
+    
+    // Validate configuration after estimation
+    validateConfiguration();
+}
+
+void ScanSetupDialog::validateConfiguration()
+{
+    ScanConfiguration config = getCurrentConfiguration();
+    QString error = config.validationError();
+    bool isValid = error.isEmpty();
+    
+    // Update validation label
+    if (!isValid) {
+        m_validationLabel->setText(tr("⚠️ Configuration Error: %1").arg(error));
+        m_validationLabel->setVisible(true);
+        m_validationLabel->setToolTip(error);
+    } else {
+        m_validationLabel->setVisible(false);
+        m_validationLabel->setToolTip(QString());
+    }
+    
+    // Enable/disable start button based on validation
+    m_startScanButton->setEnabled(isValid);
+    
+    // Update button tooltip
+    if (!isValid) {
+        m_startScanButton->setToolTip(tr("Cannot start scan: %1").arg(error));
+    } else {
+        m_startScanButton->setToolTip(tr("Start scanning with current configuration"));
+    }
+    
+    // Emit validation signal
+    emit validationChanged(isValid, error);
 }
 
 void ScanSetupDialog::applyTheme()
@@ -859,6 +1138,7 @@ void ScanSetupDialog::onDirectoryItemChanged(QTreeWidgetItem* item, int column)
     Q_UNUSED(column)
     if (item) {
         updateEstimates();
+        updateScopePreview();
     }
 }
 
@@ -984,6 +1264,27 @@ void ScanSetupDialog::applyFullSystemPreset()
 void ScanSetupDialog::onOptionsChanged()
 {
     updateEstimates();
+    validateConfiguration();
+    updateScopePreview();
+}
+
+void ScanSetupDialog::updateScopePreview()
+{
+    if (!m_scopePreviewWidget) {
+        return;
+    }
+    
+    // Get current configuration
+    ScanConfiguration config = getCurrentConfiguration();
+    
+    // Update the scope preview widget
+    m_scopePreviewWidget->updatePreview(
+        config.targetPaths,
+        config.excludePatterns,
+        config.excludeFolders,
+        config.maximumDepth,
+        config.includeHidden
+    );
 }
 
 void ScanSetupDialog::onAllTypesToggled(bool checked)
@@ -1066,6 +1367,7 @@ void ScanSetupDialog::onExcludeFolderItemChanged(QTreeWidgetItem* item, int colu
     Q_UNUSED(item)
     Q_UNUSED(column)
     updateEstimates();
+    updateScopePreview();
 }
 
 void ScanSetupDialog::startScan()
@@ -1120,6 +1422,55 @@ void ScanSetupDialog::savePreset()
         
         emit presetSaved(name, config);
     }
+}
+
+void ScanSetupDialog::saveCurrentAsPreset(const QString& presetName)
+{
+    if (presetName.isEmpty()) {
+        return;
+    }
+    
+    ScanConfiguration config = getCurrentConfiguration();
+    
+    PresetManagerDialog::PresetInfo preset;
+    preset.name = presetName;
+    preset.description = tr("User-defined preset");
+    preset.config = config;
+    preset.isBuiltIn = false;
+    
+    PresetManagerDialog presetManager(this);
+    presetManager.savePreset(preset);
+    
+    Logger::instance()->info(LogCategories::UI, QString("Saved preset: %1").arg(presetName));
+}
+
+QStringList ScanSetupDialog::getAvailablePresets() const
+{
+    PresetManagerDialog presetManager(const_cast<ScanSetupDialog*>(this));
+    QList<PresetManagerDialog::PresetInfo> presets = presetManager.getUserPresets();
+    
+    QStringList names;
+    for (const auto& preset : presets) {
+        names << preset.name;
+    }
+    
+    return names;
+}
+
+void ScanSetupDialog::managePresets()
+{
+    PresetManagerDialog dialog(this);
+    
+    connect(&dialog, &PresetManagerDialog::presetSelected, this, [this](const QString& name) {
+        loadPreset(name);
+    });
+    
+    dialog.exec();
+}
+
+void ScanSetupDialog::openPresetManager()
+{
+    managePresets();
 }
 
 void ScanSetupDialog::showUpgradeDialog()
@@ -1184,7 +1535,23 @@ ScanSetupDialog::ScanConfiguration ScanSetupDialog::getCurrentConfiguration() co
     qDebug() << "getCurrentConfiguration: m_minimumSize->value() =" << m_minimumSize->value() << "MB";
     config.minimumFileSize = static_cast<qint64>(m_minimumSize->value()) * 1024 * 1024; // Convert MB to bytes
     qDebug() << "getCurrentConfiguration: config.minimumFileSize =" << config.minimumFileSize << "bytes";
+    
+    // T11: Maximum file size
+    config.maximumFileSize = static_cast<qint64>(m_maximumSize->value()) * 1024 * 1024; // Convert MB to bytes
     config.maximumDepth = m_maxDepth->currentData().toInt();
+    
+    // T11: Advanced options
+    config.threadCount = m_threadCount->value();
+    config.enableCaching = m_enableCaching->isChecked();
+    config.skipEmptyFiles = m_skipEmptyFiles->isChecked();
+    config.skipDuplicateNames = m_skipDuplicateNames->isChecked();
+    config.hashAlgorithm = m_hashAlgorithm->currentData().toInt();
+    config.enablePrefiltering = m_enablePrefiltering->isChecked();
+    
+    // T11: Performance options
+    config.bufferSize = m_bufferSize->value();
+    config.useMemoryMapping = m_useMemoryMapping->isChecked();
+    config.enableParallelHashing = m_enableParallelHashing->isChecked();
     
     // Get include options
     config.includeHidden = m_includeHidden->isChecked();
@@ -1205,11 +1572,8 @@ ScanSetupDialog::ScanConfiguration ScanSetupDialog::getCurrentConfiguration() co
         config.fileTypeFilter = static_cast<FileTypeFilter>(filter);
     }
     
-    // Get exclude patterns
-    config.excludePatterns = m_excludePatterns->text().split(",", Qt::SkipEmptyParts);
-    for (QString& pattern : config.excludePatterns) {
-        pattern = pattern.trimmed();
-    }
+    // Get exclude patterns from the new widget
+    config.excludePatterns = m_excludePatternWidget->getPatterns();
     
     // Get excluded folders
     config.excludeFolders.clear();
@@ -1240,10 +1604,31 @@ void ScanSetupDialog::setConfiguration(const ScanConfiguration& config)
     // Set size settings
     m_minimumSize->setValue(static_cast<int>(config.minimumFileSize / (1024 * 1024))); // Convert bytes to MB
     
+    // T11: Maximum file size
+    m_maximumSize->setValue(static_cast<int>(config.maximumFileSize / (1024 * 1024))); // Convert bytes to MB
+    
     int depthIndex = m_maxDepth->findData(config.maximumDepth);
     if (depthIndex >= 0) {
         m_maxDepth->setCurrentIndex(depthIndex);
     }
+    
+    // T11: Advanced options
+    m_threadCount->setValue(config.threadCount);
+    m_enableCaching->setChecked(config.enableCaching);
+    m_skipEmptyFiles->setChecked(config.skipEmptyFiles);
+    m_skipDuplicateNames->setChecked(config.skipDuplicateNames);
+    
+    int hashIndex = m_hashAlgorithm->findData(config.hashAlgorithm);
+    if (hashIndex >= 0) {
+        m_hashAlgorithm->setCurrentIndex(hashIndex);
+    }
+    
+    m_enablePrefiltering->setChecked(config.enablePrefiltering);
+    
+    // T11: Performance options
+    m_bufferSize->setValue(config.bufferSize);
+    m_useMemoryMapping->setChecked(config.useMemoryMapping);
+    m_enableParallelHashing->setChecked(config.enableParallelHashing);
     
     // Set include options
     m_includeHidden->setChecked(config.includeHidden);
@@ -1264,8 +1649,8 @@ void ScanSetupDialog::setConfiguration(const ScanConfiguration& config)
         m_archivesCheck->setChecked(filter & static_cast<int>(FileTypeFilter::Archives));
     }
     
-    // Set exclude patterns
-    m_excludePatterns->setText(config.excludePatterns.join(", "));
+    // Set exclude patterns in the new widget
+    m_excludePatternWidget->setPatterns(config.excludePatterns);
     
     // Set excluded folders
     m_excludeFoldersTree->clear();
@@ -1299,6 +1684,19 @@ void ScanSetupDialog::loadPreset(const QString& presetName)
 {
     Logger::instance()->info(LogCategories::UI, QString("Loading preset: %1").arg(presetName));
     
+    // Try to load from PresetManagerDialog first
+    PresetManagerDialog presetManager(this);
+    PresetManagerDialog::PresetInfo preset = presetManager.getPreset(presetName);
+    
+    if (!preset.name.isEmpty()) {
+        // Load configuration from preset
+        setConfiguration(preset.config);
+        updateEstimates();
+        Logger::instance()->info(LogCategories::UI, QString("Preset '%1' loaded from preset manager").arg(presetName));
+        return;
+    }
+    
+    // Fall back to legacy built-in presets
     // Clear current selections
     clearAllSelections();
     
@@ -1416,6 +1814,9 @@ void ScanSetupDialog::showEvent(QShowEvent* event)
     
     // Update estimates when dialog is shown
     updateEstimates();
+    
+    // Validate configuration
+    validateConfiguration();
     
     // Apply current theme
     applyTheme();

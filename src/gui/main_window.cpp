@@ -4,6 +4,7 @@
 #include "settings_dialog.h"
 #include "scan_history_dialog.h"
 #include "restore_dialog.h"
+#include "safety_features_dialog.h"
 #include "file_scanner.h"
 #include "app_config.h"
 #include "scan_history_manager.h"
@@ -59,6 +60,9 @@ MainWindow::MainWindow(QWidget *parent)
     , m_scanSetupDialog(nullptr)
     , m_resultsWindow(nullptr)
     , m_settingsDialog(nullptr)
+    , m_scanProgressDialog(nullptr)
+    , m_scanErrorDialog(nullptr)
+    , m_safetyFeaturesDialog(nullptr)  // T17
     , m_systemUpdateTimer(new QTimer(this))
 {
     setWindowTitle(tr("DupFinder - Duplicate File Finder"));
@@ -99,6 +103,53 @@ void MainWindow::setFileScanner(FileScanner* scanner)
             LOG_INFO(LogCategories::UI, "=== FileScanner: Scan Started ===");
             updateScanProgress(0, tr("Scanning..."));
             if (m_progressBar) m_progressBar->setVisible(true);
+            
+            // Show scan progress dialog
+            if (!m_scanProgressDialog) {
+                m_scanProgressDialog = new ScanProgressDialog(this);
+                
+                // Connect pause/resume buttons to FileScanner
+                connect(m_scanProgressDialog, &ScanProgressDialog::pauseRequested, 
+                        m_fileScanner, &FileScanner::pauseScan);
+                connect(m_scanProgressDialog, &ScanProgressDialog::resumeRequested, 
+                        m_fileScanner, &FileScanner::resumeScan);
+                connect(m_scanProgressDialog, &ScanProgressDialog::cancelRequested, 
+                        m_fileScanner, &FileScanner::cancelScan);
+                
+                // Connect View Errors button (Task 10)
+                connect(m_scanProgressDialog, &ScanProgressDialog::viewErrorsRequested,
+                        this, [this]() {
+                            if (!m_scanErrorDialog) {
+                                m_scanErrorDialog = new ScanErrorDialog(this);
+                            }
+                            
+                            // Get current errors from FileScanner
+                            if (m_fileScanner) {
+                                QList<FileScanner::ScanErrorInfo> errors = m_fileScanner->getScanErrors();
+                                m_scanErrorDialog->setErrors(errors);
+                            }
+                            
+                            m_scanErrorDialog->show();
+                            m_scanErrorDialog->raise();
+                            m_scanErrorDialog->activateWindow();
+                        });
+                
+                // Connect FileScanner pause/resume signals to dialog
+                connect(m_fileScanner, &FileScanner::scanPaused, 
+                        this, [this]() {
+                            if (m_scanProgressDialog) {
+                                m_scanProgressDialog->setPaused(true);
+                            }
+                        });
+                connect(m_fileScanner, &FileScanner::scanResumed, 
+                        this, [this]() {
+                            if (m_scanProgressDialog) {
+                                m_scanProgressDialog->setPaused(false);
+                            }
+                        });
+            }
+            
+            m_scanProgressDialog->show();
         });
         
         connect(m_fileScanner, &FileScanner::scanProgress, this, [this](int filesProcessed, int totalFiles, const QString& currentPath) {
@@ -114,6 +165,22 @@ void MainWindow::setFileScanner(FileScanner* scanner)
         
         bool connected = connect(m_fileScanner, &FileScanner::scanCompleted, this, &MainWindow::onScanCompleted);
         qDebug() << "FileScanner::scanCompleted connection result:" << connected;
+        
+        // Connect detailed progress to scan progress dialog
+        connect(m_fileScanner, &FileScanner::detailedProgress, this, [this](const FileScanner::ScanProgress& progress) {
+            if (m_scanProgressDialog) {
+                ScanProgressDialog::ProgressInfo info;
+                info.filesScanned = progress.filesScanned;
+                info.bytesScanned = progress.bytesScanned;
+                info.currentFolder = progress.currentFolder;
+                info.currentFile = progress.currentFile;
+                info.filesPerSecond = progress.filesPerSecond;
+                info.isPaused = progress.isPaused;
+                info.errorsEncountered = m_fileScanner->getTotalErrorsEncountered(); // Task 10
+                
+                m_scanProgressDialog->updateProgress(info);
+            }
+        });
         
         qDebug() << "FileScanner connections complete";
     }
@@ -313,6 +380,33 @@ void MainWindow::onSettingsRequested()
     m_settingsDialog->activateWindow();
 }
 
+// T17: Safety Features UI
+void MainWindow::onSafetyFeaturesRequested()
+{
+    LOG_INFO(LogCategories::UI, "User requested Safety Features dialog");
+    
+    if (!m_safetyFeaturesDialog) {
+        m_safetyFeaturesDialog = new SafetyFeaturesDialog(m_safetyManager, this);
+        
+        // Connect signals
+        connect(m_safetyFeaturesDialog, &SafetyFeaturesDialog::protectionRulesChanged,
+                this, [this]() {
+                    LOG_INFO(LogCategories::UI, "Protection rules changed");
+                    statusBar()->showMessage(tr("Protection rules updated"), 3000);
+                });
+        
+        connect(m_safetyFeaturesDialog, &SafetyFeaturesDialog::safetySettingsChanged,
+                this, [this]() {
+                    LOG_INFO(LogCategories::UI, "Safety settings changed");
+                    statusBar()->showMessage(tr("Safety settings updated"), 3000);
+                });
+    }
+    
+    m_safetyFeaturesDialog->show();
+    m_safetyFeaturesDialog->raise();
+    m_safetyFeaturesDialog->activateWindow();
+}
+
 void MainWindow::onHelpRequested()
 {
     LOG_INFO(LogCategories::UI, "User clicked 'Help' button");
@@ -341,10 +435,13 @@ void MainWindow::onHelpRequested()
         "<li><b>Ctrl+N:</b> New Scan</li>"
         "<li><b>Ctrl+O:</b> View Scan History</li>"
         "<li><b>Ctrl+S:</b> Export Results (when results window is open)</li>"
+        "<li><b>Ctrl+Z:</b> Undo/Restore Files</li>"
         "<li><b>Ctrl+,:</b> Settings</li>"
+        "<li><b>Ctrl+Shift+S:</b> Safety Features</li>"
         "<li><b>Ctrl+Q:</b> Quit Application</li>"
         "<li><b>F1:</b> Help</li>"
         "<li><b>F5 / Ctrl+R:</b> Refresh System Stats</li>"
+        "<li><b>Escape:</b> Cancel Operation/Close Dialog</li>"
         "<li><b>Ctrl+1:</b> Quick Scan</li>"
         "<li><b>Ctrl+2:</b> Downloads Cleanup</li>"
         "<li><b>Ctrl+3:</b> Photo Cleanup</li>"
@@ -608,6 +705,11 @@ void MainWindow::setupConnections()
             if (m_quickActions) {
                 m_quickActions->setEnabled(true);
             }
+            
+            // Hide scan progress dialog
+            if (m_scanProgressDialog) {
+                m_scanProgressDialog->hide();
+            }
         });
         
         connect(m_fileScanner, &FileScanner::scanError, this, [this](FileScanner::ScanError errorType, const QString& path, const QString& description) {
@@ -707,6 +809,83 @@ void MainWindow::setupKeyboardShortcuts()
     connect(customShortcut, &QShortcut::activated, this, [this]() {
         onPresetSelected("custom");
     });
+    
+    // T19: Additional keyboard shortcuts
+    
+    // Ctrl+Z - Undo/Restore Files
+    QShortcut* undoShortcut = new QShortcut(QKeySequence::Undo, this);
+    connect(undoShortcut, &QShortcut::activated, this, &MainWindow::onRestoreRequested);
+    
+    // Ctrl+Shift+S - Safety Features
+    QShortcut* safetyShortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_S), this);
+    connect(safetyShortcut, &QShortcut::activated, this, &MainWindow::onSafetyFeaturesRequested);
+    
+    // Escape - Cancel current operation or close active dialog
+    QShortcut* escapeShortcut = new QShortcut(QKeySequence(Qt::Key_Escape), this);
+    connect(escapeShortcut, &QShortcut::activated, this, [this]() {
+        // Cancel scan if in progress
+        if (m_fileScanner && m_fileScanner->isScanning()) {
+            m_fileScanner->cancelScan();
+        }
+        // Close scan progress dialog if open
+        if (m_scanProgressDialog && m_scanProgressDialog->isVisible()) {
+            m_scanProgressDialog->close();
+        }
+    });
+    
+    // P3 UI Enhancement Shortcuts (Task 31)
+    
+    // Ctrl+Shift+F - Advanced Filter
+    QShortcut* advancedFilterShortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_F), this);
+    connect(advancedFilterShortcut, &QShortcut::activated, this, [this]() {
+        // TODO: Open advanced filter dialog when results window is available
+        if (m_resultsWindow && m_resultsWindow->isVisible()) {
+            // This would open the advanced filter dialog
+            qDebug() << "Advanced filter shortcut activated";
+        }
+    });
+    
+    // Ctrl+E - View Scan Errors
+    QShortcut* viewErrorsShortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_E), this);
+    connect(viewErrorsShortcut, &QShortcut::activated, this, [this]() {
+        if (m_scanErrorDialog && m_fileScanner) {
+            QList<FileScanner::ScanErrorInfo> errors = m_fileScanner->getScanErrors();
+            if (!errors.isEmpty()) {
+                m_scanErrorDialog->setErrors(errors);
+                m_scanErrorDialog->show();
+                m_scanErrorDialog->raise();
+                m_scanErrorDialog->activateWindow();
+            }
+        }
+    });
+    
+    // Ctrl+P - Pause/Resume Scan
+    QShortcut* pauseResumeShortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_P), this);
+    connect(pauseResumeShortcut, &QShortcut::activated, this, [this]() {
+        if (m_fileScanner && m_fileScanner->isScanning()) {
+            if (m_fileScanner->isPaused()) {
+                m_fileScanner->resumeScan();
+            } else {
+                m_fileScanner->pauseScan();
+            }
+        }
+    });
+    
+    // Ctrl+Shift+S - Smart Selection (placeholder for when implemented)
+    QShortcut* smartSelectionShortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_S), this);
+    connect(smartSelectionShortcut, &QShortcut::activated, this, [this]() {
+        // TODO: Open smart selection dialog when results window is available
+        if (m_resultsWindow && m_resultsWindow->isVisible()) {
+            qDebug() << "Smart selection shortcut activated";
+        }
+    });
+    
+    // Ctrl+Shift+H - Operation History (placeholder for when implemented)
+    QShortcut* operationHistoryShortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_H), this);
+    connect(operationHistoryShortcut, &QShortcut::activated, this, [this]() {
+        // TODO: Open operation history dialog when implemented
+        qDebug() << "Operation history shortcut activated";
+    });
 }
 
 void MainWindow::updatePlanIndicator()
@@ -771,6 +950,12 @@ void MainWindow::createHeaderWidget()
     restoreButton->setToolTip(tr("Restore files from backups"));
     connect(restoreButton, &QPushButton::clicked, this, &MainWindow::onRestoreRequested);
     
+    // T17: Safety Features button
+    QPushButton* safetyButton = new QPushButton(tr("🛡️ Safety"), this);
+    safetyButton->setFixedSize(120, 32);
+    safetyButton->setToolTip(tr("Configure file protection and safety features"));
+    connect(safetyButton, &QPushButton::clicked, this, &MainWindow::onSafetyFeaturesRequested);
+    
     // Test button for results window (temporary)
     QPushButton* testResultsButton = new QPushButton(tr("🔍 View Results"), this);
     testResultsButton->setFixedSize(120, 32);
@@ -782,6 +967,7 @@ void MainWindow::createHeaderWidget()
     m_headerLayout->addWidget(m_settingsButton);
     m_headerLayout->addWidget(m_helpButton);
     m_headerLayout->addWidget(restoreButton);
+    m_headerLayout->addWidget(safetyButton);  // T17
     m_headerLayout->addWidget(testResultsButton);
     m_headerLayout->addStretch();
     
@@ -1190,6 +1376,11 @@ void MainWindow::onScanCompleted()
     
     if (m_fileCountLabel) {
         m_fileCountLabel->setText(tr("Files: %1").arg(filesFound));
+    }
+    
+    // Hide scan progress dialog
+    if (m_scanProgressDialog) {
+        m_scanProgressDialog->hide();
     }
     
     // Cache scan results for duplicate detection

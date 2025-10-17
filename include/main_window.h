@@ -20,6 +20,8 @@
 #include "file_scanner.h"
 #include "duplicate_detector.h"
 #include "scan_dialog.h"
+#include "scan_progress_dialog.h"
+#include "scan_error_dialog.h"
 
 // Forward declarations
 class HashCalculator;
@@ -27,6 +29,7 @@ class SafetyManager;
 class FileManager;
 class ResultsWindow;
 class SettingsDialog;
+class SafetyFeaturesDialog;
 
 class QuickActionsWidget;
 class ScanHistoryWidget;
@@ -59,6 +62,7 @@ public slots:
     void onSettingsRequested();
     void onHelpRequested();
     void onRestoreRequested();
+    void onSafetyFeaturesRequested();  // T17: Show safety features dialog
     void updateSystemInfo();
     void onScanHistoryItemClicked(int index);
     void onViewAllHistoryClicked();
@@ -131,6 +135,9 @@ private:
     ScanSetupDialog* m_scanSetupDialog;
     ResultsWindow* m_resultsWindow;
     SettingsDialog* m_settingsDialog;
+    ScanProgressDialog* m_scanProgressDialog;
+    ScanErrorDialog* m_scanErrorDialog;  // Task 10
+    SafetyFeaturesDialog* m_safetyFeaturesDialog;  // T17: Safety Features UI
     
     // Utilities
     QTimer* m_systemUpdateTimer;

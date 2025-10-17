@@ -19,9 +19,12 @@
 #include <QtWidgets/QDialogButtonBox>
 #include <QtWidgets/QFrame>
 #include <QtCore/QTimer>
+#include <QtCore/QThread>  // T11: For thread count
 
 // Forward declarations
 class FileScanner;
+class ExcludePatternWidget;
+class ScanScopePreviewWidget;
 
 class ScanSetupDialog : public QDialog
 {
@@ -48,6 +51,7 @@ public:
         QStringList targetPaths;
         DetectionMode detectionMode;
         qint64 minimumFileSize;
+        qint64 maximumFileSize;         // T11: Maximum file size limit
         int maximumDepth;
         QStringList excludePatterns;
         QStringList excludeFolders;  // New: folders to exclude from scanning
@@ -56,6 +60,19 @@ public:
         bool followSymlinks;
         bool scanArchives;
         FileTypeFilter fileTypeFilter;
+        
+        // T11: Advanced options
+        int threadCount;                // Number of threads for scanning
+        bool enableCaching;             // Enable hash caching
+        bool skipEmptyFiles;            // Skip zero-byte files
+        bool skipDuplicateNames;        // Skip files with identical names
+        int hashAlgorithm;              // 0=MD5, 1=SHA1, 2=SHA256
+        bool enablePrefiltering;        // Enable size-based prefiltering
+        
+        // T11: Performance options
+        int bufferSize;                 // I/O buffer size in KB
+        bool useMemoryMapping;          // Use memory-mapped files
+        bool enableParallelHashing;     // Parallel hash calculation
         
         // Validation
         bool isValid() const;
@@ -80,15 +97,18 @@ public:
     void loadPreset(const QString& presetName);
     void saveCurrentAsPreset(const QString& presetName);
     QStringList getAvailablePresets() const;
+    void openPresetManager();
 
 public slots:
     void updateEstimates();
     void resetToDefaults();
+    void validateConfiguration();
 
 signals:
     void scanConfigured(const ScanConfiguration& config);
     void presetSaved(const QString& name, const ScanConfiguration& config);
     void estimatesUpdated(const EstimatedStats& stats);
+    void validationChanged(bool isValid, const QString& error);
 
 protected:
     void showEvent(QShowEvent* event) override;
@@ -100,6 +120,7 @@ private slots:
     void removeSelectedFolder();
     void startScan();
     void savePreset();
+    void managePresets();
     void showUpgradeDialog();
     void performEstimation();
     
@@ -124,14 +145,18 @@ private:
     void setupUI();
     void createLocationsPanel();
     void createOptionsPanel();
+    void createAdvancedOptionsPanel();     // T11: Advanced options
+    void createPerformanceOptionsPanel();  // T11: Performance options
     void createPreviewPanel();
     void createButtonBar();
     void setupConnections();
     void applyTheme();
+    void updateValidationDisplay();        // T11: Real-time validation
     
     // Utility methods
     void populateDirectoryTree();
     void updatePreviewPanel();
+    void updateScopePreview();
     void showEstimationProgress(bool show);
     EstimatedStats calculateEstimates() const;
     ScanConfiguration getBuiltInPreset(const QString& presetName) const;
@@ -165,12 +190,31 @@ private:
     QVBoxLayout* m_optionsLayout;
     QComboBox* m_detectionMode;
     QSpinBox* m_minimumSize;
+    QSpinBox* m_maximumSize;            // T11: Maximum file size
     QComboBox* m_maxDepth;
     QCheckBox* m_includeHidden;
     QCheckBox* m_includeSystem;
     QCheckBox* m_followSymlinks;
     QCheckBox* m_scanArchives;
     QLineEdit* m_excludePatterns;
+    ExcludePatternWidget* m_excludePatternWidget;
+    
+    // T11: Advanced Options Panel
+    QGroupBox* m_advancedGroup;
+    QVBoxLayout* m_advancedLayout;
+    QSpinBox* m_threadCount;
+    QCheckBox* m_enableCaching;
+    QCheckBox* m_skipEmptyFiles;
+    QCheckBox* m_skipDuplicateNames;
+    QComboBox* m_hashAlgorithm;
+    QCheckBox* m_enablePrefiltering;
+    
+    // T11: Performance Options Panel
+    QGroupBox* m_performanceGroup;
+    QVBoxLayout* m_performanceLayout;
+    QSpinBox* m_bufferSize;
+    QCheckBox* m_useMemoryMapping;
+    QCheckBox* m_enableParallelHashing;
     
     // Exclude folders
     QTreeWidget* m_excludeFoldersTree;
@@ -192,12 +236,15 @@ private:
     QLabel* m_estimateLabel;
     QProgressBar* m_estimationProgress;
     QLabel* m_limitWarning;
+    QLabel* m_validationLabel;
     QPushButton* m_upgradeButton;
+    ScanScopePreviewWidget* m_scopePreviewWidget;
     
     // Button Bar
     QDialogButtonBox* m_buttonBox;
     QPushButton* m_startScanButton;
     QPushButton* m_savePresetButton;
+    QPushButton* m_managePresetsButton;
     QPushButton* m_cancelButton;
     
     // Utilities
