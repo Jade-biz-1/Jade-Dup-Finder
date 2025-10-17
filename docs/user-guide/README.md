@@ -2,7 +2,8 @@
 
 **Version:** 2.0  
 **Last Updated:** October 17, 2025  
-**Status:** Complete - All Features Documented
+**Status:** Complete - All Features Documented  
+**Replaces:** Original docs/USER_GUIDE.md (now 10x more comprehensive)
 
 ---
 
