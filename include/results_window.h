@@ -29,9 +29,8 @@
 
 // Include headers for types used in method signatures
 #include "duplicate_detector.h"
-// Temporarily disabled for Settings dialog testing
-// #include "duplicate_relationship_widget.h"
-// #include "smart_selection_dialog.h"
+#include "duplicate_relationship_widget.h"
+#include "smart_selection_dialog.h"
 
 // Forward declarations
 class ScanSetupDialog;
