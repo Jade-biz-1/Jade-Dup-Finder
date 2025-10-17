@@ -50,6 +50,7 @@ private:
     void createSafetyTab();
     void createLoggingTab();
     void createAdvancedTab();
+    void createUIFeaturesTab();  // Task 32: New UI features settings
     void applyTheme();
     
     // UI Components
@@ -98,6 +99,18 @@ private:
     // Advanced Tab
     QWidget* m_advancedTab;
     QLineEdit* m_databaseLocationEdit;
+    
+    // UI Features Tab (Task 32)
+    QWidget* m_uiFeaturesTab;
+    QSpinBox* m_thumbnailSizeSpin;
+    QSpinBox* m_thumbnailCacheSizeSpin;
+    QCheckBox* m_enableThumbnailsCheck;
+    QSpinBox* m_operationQueueSizeSpin;
+    QSpinBox* m_selectionHistorySizeSpin;
+    QCheckBox* m_enableAdvancedFiltersCheck;
+    QCheckBox* m_enableSmartSelectionCheck;
+    QCheckBox* m_enableOperationQueueCheck;
+    QCheckBox* m_showDetailedProgressCheck;
     QLineEdit* m_cacheDirectoryEdit;
     QComboBox* m_exportFormatCombo;
     QCheckBox* m_enablePerformanceCheck;

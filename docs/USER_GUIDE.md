@@ -1,8 +1,19 @@
 # DupFinder User Guide
 
-**Version:** 1.0  
-**Last Updated:** 2025-10-04  
+**Version:** 1.1  
+**Last Updated:** 2025-10-14  
 **Target Audience:** End users (all skill levels)  
+**Status:** Linux version features documented (Windows/macOS coming soon)
+
+---
+
+## ⚠️ Feature Availability Notice
+
+This guide documents features for the **Linux version** of DupFinder. Some features marked as **"Coming Soon"** are planned but not yet implemented. Current implementation status:
+
+- ✅ **Available Now:** Core scanning, duplicate detection, results management, file operations
+- 🔄 **In Development:** Advanced detection algorithms, scheduling, automation
+- 📅 **Coming Soon:** Windows and macOS versions, premium features, cloud integration
 
 ---
 
@@ -108,7 +119,7 @@ The Results Window shows duplicates in a professional 3-panel interface:
 
 ## Advanced Features
 
-### Smart Selection
+### Smart Selection ✅ Available Now
 
 DupFinder's smart selection algorithm helps you decide which files to keep:
 
@@ -117,38 +128,38 @@ DupFinder's smart selection algorithm helps you decide which files to keep:
 - **Original names**: Files without "copy", "duplicate", or numbers in names
 - **Better locations**: Files in structured folders vs. Desktop/Downloads
 
-### Filtering Options
+### Filtering Options ✅ Available Now
 
 Use filters to focus on specific types of duplicates:
 
-- **Search**: Find files by name or path
-- **Size Filter**: Show only files above certain sizes (>1MB, >10MB, etc.)
-- **Type Filter**: Focus on Images, Documents, Videos, etc.
-- **Date Range**: Find duplicates modified within specific timeframes
+- **Search**: Find files by name or path ✅
+- **Size Filter**: Show only files above certain sizes (>1MB, >10MB, etc.) ✅
+- **Type Filter**: Focus on Images, Documents, Videos, etc. ✅
+- **Date Range**: Find duplicates modified within specific timeframes 📅 Coming Soon
 
-### Bulk Operations
+### Bulk Operations ✅ Available Now
 
 Manage multiple files efficiently:
 
-1. **Select multiple files** using checkboxes
+1. **Select multiple files** using checkboxes ✅
 2. **Choose bulk action**:
-   - **Delete Selected**: Move to trash (safest option)
-   - **Move Selected**: Move to a different folder
-   - **Ignore Selected**: Exclude from future scans
+   - **Delete Selected**: Move to trash (safest option) ✅
+   - **Move Selected**: Move to a different folder ✅
+   - **Ignore Selected**: Exclude from future scans 📅 Coming Soon
 
-3. **Review confirmation** dialog showing exactly what will happen
-4. **Confirm operation** after reviewing the impact
+3. **Review confirmation** dialog showing exactly what will happen ✅
+4. **Confirm operation** after reviewing the impact ✅
 
-### File Operations
+### File Operations ✅ Available Now
 
 For individual files, right-click or use the Actions panel:
 
-- **🔍 Preview**: View file contents without opening
-- **📂 Open Location**: Show file in system file manager
-- **📋 Copy Path**: Copy file path to clipboard
-- **🗑️ Delete**: Move to trash (recoverable)
-- **📁 Move**: Move to different location
-- **👁️ Ignore**: Exclude from results
+- **🔍 Preview**: View file contents without opening ✅
+- **📂 Open Location**: Show file in system file manager ✅
+- **📋 Copy Path**: Copy file path to clipboard ✅
+- **🗑️ Delete**: Move to trash (recoverable) ✅
+- **📁 Move**: Move to different location ✅
+- **👁️ Ignore**: Exclude from results 📅 Coming Soon
 
 ---
 
@@ -195,18 +206,18 @@ For individual files, right-click or use the Actions panel:
 
 **Warning**: Be extra careful with documents as they may have important revisions.
 
-### 4. Full System Scan
+### 4. Full System Scan 📅 Coming Soon (Premium Feature)
 
 **Problem**: Need comprehensive duplicate cleanup across entire system.
 
 **Solution**:
-1. Click **"Full System Scan"** (Premium feature)
+1. Click **"Full System Scan"** (Premium feature) 📅 Coming Soon
 2. **Choose specific drives** or scan entire system
 3. **Use size filters** to focus on large files first (biggest impact)
 4. **Work through results systematically** by file type or size
 5. **Multiple cleanup sessions** are recommended for large systems
 
-**Note**: Full system scans can take considerable time and find many duplicates.
+**Note**: Full system scans can take considerable time and find many duplicates. This feature will be available in the premium version.
 
 ---
 
@@ -236,11 +247,11 @@ DupFinder automatically excludes:
 - **System configuration files**
 - **Critical system directories**
 
-### 4. Session History
+### 4. Session History ✅ Partial / 📅 Coming Soon
 
-- **Complete log** of all operations during your session
-- **Undo capability** for recent operations (where possible)
-- **Recovery information** if you need to restore files
+- **Complete log** of all operations during your session ✅ Available Now
+- **Undo capability** for recent operations (where possible) 📅 Coming Soon
+- **Recovery information** if you need to restore files ✅ Available Now (via system trash)
 
 ### 5. Preview Before Action
 

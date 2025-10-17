@@ -13,6 +13,16 @@ SettingsDialog::SettingsDialog(QWidget* parent)
     , m_buttonBox(nullptr)
     , m_applyButton(nullptr)
     , m_restoreDefaultsButton(nullptr)
+    , m_uiFeaturesTab(nullptr)
+    , m_thumbnailSizeSpin(nullptr)
+    , m_thumbnailCacheSizeSpin(nullptr)
+    , m_enableThumbnailsCheck(nullptr)
+    , m_operationQueueSizeSpin(nullptr)
+    , m_selectionHistorySizeSpin(nullptr)
+    , m_enableAdvancedFiltersCheck(nullptr)
+    , m_enableSmartSelectionCheck(nullptr)
+    , m_enableOperationQueueCheck(nullptr)
+    , m_showDetailedProgressCheck(nullptr)
 {
     setWindowTitle(tr("Settings"));
     setMinimumSize(700, 500);
@@ -46,6 +56,7 @@ void SettingsDialog::setupUI()
     createSafetyTab();
     createLoggingTab();
     createAdvancedTab();
+    createUIFeaturesTab();  // Task 32
     
     mainLayout->addWidget(m_tabWidget);
     
@@ -355,6 +366,79 @@ void SettingsDialog::createAdvancedTab()
     m_tabWidget->addTab(m_advancedTab, tr("Advanced"));
 }
 
+void SettingsDialog::createUIFeaturesTab()
+{
+    m_uiFeaturesTab = new QWidget();
+    auto* layout = new QVBoxLayout(m_uiFeaturesTab);
+    
+    // Thumbnail Settings
+    auto* thumbnailGroup = new QGroupBox(tr("Thumbnail Settings"), this);
+    auto* thumbnailLayout = new QFormLayout(thumbnailGroup);
+    
+    m_enableThumbnailsCheck = new QCheckBox(tr("Enable thumbnails in results"), this);
+    thumbnailLayout->addRow(m_enableThumbnailsCheck);
+    
+    m_thumbnailSizeSpin = new QSpinBox(this);
+    m_thumbnailSizeSpin->setRange(32, 256);
+    m_thumbnailSizeSpin->setValue(64);
+    m_thumbnailSizeSpin->setSuffix(tr(" pixels"));
+    thumbnailLayout->addRow(tr("Thumbnail size:"), m_thumbnailSizeSpin);
+    
+    m_thumbnailCacheSizeSpin = new QSpinBox(this);
+    m_thumbnailCacheSizeSpin->setRange(100, 10000);
+    m_thumbnailCacheSizeSpin->setValue(1000);
+    m_thumbnailCacheSizeSpin->setSuffix(tr(" items"));
+    thumbnailLayout->addRow(tr("Thumbnail cache size:"), m_thumbnailCacheSizeSpin);
+    
+    layout->addWidget(thumbnailGroup);
+    
+    // Selection Settings
+    auto* selectionGroup = new QGroupBox(tr("Selection Settings"), this);
+    auto* selectionLayout = new QFormLayout(selectionGroup);
+    
+    m_selectionHistorySizeSpin = new QSpinBox(this);
+    m_selectionHistorySizeSpin->setRange(10, 200);
+    m_selectionHistorySizeSpin->setValue(50);
+    m_selectionHistorySizeSpin->setSuffix(tr(" items"));
+    selectionLayout->addRow(tr("Selection history size:"), m_selectionHistorySizeSpin);
+    
+    m_enableSmartSelectionCheck = new QCheckBox(tr("Enable smart selection features"), this);
+    selectionLayout->addRow(m_enableSmartSelectionCheck);
+    
+    layout->addWidget(selectionGroup);
+    
+    // Filter Settings
+    auto* filterGroup = new QGroupBox(tr("Filter Settings"), this);
+    auto* filterLayout = new QFormLayout(filterGroup);
+    
+    m_enableAdvancedFiltersCheck = new QCheckBox(tr("Enable advanced filtering"), this);
+    filterLayout->addRow(m_enableAdvancedFiltersCheck);
+    
+    layout->addWidget(filterGroup);
+    
+    // Operation Settings
+    auto* operationGroup = new QGroupBox(tr("File Operation Settings"), this);
+    auto* operationLayout = new QFormLayout(operationGroup);
+    
+    m_enableOperationQueueCheck = new QCheckBox(tr("Enable operation queue"), this);
+    operationLayout->addRow(m_enableOperationQueueCheck);
+    
+    m_operationQueueSizeSpin = new QSpinBox(this);
+    m_operationQueueSizeSpin->setRange(10, 1000);
+    m_operationQueueSizeSpin->setValue(100);
+    m_operationQueueSizeSpin->setSuffix(tr(" operations"));
+    operationLayout->addRow(tr("Max queue size:"), m_operationQueueSizeSpin);
+    
+    m_showDetailedProgressCheck = new QCheckBox(tr("Show detailed progress dialogs"), this);
+    operationLayout->addRow(m_showDetailedProgressCheck);
+    
+    layout->addWidget(operationGroup);
+    
+    layout->addStretch();
+    
+    m_tabWidget->addTab(m_uiFeaturesTab, tr("UI Features"));
+}
+
 void SettingsDialog::loadSettings()
 {
     LOG_INFO(LogCategories::CONFIG, "Loading settings");
@@ -418,6 +502,35 @@ void SettingsDialog::loadSettings()
     
     m_enablePerformanceCheck->setChecked(settings.value("advanced/enablePerformance", false).toBool());
     
+    // UI Features (Task 32)
+    if (m_enableThumbnailsCheck) {
+        m_enableThumbnailsCheck->setChecked(settings.value("ui/enableThumbnails", true).toBool());
+    }
+    if (m_thumbnailSizeSpin) {
+        m_thumbnailSizeSpin->setValue(settings.value("ui/thumbnailSize", 64).toInt());
+    }
+    if (m_thumbnailCacheSizeSpin) {
+        m_thumbnailCacheSizeSpin->setValue(settings.value("ui/thumbnailCacheSize", 1000).toInt());
+    }
+    if (m_selectionHistorySizeSpin) {
+        m_selectionHistorySizeSpin->setValue(settings.value("ui/selectionHistorySize", 50).toInt());
+    }
+    if (m_enableSmartSelectionCheck) {
+        m_enableSmartSelectionCheck->setChecked(settings.value("ui/enableSmartSelection", true).toBool());
+    }
+    if (m_enableAdvancedFiltersCheck) {
+        m_enableAdvancedFiltersCheck->setChecked(settings.value("ui/enableAdvancedFilters", true).toBool());
+    }
+    if (m_enableOperationQueueCheck) {
+        m_enableOperationQueueCheck->setChecked(settings.value("ui/enableOperationQueue", true).toBool());
+    }
+    if (m_operationQueueSizeSpin) {
+        m_operationQueueSizeSpin->setValue(settings.value("ui/operationQueueSize", 100).toInt());
+    }
+    if (m_showDetailedProgressCheck) {
+        m_showDetailedProgressCheck->setChecked(settings.value("ui/showDetailedProgress", true).toBool());
+    }
+    
     LOG_INFO(LogCategories::CONFIG, "Settings loaded successfully");
 }
 
@@ -466,6 +579,35 @@ void SettingsDialog::saveSettings()
     settings.setValue("advanced/cacheDirectory", m_cacheDirectoryEdit->text());
     settings.setValue("advanced/exportFormat", m_exportFormatCombo->currentData());
     settings.setValue("advanced/enablePerformance", m_enablePerformanceCheck->isChecked());
+    
+    // UI Features (Task 32)
+    if (m_enableThumbnailsCheck) {
+        settings.setValue("ui/enableThumbnails", m_enableThumbnailsCheck->isChecked());
+    }
+    if (m_thumbnailSizeSpin) {
+        settings.setValue("ui/thumbnailSize", m_thumbnailSizeSpin->value());
+    }
+    if (m_thumbnailCacheSizeSpin) {
+        settings.setValue("ui/thumbnailCacheSize", m_thumbnailCacheSizeSpin->value());
+    }
+    if (m_selectionHistorySizeSpin) {
+        settings.setValue("ui/selectionHistorySize", m_selectionHistorySizeSpin->value());
+    }
+    if (m_enableSmartSelectionCheck) {
+        settings.setValue("ui/enableSmartSelection", m_enableSmartSelectionCheck->isChecked());
+    }
+    if (m_enableAdvancedFiltersCheck) {
+        settings.setValue("ui/enableAdvancedFilters", m_enableAdvancedFiltersCheck->isChecked());
+    }
+    if (m_enableOperationQueueCheck) {
+        settings.setValue("ui/enableOperationQueue", m_enableOperationQueueCheck->isChecked());
+    }
+    if (m_operationQueueSizeSpin) {
+        settings.setValue("ui/operationQueueSize", m_operationQueueSizeSpin->value());
+    }
+    if (m_showDetailedProgressCheck) {
+        settings.setValue("ui/showDetailedProgress", m_showDetailedProgressCheck->isChecked());
+    }
     
     settings.sync();
     

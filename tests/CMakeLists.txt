@@ -26,6 +26,7 @@ set(TEST_GUI_SOURCES
     ../src/gui/main_window.cpp
     ../src/gui/main_window_widgets.cpp
     ../src/gui/results_window.cpp
+    ../src/gui/thumbnail_cache.cpp
 )
 
 # Header files needed for MOC processing
@@ -38,6 +39,7 @@ set(TEST_COMMON_HEADERS
     ../include/app_config.h
     ../include/main_window.h
     ../src/gui/results_window.h
+    ../include/thumbnail_cache.h
 )
 
 # Unit Tests
@@ -402,4 +404,221 @@ add_test(NAME ErrorScenariosTest COMMAND test_error_scenarios)
 set_tests_properties(ErrorScenariosTest PROPERTIES
     TIMEOUT 300
     LABELS "integration;standalone;error-handling;robustness"
+)
+
+# Standalone Unit Test - ThumbnailCache
+add_executable(test_thumbnail_cache
+    unit/test_thumbnail_cache.cpp
+    ../src/gui/thumbnail_cache.cpp
+    ../include/thumbnail_cache.h
+)
+
+target_link_libraries(test_thumbnail_cache
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Widgets
+    Qt6::Test
+)
+
+set_target_properties(test_thumbnail_cache PROPERTIES
+    AUTOMOC ON
+)
+
+add_test(NAME ThumbnailCacheTest COMMAND test_thumbnail_cache)
+
+set_tests_properties(ThumbnailCacheTest PROPERTIES
+    TIMEOUT 60
+    LABELS "unit;thumbnail;cache"
+)
+
+# Standalone Unit Test - ThumbnailDelegate
+add_executable(test_thumbnail_delegate
+    unit/test_thumbnail_delegate.cpp
+    ../src/gui/thumbnail_cache.cpp
+    ../src/gui/thumbnail_delegate.cpp
+    ../include/thumbnail_cache.h
+    ../include/thumbnail_delegate.h
+)
+
+target_link_libraries(test_thumbnail_delegate
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Widgets
+    Qt6::Test
+)
+
+set_target_properties(test_thumbnail_delegate PROPERTIES
+    AUTOMOC ON
+)
+
+add_test(NAME ThumbnailDelegateTest COMMAND test_thumbnail_delegate)
+
+set_tests_properties(ThumbnailDelegateTest PROPERTIES
+    TIMEOUT 60
+    LABELS "unit;thumbnail;delegate;ui"
+)
+
+# Standalone Unit Test - ExcludePatternWidget
+add_executable(test_exclude_pattern_widget
+    unit/test_exclude_pattern_widget.cpp
+    ../src/gui/exclude_pattern_widget.cpp
+    ../include/exclude_pattern_widget.h
+)
+
+target_link_libraries(test_exclude_pattern_widget
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Widgets
+    Qt6::Test
+)
+
+set_target_properties(test_exclude_pattern_widget PROPERTIES
+    AUTOMOC ON
+)
+
+add_test(NAME ExcludePatternWidgetTest COMMAND test_exclude_pattern_widget)
+
+set_tests_properties(ExcludePatternWidgetTest PROPERTIES
+    TIMEOUT 60
+    LABELS "unit;exclude;pattern;widget;ui"
+)
+
+# Standalone Unit Test - PresetManager
+add_executable(test_preset_manager
+    unit/test_preset_manager.cpp
+    ../src/gui/preset_manager_dialog.cpp
+    ../src/gui/scan_dialog.cpp
+    ../src/gui/exclude_pattern_widget.cpp
+    ../src/core/logger.cpp
+    ../include/preset_manager_dialog.h
+    ../include/scan_dialog.h
+    ../include/exclude_pattern_widget.h
+    ../src/core/logger.h
+)
+
+target_link_libraries(test_preset_manager
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Widgets
+    Qt6::Test
+)
+
+set_target_properties(test_preset_manager PROPERTIES
+    AUTOMOC ON
+)
+
+add_test(NAME PresetManagerTest COMMAND test_preset_manager)
+
+set_tests_properties(PresetManagerTest PROPERTIES
+    TIMEOUT 60
+    LABELS "unit;preset;manager;ui"
+)
+
+# Standalone Unit Test - ScanConfigurationValidation
+add_executable(test_scan_configuration_validation
+    unit/test_scan_configuration_validation.cpp
+    ../src/gui/scan_dialog.cpp
+    ../src/gui/exclude_pattern_widget.cpp
+    ../src/core/logger.cpp
+    ../include/scan_dialog.h
+    ../include/exclude_pattern_widget.h
+    ../src/core/logger.h
+)
+
+target_link_libraries(test_scan_configuration_validation
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Widgets
+    Qt6::Test
+)
+
+set_target_properties(test_scan_configuration_validation PROPERTIES
+    AUTOMOC ON
+)
+
+add_test(NAME ScanConfigurationValidationTest COMMAND test_scan_configuration_validation)
+
+set_tests_properties(ScanConfigurationValidationTest PROPERTIES
+    TIMEOUT 60
+    LABELS "unit;scan;validation;configuration"
+)
+
+# Standalone Unit Test - ScanScopePreviewWidget
+add_executable(test_scan_scope_preview_widget
+    unit/test_scan_scope_preview_widget.cpp
+    ../src/gui/scan_scope_preview_widget.cpp
+    ../src/core/logger.cpp
+    ../include/scan_scope_preview_widget.h
+    ../src/core/logger.h
+)
+
+target_link_libraries(test_scan_scope_preview_widget
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Widgets
+    Qt6::Test
+)
+
+set_target_properties(test_scan_scope_preview_widget PROPERTIES
+    AUTOMOC ON
+)
+
+add_test(NAME ScanScopePreviewWidgetTest COMMAND test_scan_scope_preview_widget)
+
+set_tests_properties(ScanScopePreviewWidgetTest PROPERTIES
+    TIMEOUT 60
+    LABELS "unit;scan;scope;preview;widget;ui"
+)
+
+# Standalone Unit Test - ScanProgressTracking (Task 7)
+add_executable(test_scan_progress_tracking
+    unit/test_scan_progress_tracking.cpp
+    ../src/core/file_scanner.cpp
+    ../src/core/app_config.cpp
+    ../src/core/logger.cpp
+    ../include/file_scanner.h
+    ../include/app_config.h
+    ../src/core/logger.h
+)
+
+target_link_libraries(test_scan_progress_tracking
+    Qt6::Core
+    Qt6::Test
+    Qt6::Concurrent
+)
+
+set_target_properties(test_scan_progress_tracking PROPERTIES
+    AUTOMOC ON
+)
+
+add_test(NAME ScanProgressTrackingTest COMMAND test_scan_progress_tracking)
+
+set_tests_properties(ScanProgressTrackingTest PROPERTIES
+    TIMEOUT 60
+    LABELS "unit;scan;progress;tracking;task7"
+)
+
+# Standalone Unit Test - ScanProgressDialog (Task 8)
+add_executable(test_scan_progress_dialog
+    unit/test_scan_progress_dialog.cpp
+    ../src/gui/scan_progress_dialog.cpp
+    ../include/scan_progress_dialog.h
+)
+
+target_link_libraries(test_scan_progress_dialog
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Widgets
+    Qt6::Test
+)
+
+set_target_properties(test_scan_progress_dialog PROPERTIES
+    AUTOMOC ON
+)
+
+add_test(NAME ScanProgressDialogTest COMMAND test_scan_progress_dialog)
+
+set_tests_properties(ScanProgressDialogTest PROPERTIES
+    TIMEOUT 60
+    LABELS "unit;scan;progress;dialog;task8"
 )

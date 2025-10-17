@@ -2,14 +2,18 @@
 #include "app_config.h"
 #include "duplicate_detector.h"
 #include "file_manager.h"
+#include "thumbnail_cache.h"
+#include "thumbnail_delegate.h"
 #include "core/logger.h"
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QMessageBox>
 #include <QtWidgets/QFileDialog>
+#include <QtWidgets/QScrollBar>
 #include <QtGui/QDesktopServices>
 #include <QtWidgets/QHeaderView>
 #include <QtWidgets/QInputDialog>
 #include <QtGui/QClipboard>
+#include <QtGui/QShortcut>
 #include <QtGui/QPixmap>
 #include <QtGui/QPainter>
 #include <QtGui/QImageReader>
@@ -49,6 +53,12 @@ ResultsWindow::ResultsWindow(QWidget* parent)
     , m_actionsPanel(nullptr)
     , m_thumbnailTimer(new QTimer(this))
     , m_fileManager(nullptr)
+    , m_thumbnailCache(new ThumbnailCache(this))
+    , m_thumbnailDelegate(nullptr)
+    , m_selectionHistory(new SelectionHistoryManager(this))
+    , m_operationQueue(new FileOperationQueue(this))  // Task 30
+    , m_progressDialog(new FileOperationProgressDialog(this))  // Task 30
+    , m_groupingDialog(new GroupingOptionsDialog(this))  // Task 13
     , m_isProcessingBulkOperation(false)
 {
     setWindowTitle(tr("Duplicate Files Found - DupFinder"));
@@ -70,6 +80,7 @@ ResultsWindow::ResultsWindow(QWidget* parent)
     
     initializeUI();
     setupConnections();
+    setupOperationQueue();  // Task 30
     applyTheme();
     
     // Don't load sample data - wait for real scan results
@@ -217,11 +228,16 @@ void ResultsWindow::createResultsTree()
     
     m_clearFiltersButton = new QPushButton(tr("Clear"), this);
     
+    // Task 13: Add grouping button
+    m_groupingButton = new QPushButton(tr("Grouping..."), this);
+    m_groupingButton->setToolTip(tr("Change how duplicate files are grouped"));
+    
     m_filterLayout->addWidget(m_filterLabel);
     m_filterLayout->addWidget(m_searchFilter, 1);
     m_filterLayout->addWidget(m_sizeFilter);
     m_filterLayout->addWidget(m_typeFilter);
     m_filterLayout->addWidget(m_sortCombo);
+    m_filterLayout->addWidget(m_groupingButton);
     m_filterLayout->addWidget(m_clearFiltersButton);
     
     // Selection panel
@@ -238,12 +254,35 @@ void ResultsWindow::createResultsTree()
     m_selectByTypeButton->setToolTip(tr("Select files by type (images, documents, etc.)"));
     m_clearSelectionButton = new QPushButton(tr("Clear Selection"), this);
     m_clearSelectionButton->setToolTip(tr("Deselect all files"));
+    
+    // Selection History buttons (Task 17)
+    m_undoButton = new QPushButton(tr("Undo"), this);
+    m_undoButton->setToolTip(tr("Undo last selection change (Ctrl+Z)"));
+    m_undoButton->setEnabled(false);
+    m_redoButton = new QPushButton(tr("Redo"), this);
+    m_redoButton->setToolTip(tr("Redo last undone selection change (Ctrl+Y)"));
+    m_redoButton->setEnabled(false);
+    m_invertSelectionButton = new QPushButton(tr("Invert"), this);
+    m_invertSelectionButton->setToolTip(tr("Invert current selection (Ctrl+I)"));
+    
     m_selectionSummaryLabel = new QLabel(tr("0 files selected"), this);
     
     m_selectionLayout->addWidget(m_selectAllCheckbox);
     m_selectionLayout->addWidget(m_selectRecommendedButton);
     m_selectionLayout->addWidget(m_selectByTypeButton);
     m_selectionLayout->addWidget(m_clearSelectionButton);
+    
+    // Add separator
+    QFrame* separator = new QFrame(this);
+    separator->setFrameShape(QFrame::VLine);
+    separator->setFrameShadow(QFrame::Sunken);
+    m_selectionLayout->addWidget(separator);
+    
+    // Add selection history buttons (Task 17)
+    m_selectionLayout->addWidget(m_undoButton);
+    m_selectionLayout->addWidget(m_redoButton);
+    m_selectionLayout->addWidget(m_invertSelectionButton);
+    
     m_selectionLayout->addStretch();
     m_selectionLayout->addWidget(m_selectionSummaryLabel);
     
@@ -255,6 +294,10 @@ void ResultsWindow::createResultsTree()
     m_resultsTree->setSelectionMode(QAbstractItemView::ExtendedSelection);
     m_resultsTree->setSortingEnabled(true);
     m_resultsTree->setItemsExpandable(true);
+    
+    // Set up thumbnail delegate
+    m_thumbnailDelegate = new ThumbnailDelegate(m_thumbnailCache, this);
+    m_resultsTree->setItemDelegateForColumn(0, m_thumbnailDelegate);
     
     // Configure tree columns
     QHeaderView* header = m_resultsTree->header();
@@ -529,6 +572,9 @@ void ResultsWindow::setupConnections()
         m_sortCombo->setCurrentIndex(0);
     });
     
+    // Task 13: Grouping button
+    connect(m_groupingButton, &QPushButton::clicked, this, &ResultsWindow::showGroupingOptions);
+    
     // Selection
     connect(m_selectAllCheckbox, &QCheckBox::toggled, this, &ResultsWindow::selectAllDuplicates);
     connect(m_selectRecommendedButton, &QPushButton::clicked, this, &ResultsWindow::selectRecommended);
@@ -559,6 +605,114 @@ void ResultsWindow::setupConnections()
     connect(m_thumbnailTimer, &QTimer::timeout, this, [this]() {
         // Generate thumbnails in batches
         qDebug() << "Generating thumbnails...";
+    });
+    
+    // Thumbnail cache signals
+    connect(m_thumbnailCache, &ThumbnailCache::thumbnailReady,
+            this, [this](const QString& filePath, const QPixmap& thumbnail) {
+                Q_UNUSED(filePath);
+                Q_UNUSED(thumbnail);
+                // Force repaint of the tree to show the new thumbnail
+                m_resultsTree->viewport()->update();
+            });
+    
+    // Preload thumbnails when tree is scrolled
+    connect(m_resultsTree->verticalScrollBar(), &QScrollBar::valueChanged,
+            this, &ResultsWindow::preloadVisibleThumbnails);
+    
+    // Selection History connections (Task 17)
+    connect(m_undoButton, &QPushButton::clicked, this, &ResultsWindow::onUndoRequested);
+    connect(m_redoButton, &QPushButton::clicked, this, &ResultsWindow::onRedoRequested);
+    connect(m_invertSelectionButton, &QPushButton::clicked, this, &ResultsWindow::onInvertSelection);
+    
+    // Connect selection history manager signals
+    connect(m_selectionHistory, &SelectionHistoryManager::undoAvailabilityChanged,
+            m_undoButton, &QPushButton::setEnabled);
+    connect(m_selectionHistory, &SelectionHistoryManager::redoAvailabilityChanged,
+            m_redoButton, &QPushButton::setEnabled);
+    
+    // Task 13: Connect grouping dialog
+    connect(m_groupingDialog, &GroupingOptionsDialog::groupingChanged,
+            this, &ResultsWindow::applyGrouping);
+    
+    // T19: Keyboard shortcuts for results window
+    setupKeyboardShortcuts();
+}
+
+void ResultsWindow::setupKeyboardShortcuts()
+{
+    // T19: Keyboard shortcuts for results window
+    
+    // Ctrl+A - Select All
+    QShortcut* selectAllShortcut = new QShortcut(QKeySequence::SelectAll, this);
+    connect(selectAllShortcut, &QShortcut::activated, this, [this]() {
+        if (m_selectAllCheckbox) {
+            m_selectAllCheckbox->setChecked(true);
+        }
+    });
+    
+    // Delete - Delete selected files
+    QShortcut* deleteShortcut = new QShortcut(QKeySequence::Delete, this);
+    connect(deleteShortcut, &QShortcut::activated, this, &ResultsWindow::deleteSelectedFiles);
+    
+    // Ctrl+S - Export results
+    QShortcut* exportShortcut = new QShortcut(QKeySequence::Save, this);
+    connect(exportShortcut, &QShortcut::activated, this, &ResultsWindow::exportResults);
+    
+    // Ctrl+F - Focus search filter
+    QShortcut* findShortcut = new QShortcut(QKeySequence::Find, this);
+    connect(findShortcut, &QShortcut::activated, this, [this]() {
+        if (m_searchFilter) {
+            m_searchFilter->setFocus();
+            m_searchFilter->selectAll();
+        }
+    });
+    
+    // Ctrl+R - Refresh results
+    QShortcut* refreshShortcut = new QShortcut(QKeySequence::Refresh, this);
+    connect(refreshShortcut, &QShortcut::activated, this, &ResultsWindow::refreshResults);
+    
+    // F5 - Refresh (alternative)
+    QShortcut* f5Shortcut = new QShortcut(QKeySequence(Qt::Key_F5), this);
+    connect(f5Shortcut, &QShortcut::activated, this, &ResultsWindow::refreshResults);
+    
+    // Ctrl+Z - Undo selection
+    QShortcut* undoShortcut = new QShortcut(QKeySequence::Undo, this);
+    connect(undoShortcut, &QShortcut::activated, this, &ResultsWindow::onUndoRequested);
+    
+    // Ctrl+Y - Redo selection
+    QShortcut* redoShortcut = new QShortcut(QKeySequence::Redo, this);
+    connect(redoShortcut, &QShortcut::activated, this, &ResultsWindow::onRedoRequested);
+    
+    // Ctrl+I - Invert selection
+    QShortcut* invertShortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_I), this);
+    connect(invertShortcut, &QShortcut::activated, this, &ResultsWindow::onInvertSelection);
+    
+    // Ctrl+D - Clear selection
+    QShortcut* clearShortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_D), this);
+    connect(clearShortcut, &QShortcut::activated, this, &ResultsWindow::selectNoneFiles);
+    
+    // Space - Preview selected file
+    QShortcut* previewShortcut = new QShortcut(QKeySequence(Qt::Key_Space), this);
+    connect(previewShortcut, &QShortcut::activated, this, &ResultsWindow::previewSelectedFile);
+    
+    // Enter - Open file location
+    QShortcut* openShortcut = new QShortcut(QKeySequence(Qt::Key_Return), this);
+    connect(openShortcut, &QShortcut::activated, this, &ResultsWindow::openFileLocation);
+    
+    // Ctrl+C - Copy file path
+    QShortcut* copyShortcut = new QShortcut(QKeySequence::Copy, this);
+    connect(copyShortcut, &QShortcut::activated, this, &ResultsWindow::copyFilePath);
+    
+    // Escape - Clear filters or close window
+    QShortcut* escapeShortcut = new QShortcut(QKeySequence(Qt::Key_Escape), this);
+    connect(escapeShortcut, &QShortcut::activated, this, [this]() {
+        if (m_searchFilter && !m_searchFilter->text().isEmpty()) {
+            m_searchFilter->clear();
+        } else {
+            // Close window if no filters to clear
+            close();
+        }
     });
 }
 
@@ -1061,6 +1215,9 @@ void ResultsWindow::selectAllDuplicates()
 {
     LOG_INFO("User clicked 'Select All' button");
     
+    // Record current state before changing selection (Task 17)
+    recordSelectionState("Select all files");
+    
     int selectedCount = 0;
     QTreeWidgetItemIterator it(m_resultsTree);
     while (*it) {
@@ -1079,6 +1236,9 @@ void ResultsWindow::selectAllDuplicates()
 void ResultsWindow::selectNoneFiles()
 {
     LOG_INFO("User clicked 'Clear Selection' button");
+    
+    // Record current state before changing selection (Task 17)
+    recordSelectionState("Clear all selections");
     
     QTreeWidgetItemIterator it(m_resultsTree);
     while (*it) {
@@ -1534,7 +1694,33 @@ void ResultsWindow::performBulkDelete()
         return;
     }
     
-    confirmBulkOperation(tr("delete"), static_cast<int>(selected.size()), getSelectedFilesSize());
+    // Confirm the operation
+    QString message = tr("Are you sure you want to delete %1 files (%2)?")
+                     .arg(selected.size())
+                     .arg(formatFileSize(getSelectedFilesSize()));
+    
+    QMessageBox::StandardButton reply = QMessageBox::question(this,
+                                                              tr("Confirm Delete Operation"),
+                                                              message,
+                                                              QMessageBox::Yes | QMessageBox::No);
+    
+    if (reply == QMessageBox::Yes) {
+        // Convert to file paths
+        QStringList filePaths;
+        for (const DuplicateFile& file : selected) {
+            filePaths.append(file.filePath);
+        }
+        
+        // Queue the delete operation (Task 30)
+        if (m_operationQueue) {
+            QString operationId = m_operationQueue->queueDeleteOperation(filePaths);
+            if (!operationId.isEmpty()) {
+                m_statusLabel->setText(tr("Delete operation queued..."));
+            } else {
+                m_statusLabel->setText(tr("Failed to queue delete operation"));
+            }
+        }
+    }
 }
 
 void ResultsWindow::performBulkMove()
@@ -1546,8 +1732,37 @@ void ResultsWindow::performBulkMove()
     }
     
     QString destination = QFileDialog::getExistingDirectory(this, tr("Select Destination Folder"));
-    if (!destination.isEmpty()) {
-        confirmBulkOperation(tr("move to %1").arg(destination), static_cast<int>(selected.size()), getSelectedFilesSize());
+    if (destination.isEmpty()) {
+        return;
+    }
+    
+    // Confirm the operation
+    QString message = tr("Are you sure you want to move %1 files (%2) to %3?")
+                     .arg(selected.size())
+                     .arg(formatFileSize(getSelectedFilesSize()))
+                     .arg(destination);
+    
+    QMessageBox::StandardButton reply = QMessageBox::question(this,
+                                                              tr("Confirm Move Operation"),
+                                                              message,
+                                                              QMessageBox::Yes | QMessageBox::No);
+    
+    if (reply == QMessageBox::Yes) {
+        // Convert to file paths
+        QStringList filePaths;
+        for (const DuplicateFile& file : selected) {
+            filePaths.append(file.filePath);
+        }
+        
+        // Queue the move operation (Task 30)
+        if (m_operationQueue) {
+            QString operationId = m_operationQueue->queueMoveOperation(filePaths, destination);
+            if (!operationId.isEmpty()) {
+                m_statusLabel->setText(tr("Move operation queued..."));
+            } else {
+                m_statusLabel->setText(tr("Failed to queue move operation"));
+            }
+        }
     }
 }
 
@@ -2212,4 +2427,474 @@ bool ResultsWindow::isTextFile(const QString& filePath) const
     };
     
     return textExtensions.contains(suffix);
+}
+
+// Thumbnail support methods
+
+void ResultsWindow::enableThumbnails(bool enable)
+{
+    if (m_thumbnailDelegate) {
+        m_thumbnailDelegate->setThumbnailsEnabled(enable);
+        m_resultsTree->viewport()->update();
+        
+        if (enable) {
+            preloadVisibleThumbnails();
+        }
+        
+        LOG_INFO(QString("Thumbnails %1").arg(enable ? "enabled" : "disabled"));
+    }
+}
+
+void ResultsWindow::setThumbnailSize(int size)
+{
+    if (m_thumbnailDelegate) {
+        m_thumbnailDelegate->setThumbnailSize(size);
+        m_resultsTree->viewport()->update();
+        
+        // Reload thumbnails with new size
+        if (m_thumbnailDelegate->thumbnailsEnabled()) {
+            m_thumbnailCache->clearCache();
+            preloadVisibleThumbnails();
+        }
+        
+        LOG_INFO(QString("Thumbnail size set to %1").arg(size));
+    }
+}
+
+void ResultsWindow::preloadVisibleThumbnails()
+{
+    if (!m_thumbnailDelegate || !m_thumbnailDelegate->thumbnailsEnabled()) {
+        return;
+    }
+    
+    // Get visible items in the tree
+    QStringList visibleFilePaths;
+    
+    // Iterate through top-level items (groups)
+    for (int i = 0; i < m_resultsTree->topLevelItemCount(); ++i) {
+        QTreeWidgetItem* groupItem = m_resultsTree->topLevelItem(i);
+        
+        // Check if group is expanded and visible
+        if (groupItem->isExpanded() && !m_resultsTree->visualItemRect(groupItem).isEmpty()) {
+            // Get all child items (files)
+            for (int j = 0; j < groupItem->childCount(); ++j) {
+                QTreeWidgetItem* fileItem = groupItem->child(j);
+                
+                // Check if file item is visible
+                if (!m_resultsTree->visualItemRect(fileItem).isEmpty()) {
+                    // Get file path from item data
+                    QVariant pathData = fileItem->data(0, Qt::UserRole);
+                    if (pathData.isValid()) {
+                        QString filePath = pathData.toString();
+                        if (!filePath.isEmpty()) {
+                            visibleFilePaths.append(filePath);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // Preload thumbnails for visible files
+    if (!visibleFilePaths.isEmpty()) {
+        QSize thumbSize(m_thumbnailDelegate->thumbnailSize(), 
+                       m_thumbnailDelegate->thumbnailSize());
+        m_thumbnailCache->preloadThumbnails(visibleFilePaths, thumbSize);
+        
+        LOG_DEBUG(QString("Preloading %1 thumbnails").arg(visibleFilePaths.size()));
+    }
+}
+
+// Selection History Implementation (Task 17)
+
+void ResultsWindow::undoSelection()
+{
+    if (!m_selectionHistory->canUndo()) {
+        return;
+    }
+    
+    SelectionHistoryManager::SelectionState previousState = m_selectionHistory->undo();
+    if (!previousState.selectedFiles.isEmpty() || previousState.description == "Initial state") {
+        applySelectionState(previousState);
+        updateUndoRedoButtons();
+        LOG_INFO(QString("Undo selection: %1").arg(previousState.description));
+    }
+}
+
+void ResultsWindow::redoSelection()
+{
+    if (!m_selectionHistory->canRedo()) {
+        return;
+    }
+    
+    SelectionHistoryManager::SelectionState nextState = m_selectionHistory->redo();
+    if (!nextState.selectedFiles.isEmpty()) {
+        applySelectionState(nextState);
+        updateUndoRedoButtons();
+        LOG_INFO(QString("Redo selection: %1").arg(nextState.description));
+    }
+}
+
+bool ResultsWindow::canUndo() const
+{
+    return m_selectionHistory->canUndo();
+}
+
+bool ResultsWindow::canRedo() const
+{
+    return m_selectionHistory->canRedo();
+}
+
+void ResultsWindow::onUndoRequested()
+{
+    undoSelection();
+}
+
+void ResultsWindow::onRedoRequested()
+{
+    redoSelection();
+}
+
+void ResultsWindow::onInvertSelection()
+{
+    // Record current state before inverting
+    recordSelectionState("Invert selection");
+    
+    // Get all file paths
+    QStringList allFilePaths;
+    QStringList currentlySelected = getCurrentSelectedFilePaths();
+    
+    // Collect all file paths from all groups
+    for (const auto& group : m_currentResults.duplicateGroups) {
+        for (const auto& file : group.files) {
+            allFilePaths.append(file.filePath);
+        }
+    }
+    
+    // Create inverted selection (files that are not currently selected)
+    QStringList invertedSelection;
+    for (const QString& filePath : allFilePaths) {
+        if (!currentlySelected.contains(filePath)) {
+            invertedSelection.append(filePath);
+        }
+    }
+    
+    // Apply inverted selection
+    setSelectedFilePaths(invertedSelection);
+    updateSelectionSummary();
+    
+    LOG_INFO(QString("Inverted selection: %1 files now selected").arg(invertedSelection.size()));
+}
+
+void ResultsWindow::recordSelectionState(const QString& description)
+{
+    QStringList selectedFiles = getCurrentSelectedFilePaths();
+    m_selectionHistory->pushState(selectedFiles, description);
+    updateUndoRedoButtons();
+}
+
+void ResultsWindow::applySelectionState(const SelectionHistoryManager::SelectionState& state)
+{
+    setSelectedFilePaths(state.selectedFiles);
+    updateSelectionSummary();
+}
+
+QStringList ResultsWindow::getCurrentSelectedFilePaths() const
+{
+    QStringList selectedPaths;
+    
+    // Iterate through all items in the tree to find selected ones
+    QTreeWidgetItemIterator it(m_resultsTree);
+    while (*it) {
+        QTreeWidgetItem* item = *it;
+        
+        // Check if this is a file item (has parent) and is selected
+        if (item->parent() && item->checkState(0) == Qt::Checked) {
+            QVariant pathData = item->data(0, Qt::UserRole);
+            if (pathData.isValid()) {
+                QString filePath = pathData.toString();
+                if (!filePath.isEmpty()) {
+                    selectedPaths.append(filePath);
+                }
+            }
+        }
+        ++it;
+    }
+    
+    return selectedPaths;
+}
+
+void ResultsWindow::setSelectedFilePaths(const QStringList& filePaths)
+{
+    // Clear all selections first
+    QTreeWidgetItemIterator it(m_resultsTree);
+    while (*it) {
+        QTreeWidgetItem* item = *it;
+        if (item->parent()) { // File item
+            item->setCheckState(0, Qt::Unchecked);
+        }
+        ++it;
+    }
+    
+    // Set selections for specified files
+    QTreeWidgetItemIterator it2(m_resultsTree);
+    while (*it2) {
+        QTreeWidgetItem* item = *it2;
+        if (item->parent()) { // File item
+            QVariant pathData = item->data(0, Qt::UserRole);
+            if (pathData.isValid()) {
+                QString filePath = pathData.toString();
+                if (filePaths.contains(filePath)) {
+                    item->setCheckState(0, Qt::Checked);
+                }
+            }
+        }
+        ++it2;
+    }
+}
+
+void ResultsWindow::updateUndoRedoButtons()
+{
+    if (m_undoButton) {
+        m_undoButton->setEnabled(m_selectionHistory->canUndo());
+        if (m_selectionHistory->canUndo()) {
+            m_undoButton->setToolTip(tr("Undo: %1").arg(m_selectionHistory->getUndoDescription()));
+        } else {
+            m_undoButton->setToolTip(tr("Undo last selection change (Ctrl+Z)"));
+        }
+    }
+    
+    if (m_redoButton) {
+        m_redoButton->setEnabled(m_selectionHistory->canRedo());
+        if (m_selectionHistory->canRedo()) {
+            m_redoButton->setToolTip(tr("Redo: %1").arg(m_selectionHistory->getRedoDescription()));
+        } else {
+            m_redoButton->setToolTip(tr("Redo last undone selection change (Ctrl+Y)"));
+        }
+    }
+}
+
+// File Operation Queue methods (Task 30)
+
+void ResultsWindow::setupOperationQueue()
+{
+    if (!m_operationQueue || !m_progressDialog) {
+        return;
+    }
+    
+    // Set the operation queue for the progress dialog
+    m_progressDialog->setOperationQueue(m_operationQueue);
+    
+    // Connect operation queue signals
+    connect(m_operationQueue, &FileOperationQueue::operationStarted,
+            this, &ResultsWindow::showOperationProgress);
+    
+    connect(m_operationQueue, &FileOperationQueue::operationCompleted,
+            this, &ResultsWindow::onOperationCompleted);
+    
+    connect(m_operationQueue, &FileOperationQueue::operationCancelled,
+            this, [this](const QString& operationId) {
+                onOperationCompleted(operationId, false, "Operation was cancelled");
+            });
+    
+    // Connect progress dialog cancel signal to operation queue
+    connect(m_progressDialog, &FileOperationProgressDialog::cancelRequested,
+            m_operationQueue, &FileOperationQueue::cancelOperation);
+}
+
+void ResultsWindow::showOperationProgress(const QString& operationId)
+{
+    if (m_progressDialog) {
+        m_progressDialog->showForOperation(operationId);
+    }
+}
+
+void ResultsWindow::onOperationCompleted(const QString& operationId, bool success, const QString& errorMessage)
+{
+    Q_UNUSED(operationId)
+    
+    if (success) {
+        // Refresh the results to remove deleted files
+        refreshResults();
+        
+        // Show success message in status bar
+        if (m_statusLabel) {
+            m_statusLabel->setText(tr("Operation completed successfully"));
+        }
+    } else {
+        // Show error message
+        if (m_statusLabel) {
+            m_statusLabel->setText(tr("Operation failed: %1").arg(errorMessage));
+        }
+    }
+}
+
+// Grouping methods (Task 13)
+
+void ResultsWindow::showGroupingOptions()
+{
+    if (m_groupingDialog) {
+        m_groupingDialog->setGroupingOptions(m_currentGroupingOptions);
+        m_groupingDialog->show();
+    }
+}
+
+void ResultsWindow::applyGrouping(const GroupingOptionsDialog::GroupingOptions& options)
+{
+    m_currentGroupingOptions = options;
+    regroupResults();
+    
+    // Update status
+    QString description = GroupingOptionsDialog::getGroupingDescription(options);
+    if (m_statusLabel) {
+        m_statusLabel->setText(tr("Regrouped: %1").arg(description));
+    }
+}
+
+void ResultsWindow::regroupResults()
+{
+    if (m_currentResults.duplicateGroups.isEmpty()) {
+        return;
+    }
+    
+    // Collect all files from current groups
+    QList<DuplicateFile> allFiles;
+    for (const DuplicateGroup& group : m_currentResults.duplicateGroups) {
+        allFiles.append(group.files);
+    }
+    
+    // Regroup files using new criteria
+    QList<DuplicateGroup> newGroups = groupFilesByCriteria(allFiles, m_currentGroupingOptions);
+    
+    // Update current results
+    m_currentResults.duplicateGroups = newGroups;
+    
+    // Refresh the display
+    populateResultsTree();
+    updateStatisticsDisplay();
+}
+
+QList<ResultsWindow::DuplicateGroup> ResultsWindow::groupFilesByCriteria(
+    const QList<DuplicateFile>& files, 
+    const GroupingOptionsDialog::GroupingOptions& options) const
+{
+    QHash<QString, QList<DuplicateFile>> primaryGroups;
+    
+    // Group by primary criteria
+    for (const DuplicateFile& file : files) {
+        QString primaryKey = getGroupKey(file, options.primaryCriteria, options);
+        primaryGroups[primaryKey].append(file);
+    }
+    
+    QList<DuplicateGroup> result;
+    
+    // Process each primary group
+    for (auto it = primaryGroups.begin(); it != primaryGroups.end(); ++it) {
+        const QString& primaryKey = it.key();
+        const QList<DuplicateFile>& primaryFiles = it.value();
+        
+        if (options.useSecondaryCriteria && primaryFiles.size() > 1) {
+            // Further group by secondary criteria
+            QHash<QString, QList<DuplicateFile>> secondaryGroups;
+            
+            for (const DuplicateFile& file : primaryFiles) {
+                QString secondaryKey = getGroupKey(file, options.secondaryCriteria, options);
+                QString combinedKey = primaryKey + "|" + secondaryKey;
+                secondaryGroups[combinedKey].append(file);
+            }
+            
+            // Create groups from secondary grouping
+            for (auto secIt = secondaryGroups.begin(); secIt != secondaryGroups.end(); ++secIt) {
+                const QList<DuplicateFile>& groupFiles = secIt.value();
+                if (groupFiles.size() > 1) { // Only create groups with multiple files
+                    DuplicateGroup group;
+                    group.groupId = secIt.key();
+                    group.files = groupFiles;
+                    result.append(group);
+                }
+            }
+        } else {
+            // Create group from primary criteria only
+            if (primaryFiles.size() > 1) { // Only create groups with multiple files
+                DuplicateGroup group;
+                group.groupId = primaryKey;
+                group.files = primaryFiles;
+                result.append(group);
+            }
+        }
+    }
+    
+    return result;
+}
+
+QString ResultsWindow::getGroupKey(const DuplicateFile& file, 
+                                  GroupingOptionsDialog::GroupingCriteria criteria,
+                                  const GroupingOptionsDialog::GroupingOptions& options) const
+{
+    switch (criteria) {
+        case GroupingOptionsDialog::GroupingCriteria::Hash:
+            return file.hash;
+            
+        case GroupingOptionsDialog::GroupingCriteria::Size:
+            return QString::number(file.fileSize);
+            
+        case GroupingOptionsDialog::GroupingCriteria::Type: {
+            QFileInfo fileInfo(file.filePath);
+            QString extension = fileInfo.suffix();
+            if (!options.caseSensitiveTypes) {
+                extension = extension.toLower();
+            }
+            return extension;
+        }
+        
+        case GroupingOptionsDialog::GroupingCriteria::CreationDate: {
+            QDateTime dateTime = file.created;
+            switch (options.dateGrouping) {
+                case GroupingOptionsDialog::DateGrouping::ExactDate:
+                    return dateTime.toString(Qt::ISODate);
+                case GroupingOptionsDialog::DateGrouping::SameDay:
+                    return dateTime.date().toString(Qt::ISODate);
+                case GroupingOptionsDialog::DateGrouping::SameWeek:
+                    return QString("%1-W%2").arg(dateTime.date().year()).arg(dateTime.date().weekNumber());
+                case GroupingOptionsDialog::DateGrouping::SameMonth:
+                    return dateTime.date().toString("yyyy-MM");
+                case GroupingOptionsDialog::DateGrouping::SameYear:
+                    return QString::number(dateTime.date().year());
+            }
+            break;
+        }
+        
+        case GroupingOptionsDialog::GroupingCriteria::ModificationDate: {
+            QDateTime dateTime = file.lastModified;
+            switch (options.dateGrouping) {
+                case GroupingOptionsDialog::DateGrouping::ExactDate:
+                    return dateTime.toString(Qt::ISODate);
+                case GroupingOptionsDialog::DateGrouping::SameDay:
+                    return dateTime.date().toString(Qt::ISODate);
+                case GroupingOptionsDialog::DateGrouping::SameWeek:
+                    return QString("%1-W%2").arg(dateTime.date().year()).arg(dateTime.date().weekNumber());
+                case GroupingOptionsDialog::DateGrouping::SameMonth:
+                    return dateTime.date().toString("yyyy-MM");
+                case GroupingOptionsDialog::DateGrouping::SameYear:
+                    return QString::number(dateTime.date().year());
+            }
+            break;
+        }
+        
+        case GroupingOptionsDialog::GroupingCriteria::Location: {
+            QFileInfo fileInfo(file.filePath);
+            QString directory = fileInfo.absolutePath();
+            
+            if (options.groupByParentDirectory) {
+                QDir dir(directory);
+                if (dir.cdUp()) {
+                    directory = dir.absolutePath();
+                }
+            }
+            
+            return directory;
+        }
+    }
+    
+    return file.hash; // Fallback to hash
 }

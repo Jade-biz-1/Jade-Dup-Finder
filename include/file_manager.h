@@ -12,6 +12,7 @@
 #include <QMutex>
 #include <QQueue>
 #include <QHash>
+#include "file_operation_queue.h"
 
 /**
  * @brief FileManager - Core component for safe file operations
@@ -117,6 +118,12 @@ public:
     bool isOperationInProgress(const QString& operationId) const;
     OperationResult getOperationResult(const QString& operationId) const;
     QList<OperationResult> getRecentOperations(int maxResults = 50) const;
+    
+    // FileOperationQueue integration (Task 29)
+    FileOperationQueue* operationQueue() const;
+    QString queueDeleteOperation(const QStringList& files);
+    QString queueMoveOperation(const QStringList& files, const QString& destination);
+    QString queueCopyOperation(const QStringList& files, const QString& destination);
 
     // Utility functions
     static bool validateFilePath(const QString& filePath);
@@ -157,10 +164,11 @@ private:
     
     // Member variables
     SafetyManager* m_safetyManager;
+    FileOperationQueue* m_operationQueue;  // Task 29: Use FileOperationQueue for operations
     QHash<QString, FileOperation> m_activeOperations;
     QHash<QString, OperationProgress> m_operationProgress;
     QHash<QString, OperationResult> m_operationResults;
-    QQueue<FileOperation> m_operationQueue;
+    QQueue<FileOperation> m_legacyOperationQueue;  // Keep for backward compatibility
     QMutex m_operationMutex;
     QTimer* m_progressTimer;
     

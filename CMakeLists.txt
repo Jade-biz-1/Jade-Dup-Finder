@@ -87,6 +87,8 @@ set(CORE_SOURCES
     src/core/app_config.cpp
     src/core/logger.cpp
     src/core/scan_history_manager.cpp
+    src/core/selection_history_manager.cpp
+    src/core/file_operation_queue.cpp
 )
 
 set(GUI_SOURCES
@@ -99,6 +101,17 @@ set(GUI_SOURCES
     src/gui/scan_history_dialog.cpp
     src/gui/restore_dialog.cpp
     src/gui/confirmation_dialog.cpp
+    src/gui/thumbnail_cache.cpp
+    src/gui/thumbnail_delegate.cpp
+    src/gui/exclude_pattern_widget.cpp
+    src/gui/preset_manager_dialog.cpp
+    src/gui/scan_scope_preview_widget.cpp
+    src/gui/scan_progress_dialog.cpp
+    src/gui/scan_error_dialog.cpp
+    src/gui/advanced_filter_dialog.cpp
+    src/gui/file_operation_progress_dialog.cpp
+    src/gui/grouping_options_dialog.cpp
+    src/gui/safety_features_dialog.cpp
 )
 
 set(PLATFORM_SOURCES
@@ -116,6 +129,8 @@ set(HEADER_FILES
     include/app_config.h
     src/core/logger.h
     include/scan_history_manager.h
+    include/selection_history_manager.h
+    include/file_operation_queue.h
     include/main_window.h
     include/scan_dialog.h
     include/results_widget.h
@@ -124,6 +139,17 @@ set(HEADER_FILES
     include/scan_history_dialog.h
     include/restore_dialog.h
     include/confirmation_dialog.h
+    include/thumbnail_cache.h
+    include/thumbnail_delegate.h
+    include/exclude_pattern_widget.h
+    include/preset_manager_dialog.h
+    include/scan_scope_preview_widget.h
+    include/scan_progress_dialog.h
+    include/scan_error_dialog.h
+    include/advanced_filter_dialog.h
+    include/file_operation_progress_dialog.h
+    include/grouping_options_dialog.h
+    include/safety_features_dialog.h
     include/platform_file_ops.h
     include/trash_manager.h
     include/system_integration.h

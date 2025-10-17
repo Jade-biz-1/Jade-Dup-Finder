@@ -8,6 +8,7 @@
 #include <QRegularExpression>
 #include <QHash>
 #include <QDateTime>
+#include <QElapsedTimer>
 
 /**
  * @brief File Scanner - Core component for traversing directories and finding files
@@ -64,6 +65,20 @@ public:
     };
     
     /**
+     * @brief Detailed progress information during a scan
+     */
+    struct ScanProgress {
+        int filesScanned = 0;               // Files scanned so far
+        qint64 bytesScanned = 0;            // Bytes scanned so far
+        QString currentFolder;              // Current folder being scanned
+        QString currentFile;                // Current file being processed
+        qint64 elapsedTimeMs = 0;           // Elapsed time in milliseconds
+        double filesPerSecond = 0.0;        // Current scan rate (files/second)
+        int directoriesScanned = 0;         // Directories scanned so far
+        bool isPaused = false;              // Task 9: Whether scan is paused
+    };
+    
+    /**
      * @brief Statistics collected during a scan operation
      */
     struct ScanStatistics {
@@ -113,6 +128,11 @@ public:
     void startScan(const ScanOptions& options);
     void cancelScan();
     bool isScanning() const;
+    
+    // Pause/Resume interface (Task 9)
+    void pauseScan();
+    void resumeScan();
+    bool isPaused() const;
 
     // Results access
     QVector<FileInfo> getScannedFiles() const;
@@ -143,6 +163,13 @@ signals:
     
     // Statistics signal
     void scanStatistics(const ScanStatistics& statistics);
+    
+    // Detailed progress signal (Task 7)
+    void detailedProgress(const ScanProgress& progress);
+    
+    // Pause/Resume signals (Task 9)
+    void scanPaused();
+    void scanResumed();
 
 private slots:
     void processScanQueue();
@@ -170,12 +197,16 @@ private:
     bool isTransientError(ScanError errorType) const;
     bool retryOperation(const QString& directoryPath, int maxRetries = 2);
     
+    // Progress tracking methods (Task 7)
+    void emitDetailedProgress();
+    
     // Member variables
     ScanOptions m_currentOptions;
     QVector<FileInfo> m_scannedFiles;  // Changed from QList to QVector for better memory locality
     QStringList m_scanQueue;
     bool m_isScanning = false;
     bool m_cancelRequested = false;
+    bool m_isPaused = false;  // Task 9: Pause state
     int m_filesProcessed = 0;
     qint64 m_totalBytesScanned = 0;
     
@@ -192,4 +223,9 @@ private:
     mutable ScanStatistics m_statistics;
     QDateTime m_scanStartTime;
     QDateTime m_scanEndTime;
+    
+    // Progress tracking (Task 7)
+    QString m_currentFolder;
+    QString m_currentFile;
+    QElapsedTimer m_elapsedTimer;
 };

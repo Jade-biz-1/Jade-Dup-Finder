@@ -18,6 +18,9 @@
 #include <QtWidgets/QFrame>
 #include <QtWidgets/QCheckBox>
 #include <QtWidgets/QComboBox>
+#include "file_operation_queue.h"
+#include "file_operation_progress_dialog.h"
+#include "grouping_options_dialog.h"
 #include <QtWidgets/QLineEdit>
 #include <QtWidgets/QTextEdit>
 #include <QtWidgets/QTabWidget>
@@ -30,10 +33,13 @@
 
 // Include headers for types used in method signatures
 #include "duplicate_detector.h"
+#include "selection_history_manager.h"
 
 // Forward declarations
 class ScanSetupDialog;
 class FileManager;
+class ThumbnailCache;
+class ThumbnailDelegate;
 
 class ResultsWindow : public QMainWindow
 {
@@ -107,10 +113,21 @@ public:
     void updateProgress(const QString& operation, int percentage);
     void setFileManager(FileManager* fileManager);
     
+    // Thumbnail support
+    void enableThumbnails(bool enable);
+    void setThumbnailSize(int size);
+    void preloadVisibleThumbnails();
+    
     // Selection and actions
     int getSelectedFilesCount() const;
     qint64 getSelectedFilesSize() const;
     QList<DuplicateFile> getSelectedFiles() const;
+    
+    // Selection history (Task 17)
+    void undoSelection();
+    void redoSelection();
+    bool canUndo() const;
+    bool canRedo() const;
 
 public slots:
     void refreshResults();
@@ -120,6 +137,11 @@ public slots:
     void selectBySize(qint64 minSize);
     void selectByType(const QString& fileType);
     void selectRecommended();
+    
+    // Selection history slots (Task 17)
+    void onUndoRequested();
+    void onRedoRequested();
+    void onInvertSelection();
 
 signals:
     void filesDeleted(const QStringList& filePaths);
@@ -136,6 +158,7 @@ protected:
 private slots:
     void initializeUI();
     void setupConnections();
+    void setupKeyboardShortcuts();  // T19
     void applyTheme();
     
     // Results display
@@ -197,6 +220,11 @@ private:
     
     // Export helper methods
     bool exportToCSV(QTextStream& out);
+    
+    // File Operation Queue methods (Task 30)
+    void setupOperationQueue();
+    void showOperationProgress(const QString& operationId);
+    void onOperationCompleted(const QString& operationId, bool success, const QString& errorMessage);
     bool exportToJSON(QTextStream& out);
     bool exportToText(QTextStream& out);
     
@@ -212,6 +240,23 @@ private:
     bool isVideoFile(const QString& filePath) const;
     QString getRecommendedFileToKeep(const DuplicateGroup& group) const;
     bool matchesCurrentFilters(const DuplicateGroup& group) const;
+    
+    // Selection history helpers (Task 17)
+    void recordSelectionState(const QString& description);
+    void applySelectionState(const SelectionHistoryManager::SelectionState& state);
+    QStringList getCurrentSelectedFilePaths() const;
+    void setSelectedFilePaths(const QStringList& filePaths);
+    void updateUndoRedoButtons();
+    
+    // Grouping helpers (Task 13)
+    void showGroupingOptions();
+    void applyGrouping(const GroupingOptionsDialog::GroupingOptions& options);
+    void regroupResults();
+    QList<DuplicateGroup> groupFilesByCriteria(const QList<DuplicateFile>& files, 
+                                               const GroupingOptionsDialog::GroupingOptions& options) const;
+    QString getGroupKey(const DuplicateFile& file, 
+                       GroupingOptionsDialog::GroupingCriteria criteria,
+                       const GroupingOptionsDialog::GroupingOptions& options) const;
 
     // UI Components
     QWidget* m_centralWidget;
@@ -243,6 +288,7 @@ private:
     QComboBox* m_typeFilter;
     QComboBox* m_sortCombo;
     QPushButton* m_clearFiltersButton;
+    QPushButton* m_groupingButton;  // Task 13: Grouping options button
     
     // Selection Panel
     QWidget* m_selectionPanel;
@@ -252,6 +298,11 @@ private:
     QPushButton* m_selectByTypeButton;
     QPushButton* m_clearSelectionButton;
     QLabel* m_selectionSummaryLabel;
+    
+    // Selection History UI (Task 17)
+    QPushButton* m_undoButton;
+    QPushButton* m_redoButton;
+    QPushButton* m_invertSelectionButton;
     
     // Details Panel (Right side)
     QWidget* m_detailsPanel;
@@ -305,6 +356,19 @@ private:
     QList<DuplicateFile> m_selectedFiles;
     QTimer* m_thumbnailTimer;
     FileManager* m_fileManager;
+    ThumbnailCache* m_thumbnailCache;
+    ThumbnailDelegate* m_thumbnailDelegate;
+    
+    // Selection History (Task 17)
+    SelectionHistoryManager* m_selectionHistory;
+    
+    // File Operations (Task 30)
+    FileOperationQueue* m_operationQueue;
+    FileOperationProgressDialog* m_progressDialog;
+    
+    // Grouping (Task 13)
+    GroupingOptionsDialog* m_groupingDialog;
+    GroupingOptionsDialog::GroupingOptions m_currentGroupingOptions;
     
     // State
     bool m_isProcessingBulkOperation;
