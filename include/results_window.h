@@ -35,6 +35,8 @@ class ScanSetupDialog;
 class FileManager;
 class ThumbnailCache;
 class ThumbnailDelegate;
+class DuplicateRelationshipWidget;
+class SmartSelectionDialog;
 
 class ResultsWindow : public QMainWindow
 {
@@ -112,6 +114,31 @@ public:
     void enableThumbnails(bool enable);
     void setThumbnailSize(int size);
     void preloadVisibleThumbnails();
+    
+    // Relationship visualization
+    void showRelationshipVisualization(bool show);
+    void updateRelationshipVisualization();
+    void highlightFileInVisualization(const QString& filePath);
+    
+    // Smart selection
+    void showSmartSelectionDialog();
+    void applySmartSelection(const SmartSelectionDialog::SelectionCriteria& criteria);
+    QStringList selectFilesByCriteria(const SmartSelectionDialog::SelectionCriteria& criteria);
+    
+    // Smart selection helper methods
+    QStringList selectOldestFiles(const QList<QPair<QString, QDateTime>>& fileDatePairs, int maxFiles);
+    QStringList selectNewestFiles(const QList<QPair<QString, QDateTime>>& fileDatePairs, int maxFiles);
+    QStringList selectLargestFiles(const QList<QPair<QString, qint64>>& fileSizePairs, int maxFiles);
+    QStringList selectSmallestFiles(const QList<QPair<QString, qint64>>& fileSizePairs, int maxFiles);
+    QStringList selectByPathPattern(const QStringList& files, const QString& pattern);
+    QStringList selectByFileType(const QStringList& files, const QStringList& fileTypes);
+    QStringList selectByLocationPattern(const QStringList& files, const QStringList& patterns);
+    QStringList selectByCombinedCriteria(const QStringList& files, const SmartSelectionDialog::SelectionCriteria& criteria);
+    QStringList applyAdditionalFilters(const QStringList& files, const SmartSelectionDialog::SelectionCriteria& criteria);
+    bool matchesDateRange(const QString& filePath, const SmartSelectionDialog::SelectionCriteria& criteria);
+    bool matchesSizeRange(const QString& filePath, const SmartSelectionDialog::SelectionCriteria& criteria);
+    bool matchesFileTypes(const QString& filePath, const SmartSelectionDialog::SelectionCriteria& criteria);
+    bool matchesLocationPatterns(const QString& filePath, const SmartSelectionDialog::SelectionCriteria& criteria);
     
     // Selection and actions
     int getSelectedFilesCount() const;
@@ -208,6 +235,13 @@ private:
     void previewImageFile(const QString& filePath);
     void previewTextFile(const QString& filePath);
     void showFileInfo(const QString& filePath);
+    
+    // Export helper methods
+    bool exportToCSV(QTextStream& out);
+    bool exportToJSON(QTextStream& out);
+    bool exportToText(QTextStream& out);
+    bool exportToHTML(QTextStream& out, const QString& fileName);
+    QString generateThumbnailForExport(const QString& filePath, const QString& thumbnailDir, const QString& baseName);
 
     // UI Components
     QWidget* m_centralWidget;
@@ -303,6 +337,8 @@ private:
     FileManager* m_fileManager;
     ThumbnailCache* m_thumbnailCache;
     ThumbnailDelegate* m_thumbnailDelegate;
+    DuplicateRelationshipWidget* m_relationshipWidget;
+    SmartSelectionDialog* m_smartSelectionDialog;
     
     // State
     bool m_isProcessingBulkOperation;
