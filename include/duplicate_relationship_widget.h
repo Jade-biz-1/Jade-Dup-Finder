@@ -167,9 +167,9 @@ private:
     static const int DEFAULT_NODE_SIZE = 20;
     static const int MIN_NODE_SIZE = 10;
     static const int MAX_NODE_SIZE = 50;
-    static const double DEFAULT_ZOOM = 1.0;
-    static const double MIN_ZOOM = 0.1;
-    static const double MAX_ZOOM = 5.0;
+    static constexpr double DEFAULT_ZOOM = 1.0;
+    static constexpr double MIN_ZOOM = 0.1;
+    static constexpr double MAX_ZOOM = 5.0;
 };
 
 #endif // DUPLICATE_RELATIONSHIP_WIDGET_H
