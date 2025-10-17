@@ -126,7 +126,7 @@ This implementation plan breaks down the P3 UI enhancements into discrete, testa
   - Write tests for grouping logic
   - _Requirements: 3.4_
 
-- [ ] 14. Implement Duplicate Relationship Visualization
+- [x] 14. Implement Duplicate Relationship Visualization
   - Design relationship visualization UI
   - Create visualization widget
   - Show which files are duplicates of each other
@@ -135,7 +135,7 @@ This implementation plan breaks down the P3 UI enhancements into discrete, testa
   - Write tests for relationship detection
   - _Requirements: 3.7_
 
-- [ ] 15. Implement HTML Export with Thumbnails
+- [x] 15. Implement HTML Export with Thumbnails
   - Modify export functionality to include thumbnails
   - Generate HTML with embedded images
   - Add thumbnail size option for export
@@ -162,7 +162,7 @@ This implementation plan breaks down the P3 UI enhancements into discrete, testa
   - Write integration tests
   - _Requirements: 4.2, 4.3, 4.4_
 
-- [ ] 18. Implement Smart Selection Dialog
+- [x] 18. Implement Smart Selection Dialog
   - Create SmartSelectionDialog class
   - Add selection mode dropdown
   - Implement oldest/newest file selection
@@ -172,7 +172,7 @@ This implementation plan breaks down the P3 UI enhancements into discrete, testa
   - Write tests for selection logic
   - _Requirements: 4.1, 4.8_
 
-- [ ] 19. Implement Smart Selection Logic
+- [x] 19. Implement Smart Selection Logic
   - Add smart selection methods to ResultsWindow
   - Implement file sorting for smart selection
   - Apply selection criteria to results
@@ -181,7 +181,7 @@ This implementation plan breaks down the P3 UI enhancements into discrete, testa
   - Write tests for selection algorithms
   - _Requirements: 4.1, 4.8_
 
-- [ ] 20. Implement Selection Presets
+- [x] 20. Implement Selection Presets
   - Create SelectionPresetManager class
   - Implement preset save functionality
   - Implement preset load functionality
@@ -237,7 +237,7 @@ This implementation plan breaks down the P3 UI enhancements into discrete, testa
   - Write tests for cancellation
   - _Requirements: 5.4_
 
-- [ ] 26. Implement Operation Results Display
+- [x] 26. Implement Operation Results Display
   - Add detailed results to operation completion
   - Show success count
   - Show failure count
@@ -246,7 +246,7 @@ This implementation plan breaks down the P3 UI enhancements into discrete, testa
   - Write tests for results formatting
   - _Requirements: 5.5, 5.6_
 
-- [ ] 27. Implement Operation Retry
+- [x] 27. Implement Operation Retry
   - Add retry functionality for failed files
   - Create retry operation from failed files list
   - Queue retry operation
@@ -255,7 +255,7 @@ This implementation plan breaks down the P3 UI enhancements into discrete, testa
   - Write tests for retry logic
   - _Requirements: 5.8_
 
-- [ ] 28. Create Operation History Dialog
+- [x] 28. Create Operation History Dialog
   - Create OperationHistoryDialog class
   - Display all operations in table
   - Show operation type, status, timestamp
@@ -312,7 +312,7 @@ This implementation plan breaks down the P3 UI enhancements into discrete, testa
   - Update user documentation
   - _Requirements: All_
 
-- [ ] 34. Performance Optimization
+- [x] 34. Performance Optimization
   - Profile thumbnail generation performance
   - Optimize filter application for large datasets
   - Optimize selection operations
@@ -320,7 +320,7 @@ This implementation plan breaks down the P3 UI enhancements into discrete, testa
   - Add performance benchmarks
   - _Requirements: All_
 
-- [ ] 35. Integration Testing
+- [x] 35. Integration Testing
   - Test complete scan configuration workflow
   - Test complete scan progress workflow
   - Test complete results display workflow
@@ -329,7 +329,7 @@ This implementation plan breaks down the P3 UI enhancements into discrete, testa
   - Test feature interactions
   - _Requirements: All_
 
-- [ ] 36. Bug Fixes and Polish
+- [x] 36. Bug Fixes and Polish
   - Fix any bugs found during testing
   - Improve UI responsiveness
   - Add loading indicators where needed

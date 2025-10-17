@@ -4,6 +4,8 @@
 #include "file_manager.h"
 #include "thumbnail_cache.h"
 #include "thumbnail_delegate.h"
+#include "duplicate_relationship_widget.h"
+#include "smart_selection_dialog.h"
 #include "core/logger.h"
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QMessageBox>
@@ -55,6 +57,8 @@ ResultsWindow::ResultsWindow(QWidget* parent)
     , m_fileManager(nullptr)
     , m_thumbnailCache(new ThumbnailCache(this))
     , m_thumbnailDelegate(nullptr)
+    , m_relationshipWidget(nullptr)
+    , m_smartSelectionDialog(nullptr)
     , m_selectionHistory(new SelectionHistoryManager(this))
     , m_operationQueue(new FileOperationQueue(this))  // Task 30
     , m_progressDialog(new FileOperationProgressDialog(this))  // Task 30
@@ -411,9 +415,13 @@ void ResultsWindow::createDetailsPanel()
     m_groupInfoLayout->addWidget(m_groupSummaryLabel);
     m_groupInfoLayout->addWidget(m_groupFilesTable, 1);
     
+    // Create relationship visualization tab
+    m_relationshipWidget = new DuplicateRelationshipWidget(this);
+    
     // Add tabs
     m_detailsTabs->addTab(m_fileInfoTab, tr("📄 File Info"));
     m_detailsTabs->addTab(m_groupInfoTab, tr("📁 Group Info"));
+    m_detailsTabs->addTab(m_relationshipWidget, tr("🔗 Relationships"));
     
     m_detailsPanelLayout->addWidget(m_detailsTabs, 1);
 }
@@ -635,6 +643,21 @@ void ResultsWindow::setupConnections()
     connect(m_groupingDialog, &GroupingOptionsDialog::groupingChanged,
             this, &ResultsWindow::applyGrouping);
     
+    // Relationship widget connections (Task 14)
+    if (m_relationshipWidget) {
+        connect(m_relationshipWidget, &DuplicateRelationshipWidget::fileClicked,
+                this, &ResultsWindow::highlightFileInVisualization);
+        connect(m_relationshipWidget, &DuplicateRelationshipWidget::selectionChanged,
+                this, [this](const QStringList& selectedFiles) {
+                    // Update tree selection based on relationship widget selection
+                    // This creates a two-way sync between tree and visualization
+                    for (const QString& filePath : selectedFiles) {
+                        // Find and select the corresponding tree item
+                        // Implementation would go here
+                    }
+                });
+    }
+    
     // T19: Keyboard shortcuts for results window
     setupKeyboardShortcuts();
 }
@@ -830,6 +853,9 @@ void ResultsWindow::displayResults(const ScanResults& results)
     
     populateResultsTree();
     updateStatusBar();
+    
+    // Update relationship visualization (Task 14)
+    updateRelationshipVisualization();
 }
 
 void ResultsWindow::displayDuplicateGroups(const QList<DuplicateDetector::DuplicateGroup>& groups)
@@ -1163,7 +1189,7 @@ void ResultsWindow::exportResults()
     QString fileName = QFileDialog::getSaveFileName(this, 
                                                    tr("Export Results"),
                                                    "duplicate_files_report.csv",
-                                                   tr("CSV Files (*.csv);;JSON Files (*.json);;Text Files (*.txt)"));
+                                                   tr("CSV Files (*.csv);;JSON Files (*.json);;Text Files (*.txt);;HTML Files (*.html)"));
     if (fileName.isEmpty()) {
         return;
     }
@@ -1176,6 +1202,8 @@ void ResultsWindow::exportResults()
         format = "json";
     } else if (fileName.endsWith(".txt", Qt::CaseInsensitive)) {
         format = "txt";
+    } else if (fileName.endsWith(".html", Qt::CaseInsensitive)) {
+        format = "html";
     }
     
     QFile file(fileName);
@@ -1193,6 +1221,8 @@ void ResultsWindow::exportResults()
         success = exportToCSV(out);
     } else if (format == "json") {
         success = exportToJSON(out);
+    } else if (format == "html") {
+        success = exportToHTML(out, fileName);
     } else {
         success = exportToText(out);
     }
@@ -2269,6 +2299,281 @@ bool ResultsWindow::exportToText(QTextStream& out)
     return true;
 }
 
+bool ResultsWindow::exportToHTML(QTextStream& out, const QString& fileName)
+{
+    qDebug() << "Exporting to HTML format with thumbnails";
+    
+    // Create directory for thumbnails
+    QFileInfo fileInfo(fileName);
+    QString baseDir = fileInfo.absolutePath();
+    QString baseName = fileInfo.baseName();
+    QString thumbnailDir = baseDir + "/" + baseName + "_thumbnails";
+    
+    QDir dir;
+    if (!dir.mkpath(thumbnailDir)) {
+        qWarning() << "Failed to create thumbnail directory:" << thumbnailDir;
+    }
+    
+    // HTML header with CSS styling
+    out << "<!DOCTYPE html>\n";
+    out << "<html lang=\"en\">\n";
+    out << "<head>\n";
+    out << "    <meta charset=\"UTF-8\">\n";
+    out << "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n";
+    out << "    <title>Duplicate Files Report</title>\n";
+    out << "    <style>\n";
+    out << "        body {\n";
+    out << "            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;\n";
+    out << "            margin: 0;\n";
+    out << "            padding: 20px;\n";
+    out << "            background-color: #f5f5f5;\n";
+    out << "            color: #333;\n";
+    out << "        }\n";
+    out << "        .container {\n";
+    out << "            max-width: 1200px;\n";
+    out << "            margin: 0 auto;\n";
+    out << "            background: white;\n";
+    out << "            border-radius: 8px;\n";
+    out << "            box-shadow: 0 2px 10px rgba(0,0,0,0.1);\n";
+    out << "            padding: 30px;\n";
+    out << "        }\n";
+    out << "        h1 {\n";
+    out << "            color: #2c3e50;\n";
+    out << "            text-align: center;\n";
+    out << "            margin-bottom: 30px;\n";
+    out << "            border-bottom: 3px solid #3498db;\n";
+    out << "            padding-bottom: 15px;\n";
+    out << "        }\n";
+    out << "        .summary {\n";
+    out << "            background: #ecf0f1;\n";
+    out << "            padding: 20px;\n";
+    out << "            border-radius: 6px;\n";
+    out << "            margin-bottom: 30px;\n";
+    out << "            display: grid;\n";
+    out << "            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));\n";
+    out << "            gap: 15px;\n";
+    out << "        }\n";
+    out << "        .summary-item {\n";
+    out << "            text-align: center;\n";
+    out << "        }\n";
+    out << "        .summary-value {\n";
+    out << "            font-size: 24px;\n";
+    out << "            font-weight: bold;\n";
+    out << "            color: #e74c3c;\n";
+    out << "        }\n";
+    out << "        .summary-label {\n";
+    out << "            font-size: 14px;\n";
+    out << "            color: #7f8c8d;\n";
+    out << "            margin-top: 5px;\n";
+    out << "        }\n";
+    out << "        .group {\n";
+    out << "            margin-bottom: 30px;\n";
+    out << "            border: 1px solid #ddd;\n";
+    out << "            border-radius: 6px;\n";
+    out << "            overflow: hidden;\n";
+    out << "        }\n";
+    out << "        .group-header {\n";
+    out << "            background: linear-gradient(135deg, #3498db, #2980b9);\n";
+    out << "            color: white;\n";
+    out << "            padding: 15px 20px;\n";
+    out << "            font-weight: bold;\n";
+    out << "            display: flex;\n";
+    out << "            justify-content: space-between;\n";
+    out << "            align-items: center;\n";
+    out << "        }\n";
+    out << "        .group-info {\n";
+    out << "            font-size: 14px;\n";
+    out << "            opacity: 0.9;\n";
+    out << "        }\n";
+    out << "        .files-container {\n";
+    out << "            padding: 20px;\n";
+    out << "        }\n";
+    out << "        .file-item {\n";
+    out << "            display: flex;\n";
+    out << "            align-items: center;\n";
+    out << "            padding: 15px;\n";
+    out << "            margin-bottom: 15px;\n";
+    out << "            background: #f8f9fa;\n";
+    out << "            border-radius: 6px;\n";
+    out << "            border-left: 4px solid #3498db;\n";
+    out << "            transition: all 0.3s ease;\n";
+    out << "        }\n";
+    out << "        .file-item:hover {\n";
+    out << "            background: #e3f2fd;\n";
+    out << "            transform: translateX(5px);\n";
+    out << "        }\n";
+    out << "        .file-item.recommended {\n";
+    out << "            border-left-color: #27ae60;\n";
+    out << "            background: #f0fff4;\n";
+    out << "        }\n";
+    out << "        .file-thumbnail {\n";
+    out << "            width: 64px;\n";
+    out << "            height: 64px;\n";
+    out << "            margin-right: 15px;\n";
+    out << "            border-radius: 4px;\n";
+    out << "            object-fit: cover;\n";
+    out << "            border: 2px solid #ddd;\n";
+    out << "            background: #f0f0f0;\n";
+    out << "        }\n";
+    out << "        .file-info {\n";
+    out << "            flex: 1;\n";
+    out << "        }\n";
+    out << "        .file-path {\n";
+    out << "            font-weight: bold;\n";
+    out << "            color: #2c3e50;\n";
+    out << "            margin-bottom: 5px;\n";
+    out << "            word-break: break-all;\n";
+    out << "        }\n";
+    out << "        .file-details {\n";
+    out << "            font-size: 12px;\n";
+    out << "            color: #7f8c8d;\n";
+    out << "            display: flex;\n";
+    out << "            gap: 15px;\n";
+    out << "            flex-wrap: wrap;\n";
+    out << "        }\n";
+    out << "        .file-badge {\n";
+    out << "            background: #27ae60;\n";
+    out << "            color: white;\n";
+    out << "            padding: 4px 8px;\n";
+    out << "            border-radius: 12px;\n";
+    out << "            font-size: 11px;\n";
+    out << "            font-weight: bold;\n";
+    out << "            margin-left: 10px;\n";
+    out << "        }\n";
+    out << "        .footer {\n";
+    out << "            text-align: center;\n";
+    out << "            margin-top: 40px;\n";
+    out << "            padding-top: 20px;\n";
+    out << "            border-top: 1px solid #ddd;\n";
+    out << "            color: #7f8c8d;\n";
+    out << "            font-size: 12px;\n";
+    out << "        }\n";
+    out << "        @media (max-width: 768px) {\n";
+    out << "            .container { padding: 15px; }\n";
+    out << "            .file-item { flex-direction: column; text-align: center; }\n";
+    out << "            .file-thumbnail { margin: 0 0 10px 0; }\n";
+    out << "        }\n";
+    out << "    </style>\n";
+    out << "</head>\n";
+    out << "<body>\n";
+    out << "    <div class=\"container\">\n";
+    out << "        <h1>🔍 Duplicate Files Report</h1>\n";
+    
+    // Summary section
+    out << "        <div class=\"summary\">\n";
+    out << "            <div class=\"summary-item\">\n";
+    out << "                <div class=\"summary-value\">" << m_currentResults.duplicateGroups.size() << "</div>\n";
+    out << "                <div class=\"summary-label\">Duplicate Groups</div>\n";
+    out << "            </div>\n";
+    out << "            <div class=\"summary-item\">\n";
+    out << "                <div class=\"summary-value\">" << m_currentResults.totalDuplicatesFound << "</div>\n";
+    out << "                <div class=\"summary-label\">Total Files</div>\n";
+    out << "            </div>\n";
+    out << "            <div class=\"summary-item\">\n";
+    out << "                <div class=\"summary-value\">" << formatFileSize(m_currentResults.potentialSavings) << "</div>\n";
+    out << "                <div class=\"summary-label\">Potential Savings</div>\n";
+    out << "            </div>\n";
+    out << "            <div class=\"summary-item\">\n";
+    out << "                <div class=\"summary-value\">" << QDateTime::currentDateTime().toString("yyyy-MM-dd") << "</div>\n";
+    out << "                <div class=\"summary-label\">Report Date</div>\n";
+    out << "            </div>\n";
+    out << "        </div>\n";
+    
+    // Groups
+    int groupNum = 1;
+    for (const DuplicateGroup& group : m_currentResults.duplicateGroups) {
+        out << "        <div class=\"group\">\n";
+        out << "            <div class=\"group-header\">\n";
+        out << "                <span>Group " << groupNum << " - " << group.files.size() << " files</span>\n";
+        out << "                <span class=\"group-info\">" << formatFileSize(group.totalSize) << " total</span>\n";
+        out << "            </div>\n";
+        out << "            <div class=\"files-container\">\n";
+        
+        for (const DuplicateFile& file : group.files) {
+            bool isRecommended = (file.filePath == group.primaryFile);
+            
+            out << "                <div class=\"file-item" << (isRecommended ? " recommended" : "") << "\">\n";
+            
+            // Generate thumbnail
+            QString thumbnailPath = generateThumbnailForExport(file.filePath, thumbnailDir, baseName);
+            if (!thumbnailPath.isEmpty()) {
+                QString relativeThumbnailPath = QDir(baseDir).relativeFilePath(thumbnailPath);
+                out << "                    <img src=\"" << relativeThumbnailPath << "\" alt=\"Thumbnail\" class=\"file-thumbnail\">\n";
+            } else {
+                // Default file icon
+                out << "                    <div class=\"file-thumbnail\" style=\"display: flex; align-items: center; justify-content: center; font-size: 24px;\">📄</div>\n";
+            }
+            
+            out << "                    <div class=\"file-info\">\n";
+            out << "                        <div class=\"file-path\">" << file.filePath.toHtmlEscaped() << "</div>\n";
+            out << "                        <div class=\"file-details\">\n";
+            out << "                            <span>Size: " << formatFileSize(file.fileSize) << "</span>\n";
+            out << "                            <span>Modified: " << file.lastModified.toString("yyyy-MM-dd hh:mm") << "</span>\n";
+            out << "                            <span>Type: " << file.fileType << "</span>\n";
+            out << "                        </div>\n";
+            out << "                    </div>\n";
+            
+            if (isRecommended) {
+                out << "                    <span class=\"file-badge\">RECOMMENDED</span>\n";
+            }
+            
+            out << "                </div>\n";
+        }
+        
+        out << "            </div>\n";
+        out << "        </div>\n";
+        groupNum++;
+    }
+    
+    // Footer
+    out << "        <div class=\"footer\">\n";
+    out << "            <p>Generated by DupFinder on " << QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss") << "</p>\n";
+    out << "            <p>Total groups: " << m_currentResults.duplicateGroups.size() << " | ";
+    out << "Total files: " << m_currentResults.totalDuplicatesFound << " | ";
+    out << "Potential savings: " << formatFileSize(m_currentResults.potentialSavings) << "</p>\n";
+    out << "        </div>\n";
+    out << "    </div>\n";
+    out << "</body>\n";
+    out << "</html>\n";
+    
+    qDebug() << "HTML export completed with thumbnails";
+    return true;
+}
+
+QString ResultsWindow::generateThumbnailForExport(const QString& filePath, const QString& thumbnailDir, const QString& baseName)
+{
+    if (!isImageFile(filePath)) {
+        return QString(); // Only generate thumbnails for images
+    }
+    
+    QFileInfo fileInfo(filePath);
+    QString fileName = fileInfo.baseName() + "_" + QString::number(qHash(filePath)) + ".jpg";
+    QString thumbnailPath = thumbnailDir + "/" + fileName;
+    
+    // Check if thumbnail already exists
+    if (QFile::exists(thumbnailPath)) {
+        return thumbnailPath;
+    }
+    
+    // Generate thumbnail
+    QPixmap originalPixmap(filePath);
+    if (originalPixmap.isNull()) {
+        return QString();
+    }
+    
+    // Scale to thumbnail size (128x128 for export)
+    QPixmap thumbnail = originalPixmap.scaled(128, 128, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    
+    // Save thumbnail
+    if (thumbnail.save(thumbnailPath, "JPEG", 85)) {
+        qDebug() << "Generated thumbnail:" << thumbnailPath;
+        return thumbnailPath;
+    } else {
+        qWarning() << "Failed to save thumbnail:" << thumbnailPath;
+        return QString();
+    }
+}
+
 // Preview helper methods
 
 void ResultsWindow::previewImageFile(const QString& filePath)
@@ -2503,6 +2808,432 @@ void ResultsWindow::preloadVisibleThumbnails()
         
         LOG_DEBUG(QString("Preloading %1 thumbnails").arg(visibleFilePaths.size()));
     }
+}
+
+// Relationship visualization methods (Task 14)
+
+void ResultsWindow::showRelationshipVisualization(bool show)
+{
+    if (!m_relationshipWidget) {
+        return;
+    }
+    
+    // Find the relationship tab and show/hide it
+    int tabIndex = m_detailsTabs->indexOf(m_relationshipWidget);
+    if (tabIndex >= 0) {
+        m_detailsTabs->setTabVisible(tabIndex, show);
+        
+        if (show) {
+            updateRelationshipVisualization();
+        }
+    }
+}
+
+void ResultsWindow::updateRelationshipVisualization()
+{
+    if (!m_relationshipWidget) {
+        return;
+    }
+    
+    // Convert current results to relationship widget format
+    QList<DuplicateRelationshipWidget::DuplicateGroup> relationshipGroups;
+    
+    for (const auto& group : m_currentResults.duplicateGroups) {
+        DuplicateRelationshipWidget::DuplicateGroup relGroup;
+        relGroup.groupId = group.groupId;
+        relGroup.hash = group.files.isEmpty() ? QString() : group.files.first().hash;
+        relGroup.totalFiles = group.fileCount;
+        relGroup.totalSize = group.totalSize;
+        
+        // Convert files
+        for (const auto& file : group.files) {
+            DuplicateRelationshipWidget::FileNode node;
+            node.filePath = file.filePath;
+            node.fileName = file.fileName;
+            node.fileSize = file.fileSize;
+            node.hash = file.hash;
+            node.isRecommended = (file.filePath == group.primaryFile);
+            
+            relGroup.files.append(node);
+        }
+        
+        relationshipGroups.append(relGroup);
+    }
+    
+    m_relationshipWidget->setDuplicateGroups(relationshipGroups);
+}
+
+void ResultsWindow::highlightFileInVisualization(const QString& filePath)
+{
+    if (m_relationshipWidget) {
+        m_relationshipWidget->highlightFile(filePath);
+    }
+}
+
+// Smart selection methods (Task 19)
+
+void ResultsWindow::showSmartSelectionDialog()
+{
+    if (!m_smartSelectionDialog) {
+        m_smartSelectionDialog = new SmartSelectionDialog(this);
+        
+        connect(m_smartSelectionDialog, &SmartSelectionDialog::selectionRequested,
+                this, &ResultsWindow::applySmartSelection);
+    }
+    
+    // Prepare file data for the dialog
+    QStringList filePaths;
+    QList<qint64> fileSizes;
+    QList<QDateTime> fileDates;
+    
+    for (const auto& group : m_currentResults.duplicateGroups) {
+        for (const auto& file : group.files) {
+            filePaths << file.filePath;
+            fileSizes << file.fileSize;
+            fileDates << file.lastModified;
+        }
+    }
+    
+    m_smartSelectionDialog->setAvailableFiles(filePaths, fileSizes, fileDates);
+    m_smartSelectionDialog->show();
+}
+
+void ResultsWindow::applySmartSelection(const SmartSelectionDialog::SelectionCriteria& criteria)
+{
+    // Record current state before changing selection
+    recordSelectionState("Smart selection applied");
+    
+    // Clear current selection
+    QTreeWidgetItemIterator it(m_resultsTree);
+    while (*it) {
+        QTreeWidgetItem* item = *it;
+        if (item->parent() != nullptr) { // File item
+            item->setCheckState(0, Qt::Unchecked);
+        }
+        ++it;
+    }
+    
+    // Get files to select based on criteria
+    QStringList filesToSelect = selectFilesByCriteria(criteria);
+    
+    // Apply selection to tree
+    int selectedCount = 0;
+    QTreeWidgetItemIterator selectIt(m_resultsTree);
+    while (*selectIt) {
+        QTreeWidgetItem* item = *selectIt;
+        if (item->parent() != nullptr) { // File item
+            QVariant pathData = item->data(0, Qt::UserRole);
+            if (pathData.isValid()) {
+                QString filePath = pathData.toString();
+                if (filesToSelect.contains(filePath)) {
+                    item->setCheckState(0, Qt::Checked);
+                    selectedCount++;
+                }
+            }
+        }
+        ++selectIt;
+    }
+    
+    // Update selection summary
+    updateSelectionSummary();
+    
+    LOG_INFO(QString("Smart selection applied: %1 files selected").arg(selectedCount));
+}
+
+QStringList ResultsWindow::selectFilesByCriteria(const SmartSelectionDialog::SelectionCriteria& criteria)
+{
+    QStringList allFiles;
+    QList<QPair<QString, qint64>> fileSizePairs;
+    QList<QPair<QString, QDateTime>> fileDatePairs;
+    
+    // Collect all files with their metadata
+    for (const auto& group : m_currentResults.duplicateGroups) {
+        for (const auto& file : group.files) {
+            allFiles << file.filePath;
+            fileSizePairs << qMakePair(file.filePath, file.fileSize);
+            fileDatePairs << qMakePair(file.filePath, file.lastModified);
+        }
+    }
+    
+    QStringList selectedFiles;
+    
+    switch (criteria.mode) {
+        case SmartSelectionDialog::OldestFiles:
+            selectedFiles = selectOldestFiles(fileDatePairs, criteria.maxFiles);
+            break;
+        case SmartSelectionDialog::NewestFiles:
+            selectedFiles = selectNewestFiles(fileDatePairs, criteria.maxFiles);
+            break;
+        case SmartSelectionDialog::LargestFiles:
+            selectedFiles = selectLargestFiles(fileSizePairs, criteria.maxFiles);
+            break;
+        case SmartSelectionDialog::SmallestFiles:
+            selectedFiles = selectSmallestFiles(fileSizePairs, criteria.maxFiles);
+            break;
+        case SmartSelectionDialog::ByPath:
+            selectedFiles = selectByPathPattern(allFiles, criteria.pathPattern);
+            break;
+        case SmartSelectionDialog::ByCriteria:
+            selectedFiles = selectByCombinedCriteria(allFiles, criteria);
+            break;
+        case SmartSelectionDialog::ByFileType:
+            selectedFiles = selectByFileType(allFiles, criteria.fileTypes);
+            break;
+        case SmartSelectionDialog::ByLocation:
+            selectedFiles = selectByLocationPattern(allFiles, criteria.locationPatterns);
+            break;
+    }
+    
+    // Apply additional filters if specified
+    if (criteria.useDateRange || criteria.useSizeRange || criteria.useFileTypes || criteria.useLocationPatterns) {
+        selectedFiles = applyAdditionalFilters(selectedFiles, criteria);
+    }
+    
+    // Limit results
+    if (selectedFiles.size() > criteria.maxFiles) {
+        selectedFiles = selectedFiles.mid(0, criteria.maxFiles);
+    }
+    
+    return selectedFiles;
+}
+
+// Selection helper methods
+
+QStringList ResultsWindow::selectOldestFiles(const QList<QPair<QString, QDateTime>>& fileDatePairs, int maxFiles)
+{
+    auto sortedFiles = fileDatePairs;
+    std::sort(sortedFiles.begin(), sortedFiles.end(), 
+              [](const QPair<QString, QDateTime>& a, const QPair<QString, QDateTime>& b) {
+                  return a.second < b.second; // Older files first
+              });
+    
+    QStringList result;
+    for (int i = 0; i < qMin(maxFiles, sortedFiles.size()); ++i) {
+        result << sortedFiles[i].first;
+    }
+    return result;
+}
+
+QStringList ResultsWindow::selectNewestFiles(const QList<QPair<QString, QDateTime>>& fileDatePairs, int maxFiles)
+{
+    auto sortedFiles = fileDatePairs;
+    std::sort(sortedFiles.begin(), sortedFiles.end(), 
+              [](const QPair<QString, QDateTime>& a, const QPair<QString, QDateTime>& b) {
+                  return a.second > b.second; // Newer files first
+              });
+    
+    QStringList result;
+    for (int i = 0; i < qMin(maxFiles, sortedFiles.size()); ++i) {
+        result << sortedFiles[i].first;
+    }
+    return result;
+}
+
+QStringList ResultsWindow::selectLargestFiles(const QList<QPair<QString, qint64>>& fileSizePairs, int maxFiles)
+{
+    auto sortedFiles = fileSizePairs;
+    std::sort(sortedFiles.begin(), sortedFiles.end(), 
+              [](const QPair<QString, qint64>& a, const QPair<QString, qint64>& b) {
+                  return a.second > b.second; // Larger files first
+              });
+    
+    QStringList result;
+    for (int i = 0; i < qMin(maxFiles, sortedFiles.size()); ++i) {
+        result << sortedFiles[i].first;
+    }
+    return result;
+}
+
+QStringList ResultsWindow::selectSmallestFiles(const QList<QPair<QString, qint64>>& fileSizePairs, int maxFiles)
+{
+    auto sortedFiles = fileSizePairs;
+    std::sort(sortedFiles.begin(), sortedFiles.end(), 
+              [](const QPair<QString, qint64>& a, const QPair<QString, qint64>& b) {
+                  return a.second < b.second; // Smaller files first
+              });
+    
+    QStringList result;
+    for (int i = 0; i < qMin(maxFiles, sortedFiles.size()); ++i) {
+        result << sortedFiles[i].first;
+    }
+    return result;
+}
+
+QStringList ResultsWindow::selectByPathPattern(const QStringList& files, const QString& pattern)
+{
+    QStringList result;
+    QRegularExpression regex(QRegularExpression::wildcardToRegularExpression(pattern),
+                            QRegularExpression::CaseInsensitiveOption);
+    
+    for (const QString& file : files) {
+        if (regex.match(file).hasMatch()) {
+            result << file;
+        }
+    }
+    return result;
+}
+
+QStringList ResultsWindow::selectByFileType(const QStringList& files, const QStringList& fileTypes)
+{
+    QStringList result;
+    
+    for (const QString& file : files) {
+        QFileInfo fileInfo(file);
+        QString extension = fileInfo.suffix().toLower();
+        
+        for (const QString& type : fileTypes) {
+            if (extension == type.toLower()) {
+                result << file;
+                break;
+            }
+        }
+    }
+    return result;
+}
+
+QStringList ResultsWindow::selectByLocationPattern(const QStringList& files, const QStringList& patterns)
+{
+    QStringList result;
+    
+    for (const QString& file : files) {
+        for (const QString& pattern : patterns) {
+            QRegularExpression regex(QRegularExpression::wildcardToRegularExpression(pattern),
+                                    QRegularExpression::CaseInsensitiveOption);
+            if (regex.match(file).hasMatch()) {
+                result << file;
+                break;
+            }
+        }
+    }
+    return result;
+}
+
+QStringList ResultsWindow::selectByCombinedCriteria(const QStringList& files, const SmartSelectionDialog::SelectionCriteria& criteria)
+{
+    QStringList result;
+    
+    for (const QString& file : files) {
+        bool matches = true;
+        
+        if (criteria.useAnd) {
+            // AND logic - all criteria must match
+            if (criteria.useDateRange && !matchesDateRange(file, criteria)) {
+                matches = false;
+            }
+            if (matches && criteria.useSizeRange && !matchesSizeRange(file, criteria)) {
+                matches = false;
+            }
+            if (matches && criteria.useFileTypes && !matchesFileTypes(file, criteria)) {
+                matches = false;
+            }
+            if (matches && criteria.useLocationPatterns && !matchesLocationPatterns(file, criteria)) {
+                matches = false;
+            }
+        } else {
+            // OR logic - any criteria can match
+            matches = false;
+            if (criteria.useDateRange && matchesDateRange(file, criteria)) {
+                matches = true;
+            }
+            if (!matches && criteria.useSizeRange && matchesSizeRange(file, criteria)) {
+                matches = true;
+            }
+            if (!matches && criteria.useFileTypes && matchesFileTypes(file, criteria)) {
+                matches = true;
+            }
+            if (!matches && criteria.useLocationPatterns && matchesLocationPatterns(file, criteria)) {
+                matches = true;
+            }
+        }
+        
+        if (matches) {
+            result << file;
+        }
+    }
+    
+    return result;
+}
+
+QStringList ResultsWindow::applyAdditionalFilters(const QStringList& files, const SmartSelectionDialog::SelectionCriteria& criteria)
+{
+    QStringList result;
+    
+    for (const QString& file : files) {
+        bool passes = true;
+        
+        if (criteria.useDateRange && !matchesDateRange(file, criteria)) {
+            passes = false;
+        }
+        if (passes && criteria.useSizeRange && !matchesSizeRange(file, criteria)) {
+            passes = false;
+        }
+        if (passes && criteria.useFileTypes && !matchesFileTypes(file, criteria)) {
+            passes = false;
+        }
+        if (passes && criteria.useLocationPatterns && !matchesLocationPatterns(file, criteria)) {
+            passes = false;
+        }
+        
+        if (passes) {
+            result << file;
+        }
+    }
+    
+    return result;
+}
+
+// Helper methods for criteria matching
+
+bool ResultsWindow::matchesDateRange(const QString& filePath, const SmartSelectionDialog::SelectionCriteria& criteria)
+{
+    // Find the file in our results to get its date
+    for (const auto& group : m_currentResults.duplicateGroups) {
+        for (const auto& file : group.files) {
+            if (file.filePath == filePath) {
+                return file.lastModified >= criteria.dateFrom && file.lastModified <= criteria.dateTo;
+            }
+        }
+    }
+    return false;
+}
+
+bool ResultsWindow::matchesSizeRange(const QString& filePath, const SmartSelectionDialog::SelectionCriteria& criteria)
+{
+    // Find the file in our results to get its size
+    for (const auto& group : m_currentResults.duplicateGroups) {
+        for (const auto& file : group.files) {
+            if (file.filePath == filePath) {
+                qint64 sizeInMB = file.fileSize / (1024 * 1024);
+                return sizeInMB >= criteria.minSize && sizeInMB <= criteria.maxSize;
+            }
+        }
+    }
+    return false;
+}
+
+bool ResultsWindow::matchesFileTypes(const QString& filePath, const SmartSelectionDialog::SelectionCriteria& criteria)
+{
+    QFileInfo fileInfo(filePath);
+    QString extension = fileInfo.suffix().toLower();
+    
+    for (const QString& type : criteria.fileTypes) {
+        if (extension == type.toLower()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool ResultsWindow::matchesLocationPatterns(const QString& filePath, const SmartSelectionDialog::SelectionCriteria& criteria)
+{
+    for (const QString& pattern : criteria.locationPatterns) {
+        QRegularExpression regex(QRegularExpression::wildcardToRegularExpression(pattern),
+                                QRegularExpression::CaseInsensitiveOption);
+        if (regex.match(filePath).hasMatch()) {
+            return true;
+        }
+    }
+    return false;
 }
 
 // Selection History Implementation (Task 17)
