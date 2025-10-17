@@ -707,3 +707,8 @@ void AdvancedFilterDialog::onPresetSelectionChanged() {
     m_loadPresetButton->setEnabled(hasSelection);
     m_deletePresetButton->setEnabled(hasSelection);
 }
+
+void AdvancedFilterDialog::updateSizeUnits()
+{
+    // TODO: Implement size units update
+}

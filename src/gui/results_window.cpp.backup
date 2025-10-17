@@ -6,7 +6,6 @@
 #include "thumbnail_delegate.h"
 #include "duplicate_relationship_widget.h"
 #include "smart_selection_dialog.h"
-#include "settings_dialog.h"
 #include "core/logger.h"
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QMessageBox>
@@ -58,10 +57,8 @@ ResultsWindow::ResultsWindow(QWidget* parent)
     , m_fileManager(nullptr)
     , m_thumbnailCache(new ThumbnailCache(this))
     , m_thumbnailDelegate(nullptr)
-    // Temporarily disabled for Settings dialog testing
-    // , m_relationshipWidget(nullptr)
-    // , m_smartSelectionDialog(nullptr)
-    , m_settingsDialog(nullptr)
+    , m_relationshipWidget(nullptr)
+    , m_smartSelectionDialog(nullptr)
     , m_selectionHistory(new SelectionHistoryManager(this))
     , m_operationQueue(new FileOperationQueue(this))  // Task 30
     , m_progressDialog(new FileOperationProgressDialog(this))  // Task 30
@@ -418,14 +415,13 @@ void ResultsWindow::createDetailsPanel()
     m_groupInfoLayout->addWidget(m_groupSummaryLabel);
     m_groupInfoLayout->addWidget(m_groupFilesTable, 1);
     
-    // Temporarily disabled for Settings dialog testing
     // Create relationship visualization tab
-    // m_relationshipWidget = new DuplicateRelationshipWidget(this);
+    m_relationshipWidget = new DuplicateRelationshipWidget(this);
     
     // Add tabs
-    m_detailsTabs->addTab(m_fileInfoTab, tr("� Firle Info"));
+    m_detailsTabs->addTab(m_fileInfoTab, tr("📄 File Info"));
     m_detailsTabs->addTab(m_groupInfoTab, tr("📁 Group Info"));
-    // m_detailsTabs->addTab(m_relationshipWidget, tr("🔗 Relationships"));
+    m_detailsTabs->addTab(m_relationshipWidget, tr("🔗 Relationships"));
     
     m_detailsPanelLayout->addWidget(m_detailsTabs, 1);
 }
@@ -568,7 +564,9 @@ void ResultsWindow::setupConnections()
     // Header buttons
     connect(m_refreshButton, &QPushButton::clicked, this, &ResultsWindow::refreshResults);
     connect(m_exportButton, &QPushButton::clicked, this, &ResultsWindow::exportResults);
-    connect(m_settingsButton, &QPushButton::clicked, this, &ResultsWindow::showSettingsDialog);
+    connect(m_settingsButton, &QPushButton::clicked, this, [this]() {
+        qDebug() << "Settings clicked";
+    });
     
     // Filter and search
     connect(m_searchFilter, &QLineEdit::textChanged, this, &ResultsWindow::onFilterChanged);
@@ -645,21 +643,20 @@ void ResultsWindow::setupConnections()
     connect(m_groupingDialog, &GroupingOptionsDialog::groupingChanged,
             this, &ResultsWindow::applyGrouping);
     
-    // Temporarily disabled for Settings dialog testing
     // Relationship widget connections (Task 14)
-    // if (m_relationshipWidget) {
-    //     connect(m_relationshipWidget, &DuplicateRelationshipWidget::fileClicked,
-    //             this, &ResultsWindow::highlightFileInVisualization);
-    //     connect(m_relationshipWidget, &DuplicateRelationshipWidget::selectionChanged,
-    //             this, [this](const QStringList& selectedFiles) {
-    //                 // Update tree selection based on relationship widget selection
-    //                 // This creates a two-way sync between tree and visualization
-    //                 for (const QString& filePath : selectedFiles) {
-    //                     // Find and select the corresponding tree item
-    //                     // Implementation would go here
-    //                 }
-    //             });
-    // }
+    if (m_relationshipWidget) {
+        connect(m_relationshipWidget, &DuplicateRelationshipWidget::fileClicked,
+                this, &ResultsWindow::highlightFileInVisualization);
+        connect(m_relationshipWidget, &DuplicateRelationshipWidget::selectionChanged,
+                this, [this](const QStringList& selectedFiles) {
+                    // Update tree selection based on relationship widget selection
+                    // This creates a two-way sync between tree and visualization
+                    for (const QString& filePath : selectedFiles) {
+                        // Find and select the corresponding tree item
+                        // Implementation would go here
+                    }
+                });
+    }
     
     // T19: Keyboard shortcuts for results window
     setupKeyboardShortcuts();
@@ -857,9 +854,8 @@ void ResultsWindow::displayResults(const ScanResults& results)
     populateResultsTree();
     updateStatusBar();
     
-    // Temporarily disabled for Settings dialog testing
     // Update relationship visualization (Task 14)
-    // updateRelationshipVisualization();
+    updateRelationshipVisualization();
 }
 
 void ResultsWindow::displayDuplicateGroups(const QList<DuplicateDetector::DuplicateGroup>& groups)
@@ -1226,9 +1222,7 @@ void ResultsWindow::exportResults()
     } else if (format == "json") {
         success = exportToJSON(out);
     } else if (format == "html") {
-        // Temporarily disabled for Settings dialog testing
-        // success = exportToHTML(out, fileName);
-        success = false; // HTML export temporarily disabled
+        success = exportToHTML(out, fileName);
     } else {
         success = exportToText(out);
     }
@@ -2305,10 +2299,6 @@ bool ResultsWindow::exportToText(QTextStream& out)
     return true;
 }
 
-// ============================================================================
-// TEMPORARILY DISABLED P3 METHODS FOR SETTINGS DIALOG TESTING
-// ============================================================================
-/*
 bool ResultsWindow::exportToHTML(QTextStream& out, const QString& fileName)
 {
     qDebug() << "Exporting to HTML format with thumbnails";
@@ -3635,127 +3625,7 @@ QString ResultsWindow::getGroupKey(const DuplicateFile& file,
             
             return directory;
         }
-*/
-// ============================================================================
-// END OF TEMPORARILY DISABLED P3 METHODS
-// ============================================================================
-// Missing method implementations (stubs for now)
-void ResultsWindow::onUndoRequested()
-{
-    LOG_INFO("Undo requested");
-    // TODO: Implement undo functionality
-}
-
-void ResultsWindow::onRedoRequested()
-{
-    LOG_INFO("Redo requested");
-    // TODO: Implement redo functionality
-}
-
-void ResultsWindow::onInvertSelection()
-{
-    LOG_INFO("Invert selection requested");
-    // TODO: Implement selection inversion
-}
-
-void ResultsWindow::showGroupingOptions()
-{
-    LOG_INFO("Show grouping options requested");
-    // TODO: Implement grouping options dialog
-}
-
-void ResultsWindow::applyGrouping(const GroupingOptionsDialog::GroupingOptions& options)
-{
-    Q_UNUSED(options);
-    LOG_INFO("Apply grouping requested");
-    // TODO: Implement grouping application
-}
-
-void ResultsWindow::recordSelectionState(const QString& operation)
-{
-    LOG_INFO("Recording selection state for operation: " + operation);
-    // TODO: Implement selection state recording
-}
-
-void ResultsWindow::setupOperationQueue()
-{
-    LOG_INFO("Setting up operation queue");
-    // TODO: Implement operation queue setup
-}
-
-void ResultsWindow::preloadVisibleThumbnails()
-{
-    LOG_INFO("Preloading visible thumbnails");
-    // TODO: Implement thumbnail preloading
-}
-
-bool ResultsWindow::isTextFile(const QString& filePath) const
-{
-    // Simple text file detection based on extension
-    QFileInfo fileInfo(filePath);
-    QString extension = fileInfo.suffix().toLower();
-    QStringList textExtensions = {"txt", "log", "md", "cpp", "h", "py", "js", "html", "css", "xml", "json"};
-    return textExtensions.contains(extension);
-}
-
-void ResultsWindow::previewTextFile(const QString& filePath)
-{
-    LOG_INFO("Previewing text file: " + filePath);
-    // TODO: Implement text file preview
-}
-
-void ResultsWindow::previewImageFile(const QString& filePath)
-{
-    LOG_INFO("Previewing image file: " + filePath);
-    // TODO: Implement image file preview
-}
-
-void ResultsWindow::showFileInfo(const QString& filePath)
-{
-    LOG_INFO("Showing file info for: " + filePath);
-    // TODO: Implement file info display
-}
-
-void ResultsWindow::showSettingsDialog()
-{
-    LOG_INFO("Opening Settings dialog");
-    
-    try {
-        // Create dialog if it doesn't exist
-        if (!m_settingsDialog) {
-            m_settingsDialog = new SettingsDialog(this);
-            
-            if (!m_settingsDialog) {
-                LOG_ERROR("Failed to create Settings dialog");
-                QMessageBox::warning(this, tr("Error"), 
-                                   tr("Failed to open Settings dialog. Please try again."));
-                return;
-            }
-            
-            // Connect settings changed signal to apply changes
-            connect(m_settingsDialog, &SettingsDialog::settingsChanged,
-                    this, [this]() {
-                        LOG_INFO("Settings changed, applying updates");
-                        // Apply any settings that affect the results window
-                        applyTheme();
-                    });
-            
-            LOG_INFO("Settings dialog created successfully");
-        }
-        
-        // Show the dialog
-        m_settingsDialog->show();
-        m_settingsDialog->raise();
-        m_settingsDialog->activateWindow();
-        
-    } catch (const std::exception& e) {
-        LOG_ERROR("Exception while opening Settings dialog: " + QString(e.what()));
-        QMessageBox::critical(this, tr("Error"), 
-                            tr("An error occurred while opening the Settings dialog: %1").arg(e.what()));
-    } catch (...) {
-        LOG_ERROR("Unknown exception while opening Settings dialog");
-        QMessageBox::critical(this, tr("Error"), 
-                            tr("An unknown error occurred while opening the Settings dialog."));
     }
-}
+    
+    return file.hash; // Fallback to hash
 }

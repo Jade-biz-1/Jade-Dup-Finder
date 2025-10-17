@@ -31,6 +31,8 @@
 #include "duplicate_detector.h"
 #include "duplicate_relationship_widget.h"
 #include "smart_selection_dialog.h"
+#include "settings_dialog.h"
+#include "grouping_options_dialog.h"
 
 // Forward declarations
 class ScanSetupDialog;
@@ -178,9 +180,25 @@ private slots:
     void onGroupSelectionChanged();
     void updateSelectionSummary();
     
+    // Undo/Redo operations
+    void onUndoRequested();
+    void onRedoRequested();
+    void onInvertSelection();
+    
+    // Grouping operations
+    void showGroupingOptions();
+    void applyGrouping(const GroupingOptionsDialog::GroupingOptions& options);
+    
+    // Selection operations
+    void recordSelectionState(const QString& operation);
+    
+    // Operation queue
+    void setupOperationQueue();
+    
     // File operations
     void deleteSelectedFiles();
     void moveSelectedFiles();
+    void showSettingsDialog();
     void ignoreSelectedFiles();
     void previewSelectedFile();
     void openFileLocation();
@@ -341,6 +359,7 @@ private:
     ThumbnailDelegate* m_thumbnailDelegate;
     DuplicateRelationshipWidget* m_relationshipWidget;
     SmartSelectionDialog* m_smartSelectionDialog;
+    SettingsDialog* m_settingsDialog;
     
     // State
     bool m_isProcessingBulkOperation;
