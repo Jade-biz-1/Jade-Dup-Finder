@@ -112,8 +112,9 @@ set(GUI_SOURCES
     src/gui/file_operation_progress_dialog.cpp
     src/gui/grouping_options_dialog.cpp
     src/gui/safety_features_dialog.cpp
-    src/gui/duplicate_relationship_widget.cpp
-    src/gui/smart_selection_dialog.cpp
+    # Temporarily disabled for Settings dialog testing
+    # src/gui/duplicate_relationship_widget.cpp
+    # src/gui/smart_selection_dialog.cpp
 )
 
 set(PLATFORM_SOURCES
@@ -150,8 +151,9 @@ set(HEADER_FILES
     include/scan_error_dialog.h
     include/advanced_filter_dialog.h
     include/file_operation_progress_dialog.h
-    include/duplicate_relationship_widget.h
-    include/smart_selection_dialog.h
+    # Temporarily disabled for Settings dialog testing
+    # include/duplicate_relationship_widget.h
+    # include/smart_selection_dialog.h
     include/grouping_options_dialog.h
     include/safety_features_dialog.h
     include/platform_file_ops.h

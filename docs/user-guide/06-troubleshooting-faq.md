@@ -86,181 +86,78 @@ brew install qt5
    - Select most recent backup
    - Follow restore wizard
 
-#### Symptom: Scan history disappeared
-**Solution:**
-```bash
-# Check if history files exist
-ls ~/.local/share/dupfinder/history/
-
-# If files exist but not showing, reset database
-rm ~/.local/share/dupfinder/database.db
-
-# Restart application to rebuild database
-```
-
 ---
 
-## Performance Problems
+## Perfems
 
 ### Slow Scanning
 
 #### Symptom: Scans take much longer than expected
-**Diagnosis:**
-1. **Check system resources:**
-   - Open system monitor
-   - Look for high CPU, memory, or disk usage
-   - Check if other applications are competing for resources
-
-2. **Review scan configuration:**
-   - Large number of files being scanned
-   - Network drives included in scan
-   - Very small minimum file size (< 1MB)
-
 **Solutions:**
-1. **Optimize scan settings:**
-   ```
-   Recommended Settings:
-   - Thread Count: Number of CPU cores
-   - Memory Limit: 2-4 GB
-   - Minimum File Size: 1 MB or higher
-   - Hash Algorithm: SHA-256
-   ```
+*
+   - Increase minimum file size to 1MB+
+   ctories
+ds
+   cation
 
-2. **Exclude unnecessary locations:**
-   - System directories (/bin, /usr, /etc)
-   - Version control directories (.git, .svn)
-   - Build directories (build/, node_modules/)
-   - Cache directories
+2. **Check system resou
 
-3. **Use incremental scanning:**
-   - Scan smaller directories first
-   - Use size-based filtering
-   - Process one file type at a time
+   - Ensure suffiRAM
+pace
+   - Monitor CPU usage
 
-#### Symptom: High memory usage during scan
+3. **Network drive considerati*
+   - Avoid scanning netws
+   - Use wired connection instead of WiFi
+   - Consider copying files locally first
+
+### High Memory Usage
+
+#### Symptom: Application uses exces
 **Solutions:**
-1. **Reduce memory limit:**
-   - Settings → Scanning → Memory Limit
-   - Set to 50% of available RAM
-   - Restart scan
+**
+   - Settings mit
+   - Set to 50% of available RM
+   - Rt scan
 
-2. **Increase virtual memory:**
-   ```bash
-   # Linux - Check swap space
-   free -h
-   
-   # Add swap if needed
-   sudo fallocate -l 4G /swapfile
-   sudo chmod 600 /swapfile
-   sudo mkswap /swapfile
-   sudo swapon /swapfile
-   ```
+2. **Scan in smaller chunks:**
+   - Divide large directories
+   - Use exclude patterns
+   - Process results between
 
-3. **Scan in smaller chunks:**
-   - Divide large directories into smaller scans
-   - Use exclude patterns to limit scope
-   - Process results between scans
 
-### Slow File Operations
-
-#### Symptom: Deleting/moving files is very slow
-**Causes:**
-- Large number of files selected
-- Files on slow storage (network drives, USB)
-- Antivirus software interference
-- Insufficient disk space
-
-**Solutions:**
-1. **Batch operations:**
-   - Process files in smaller batches (50-100 files)
-   - Use operation queue to manage large operations
-   - Monitor progress and pause if needed
-
-2. **Storage optimization:**
-   - Ensure sufficient free space (20% minimum)
-   - Defragment hard drives (Windows)
-   - Check disk health with SMART tools
-
-3. **Antivirus exclusions:**
-   - Add DupFinder to antivirus exclusions
-   - Temporarily disable real-time scanning
-   - Use antivirus "gaming mode" during operations
-
----
 
 ## Scan Issues
 
 ### No Duplicates Found
 
-#### Symptom: Scan completes but finds no duplicates
-**Possible Causes:**
-- Minimum file size too high
-- Scan locations don't contain duplicates
-- Files are similar but not identical
-- Exclude patterns too aggressive
-
+ates
 **Solutions:**
 1. **Adjust scan parameters:**
-   - Lower minimum file size to 100KB or 1MB
-   - Check detection mode (use "Exact" for true duplicates)
-   - Review exclude patterns
+   - Lower minimum file size
+   - Check detection mode settings
 
-2. **Verify scan locations:**
-   - Ensure folders contain files
-   - Check folder permissions
-   - Look for hidden files if needed
+   - Verify scan locations contain files
 
-3. **Test with known duplicates:**
-   - Copy a file to create a duplicate
-   - Run scan on that location
-   - Verify detection works
+2. **Test with known duplicates:**
+   - Create test duplicate files
+   - Run scan on test location
+   - Verify detecks
 
-#### Symptom: Scan finds too many false positives
-**Solutions:**
-1. **Use stricter detection:**
-   - Switch to "Exact" detection mode
-   - Increase minimum file size
-   - Use content-based detection only
+### Permission Errors
 
-2. **Review file types:**
-   - Some file types (like empty files) may appear as duplicates
-   - Exclude file types that commonly have identical content
-   - Focus on specific file types (images, documents, videos)
-
-### Scan Errors
-
-#### Symptom: "Permission denied" errors during scan
-**Solutions:**
-1. **Run with appropriate permissions:**
+#### Symptom: "Permission den
+**Solution
+1. 
    ```bash
-   # Linux/macOS - for system directories
+   # For system directories (use ly)
    sudo dupfinder
-   
-   # Better: Change ownership of user directories
-   sudo chown -R $USER:$USER ~/Documents ~/Pictures
    ```
 
-2. **Skip protected directories:**
-   - Add system directories to exclude patterns
-   - Focus on user-accessible locations
-   - Use preset scans that avoid system areas
-
-#### Symptom: "File not found" errors
-**Causes:**
-- Files deleted during scan
-- Network connectivity issues
-- Symbolic links to non-existent files
-
-**Solutions:**
-1. **Enable error handling:**
-   - Settings → Scanning → Continue on errors
-   - Review error log after scan
-   - Skip problematic files
-
-2. **Network drive issues:**
-   - Ensure stable network connection
-   - Avoid scanning during network maintenance
-   - Consider copying files locally first
+2. **Ss:**
+ns
+   - Focus on user-accessible s
+   - Use preset scans
 
 ---
 
@@ -268,137 +165,67 @@ rm ~/.local/share/dupfinder/database.db
 
 ### Cannot Delete Files
 
-#### Symptom: "Cannot delete file" error
-**Common Causes:**
-- File is in use by another application
-- Insufficient permissions
-- File is read-only or system-protected
-- Antivirus software blocking deletion
-
+#### Symptom: "Cannot delete fil" error
 **Solutions:**
-1. **Close applications:**
-   - Close all applications that might be using the files
-   - Check system tray for background applications
-   - Restart computer if necessary
+1. **Close applications using fil
+   - Close all applicatio
+ay
+   - Restart ceeded
 
-2. **Check file properties:**
+2. **Check file permissions:**
    ```bash
-   # Linux - Check file permissions
-   ls -la filename
-   
-   # Change permissions if needed
+   # Linux - Check and fix permissions
+
    chmod 644 filename
    
-   # Windows - Check file attributes
-   attrib filename
-   
-   # Remove read-only attribute
+   # Windows - Remove read-only attrie
    attrib -r filename
-   ```
-
-3. **Use safe mode:**
-   - Boot into safe mode (Windows)
-   - Use single-user mode (macOS/Linux)
-   - Delete files without interference
-
-#### Symptom: Files deleted but still appear in results
-**Solutions:**
-1. **Refresh results:**
-   - Press F5 or click Refresh
-   - Close and reopen results window
-   - Restart application if needed
-
-2. **Clear cache:**
-   - Settings → Advanced → Clear Cache
-   - Restart application
-   - Re-run scan if necessary
+  ```
 
 ### Backup and Restore Issues
 
 #### Symptom: "Backup failed" error
-**Causes:**
-- Insufficient disk space for backup
-- Backup location not accessible
-- Permissions issues
+ons:**
+1. 
+ory exists
+   - Ensure suce
+missions
 
-**Solutions:**
-1. **Check backup location:**
-   - Verify backup directory exists
-   - Ensure sufficient free space
-   - Test write permissions
 
-2. **Change backup location:**
    - Settings → Safety → Backup Location
-   - Choose location with more space
+   - Choose locationace
    - Use external drive if needed
-
-#### Symptom: Cannot restore files
-**Solutions:**
-1. **Verify backup integrity:**
-   - Check backup files exist
-   - Verify backup manifest
-   - Try restoring individual files
-
-2. **Manual restore:**
-   ```bash
-   # Navigate to backup directory
-   cd ~/.local/share/dupfinder/backups/
-   
-   # List available backups
-   ls -la
-   
-   # Copy files manually
-   cp backup_folder/files/* /original/location/
-   ```
 
 ---
 
-## Interface Issues
+e Issues
 
 ### Display Problems
 
-#### Symptom: Interface appears corrupted or garbled
+#### Symptom: Interface appears corrupted
 **Solutions:**
-1. **Reset interface settings:**
-   - Settings → General → Reset Interface
+ngs:**
+   - Settings → General → Resterface
    - Restart application
-   - Reconfigure preferences
+   - Update graphics drivers
 
-2. **Update graphics drivers:**
-   - Download latest drivers for your graphics card
-   - Restart computer after installation
-   - Test with different Qt themes
 
-3. **Check display scaling:**
-   - Adjust system display scaling
-   - Use integer scaling factors (100%, 200%)
-   - Restart application after changes
+   - Use integer scaling (100%, 20
+   - Restart after changes
 
-#### Symptom: Thumbnails not showing
+### Thumbnails Not Showing
+
+#### Symptom: Image thumbnails don't appear
 **Solutions:**
-1. **Enable thumbnail generation:**
-   - Settings → Display → Enable Thumbnails
-   - Increase thumbnail cache size
-   - Clear thumbnail cache and regenerate
+1. **Enable thumbnails:**
+   - Settings → Display → Enable Thumls
+   - Increase cache size
+   - Clear and regenerate cache
 
 2. **Check file types:**
-   - Verify file types support thumbnails
-   - Install additional image codecs if needed
-   - Test with common image formats (JPEG, PNG)
-
-### Responsiveness Issues
-
-#### Symptom: Interface freezes during operations
-**Solutions:**
-1. **Increase operation timeout:**
-   - Settings → Advanced → Operation Timeout
-   - Set to higher value (300 seconds)
-   - Enable operation progress display
-
-2. **Use background processing:**
-   - Enable background operations
-   - Reduce UI update frequency
-   - Close other applications to free resources
+   - Verify supported formats
+   - Install additional codecs
+   - Test with common formats (JPEG, PNG)
 
 ---
 
@@ -407,156 +234,129 @@ rm ~/.local/share/dupfinder/database.db
 ### General Questions
 
 **Q: Is DupFinder safe to use?**
-A: Yes, DupFinder includes multiple safety features:
-- Files are moved to trash, not permanently deleted
+A: Yes, DupFinders:
+- Fdeleted
 - Automatic backups before operations
 - Protected paths prevent system file deletion
-- Undo functionality for most operations
+- Undo
 
-**Q: How accurate is duplicate detection?**
-A: DupFinder uses cryptographic hashing (SHA-256) for exact duplicate detection, which is 99.999% accurate. Similar file detection uses fuzzy matching and may have false positives.
+**Q: How accurate is duplicate det
+A: Very accurate - uses SHA-256 cryptographic hliable.
 
 **Q: Can I recover deleted files?**
-A: Yes, through multiple methods:
-- Check system trash/recycle bin
-- Use DupFinder's restore function
-- Restore from automatic backups
-- Use system file recovery tools
+:
+- System trash/recycle bin
+- DupFinderon
+- Automatic backups
+- System file recovery tools
 
-**Q: Does DupFinder work with network drives?**
-A: Yes, but performance may be slower. For best results:
-- Ensure stable network connection
+es?**
+A: Yes, but pe
+- Ensure stable connection
 - Consider copying files locally first
-- Use wired connection instead of WiFi
+- Use wired instead of WiFi
 
-### Technical Questions
+s
 
 **Q: What file systems are supported?**
-A: DupFinder works with all major file systems:
+A: All major file systems:
 - Windows: NTFS, FAT32, exFAT
-- macOS: APFS, HFS+, FAT32
-- Linux: ext4, ext3, XFS, Btrfs, FAT32
+32
+- L
 
-**Q: How much disk space do I need?**
-A: Requirements depend on usage:
+**Q: How much disk space i?**
+
 - Application: ~100 MB
-- Database: 1-10 MB per 100,000 files
+es
 - Backups: Up to 10 GB (configurable)
-- Thumbnails: 1-100 MB (configurable)
+- Thumbnails: 1-10)
 
-**Q: Can I run multiple scans simultaneously?**
-A: No, DupFinder runs one scan at a time to prevent resource conflicts and ensure accuracy. You can queue multiple scans using presets.
+**Q: Can I run multiple scsly?**
+A: No, one scan at a time to prevent co
 
-**Q: What happens to symbolic links?**
-A: DupFinder follows symbolic links by default but can be configured to:
-- Skip symbolic links entirely
-- Treat links as separate files
-- Follow links but avoid infinite loops
+estions
 
-### Performance Questions
-
-**Q: Why is my first scan slower than subsequent ones?**
+**Q: Why is my first scan 
 A: First scans are slower because:
 - File system cache is empty
-- Hash cache is being built
-- Thumbnails are being generated
-- Database is being populated
+- Hash cache being built
+ed
+- Database being populated
 
 **Q: How can I speed up scans?**
-A: Several optimization strategies:
-- Use SSD storage instead of HDD
+A: Several strateg:
+- UDD
 - Increase memory allocation
-- Use more CPU threads
-- Exclude unnecessary directories
+- Use more CPU thread
+- Eories
 - Set higher minimum file size
-
-**Q: Should I scan my entire system?**
-A: Generally not recommended because:
-- System files rarely have duplicates
-- Scan takes much longer
-- Higher risk of false positives
-- Focus on user data directories instead
 
 ---
 
 ## Getting Help
 
-### Built-in Help Resources
+esources
 
 1. **Help Button (F1):**
    - Quick start guide
    - Keyboard shortcuts
-   - Basic troubleshooting
+ng
 
-2. **Tooltips:**
-   - Hover over buttons and controls
+2. **Tooltips:
+   - Hover over controls
    - Context-sensitive help
    - Feature explanations
 
-3. **Status Messages:**
+s:**
    - Bottom status bar
    - Progress dialogs
    - Error notifications
 
-### Log Files and Debugging
+ Files
 
-#### Accessing Log Files
+g Logs
 ```bash
-# Linux/macOS
+# Linux/macS
 ~/.local/share/dupfinder/logs/
 
 # Windows
-%LOCALAPPDATA%\dupfinder\logs\
+\
 ```
 
-#### Log File Types
-- **application.log** - General application events
-- **scan.log** - Scan operations and results
-- **operations.log** - File operations (delete, move)
-- **errors.log** - Error messages and stack traces
+#### Log Types
+- **application.log** - General events
+- **scan.log** - Scan operans
 
-#### Enabling Debug Mode
+- **errors.log** - Error messa
+
+#### Debug Mode
 ```bash
-# Command line debug mode
-dupfinder --debug --log-level=debug
-
-# Or set in Settings → Advanced → Logging
+g
+dupfinder --debug --log-level=debu
 ```
 
 ### Reporting Issues
 
 #### Before Reporting
-1. **Check this troubleshooting guide**
-2. **Search existing issues** on project repository
-3. **Try basic solutions** (restart, reset settings)
-4. **Gather system information**
+ide
+2. Search existing issues
+3. Try bas
+4. Gather system information
 
-#### Information to Include
-- **System details:** OS, version, architecture
-- **DupFinder version:** Help → About
-- **Steps to reproduce:** Detailed sequence
-- **Expected vs actual behavior**
-- **Log files:** Relevant portions
-- **Screenshots:** If interface issue
+###clude
+- System details (OS, versi
+- DupFind version
+- Suce
+- Expected vs actual behior
+- Relevant log files
+- Screlicable
 
-#### Where to Report
-- **GitHub Issues:** For bugs and feature requests
-- **Community Forum:** For usage questions
-- **Email Support:** For sensitive issues
+###rces
 
-### Community Resources
+- **Documentation:*uides
 
-#### Documentation
-- **User Guide:** Complete feature documentation
-- **API Documentation:** For developers
-- **Video Tutorials:** Step-by-step guides
-- **FAQ Database:** Searchable knowledge base
-
-#### Community Support
-- **User Forum:** Community discussions
-- **Discord/Slack:** Real-time chat support
-- **Reddit Community:** Tips and tricks
-- **Stack Overflow:** Technical questions
+- **GitHub:** Bug reres
+ssues
 
 ---
 
@@ -564,13 +364,13 @@ dupfinder --debug --log-level=debug
 
 ### Data Recovery Emergency
 
-If you accidentally deleted important files:
+If important files were acciden
 
-1. **Stop immediately** - Don't write new data to disk
-2. **Check trash/recycle bin** first
-3. **Use DupFinder restore** if available
-4. **Try system file recovery tools**
-5. **Contact data recovery service** if critical
+1. **Stop immediately** - Don't write neta
+2. **Check trash/recycle bin** firt
+ilable
+4. **Try system recovery tools**
+5. **Contact data recovery service
 
 ### Application Recovery
 
@@ -578,7 +378,7 @@ If DupFinder becomes unusable:
 
 1. **Backup current data:**
    ```bash
-   cp -r ~/.local/share/dupfinder/ ~/dupfinder_backup/
+   cp -r ~/.local/share/dupfinder/ckup/
    ```
 
 2. **Reset to defaults:**
@@ -586,14 +386,13 @@ If DupFinder becomes unusable:
    rm -rf ~/.config/DupFinder/
    ```
 
-3. **Reinstall application** if necessary
-
-4. **Restore data from backup** after reinstall
-
----
-
-**Still need help?** Check the project documentation at [dupfinder.org](https://dupfinder.org) or contact support through the official channels.
+3. **Reinstall if necessa*
+**
 
 ---
 
-*Volume 6 Complete - You now have comprehensive knowledge of DupFinder! Return to any volume as needed for reference.*
+**Need more help?** Check the project documeels.
+
+---
+
+*Volume 6 Complete - You now havereference.*or s needed folume ao any vturn tnder! Ref DupFiledge oknowrehensive  comp
