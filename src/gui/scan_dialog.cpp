@@ -4,6 +4,7 @@
 #include "scan_scope_preview_widget.h"
 #include "file_scanner.h"
 #include "core/logger.h"
+#include "theme_manager.h"
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QFileDialog>
 #include <QtWidgets/QTreeWidgetItem>
@@ -247,7 +248,9 @@ ScanSetupDialog::ScanSetupDialog(QWidget* parent)
     setupConnections();
     populateDirectoryTree();
     updateEstimates();
-    applyTheme();
+    
+    // Register with ThemeManager for automatic theme updates
+    ThemeManager::instance()->registerDialog(this);
 }
 
 ScanSetupDialog::~ScanSetupDialog()
@@ -868,7 +871,8 @@ void ScanSetupDialog::createButtonBar()
     QFrame* separator = new QFrame(this);
     separator->setFrameShape(QFrame::HLine);
     separator->setFrameShadow(QFrame::Sunken);
-    separator->setStyleSheet("QFrame { color: palette(mid); margin: 8px 0px; }");
+    // Theme-aware styling applied by ThemeManager
+    separator->setStyleSheet("margin: 8px 0px;");
     
     mainVLayout->addWidget(mainWidget);
     mainVLayout->addWidget(separator);

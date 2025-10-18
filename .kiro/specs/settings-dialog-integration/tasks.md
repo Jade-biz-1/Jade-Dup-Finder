@@ -20,7 +20,7 @@
   - Add user notification for errors
   - _Requirements: 3.1, 3.2, 3.4_
 
-- [-] 4. Test Settings dialog integration
+- [x] 4. Test Settings dialog integration
   - Test Settings button opens dialog correctly
   - Test dialog displays all tabs (General, Scanning, Safety, Logging, Advanced, UI Features)
   - Test settings can be modified and applied

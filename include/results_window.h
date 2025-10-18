@@ -198,7 +198,7 @@ private slots:
     // File operations
     void deleteSelectedFiles();
     void moveSelectedFiles();
-    void showSettingsDialog();
+
     void ignoreSelectedFiles();
     void previewSelectedFile();
     void openFileLocation();
@@ -359,7 +359,7 @@ private:
     ThumbnailDelegate* m_thumbnailDelegate;
     DuplicateRelationshipWidget* m_relationshipWidget;
     SmartSelectionDialog* m_smartSelectionDialog;
-    SettingsDialog* m_settingsDialog;
+
     
     // State
     bool m_isProcessingBulkOperation;

@@ -1,8 +1,10 @@
 #include "thumbnail_delegate.h"
 #include "thumbnail_cache.h"
+#include "theme_manager.h"
 #include <QtWidgets/QTreeWidget>
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QStyle>
+#include <QtWidgets/QAbstractItemView>
 #include <QtGui/QPainter>
 #include <QtGui/QPixmap>
 #include <QtCore/QFileInfo>
@@ -15,6 +17,15 @@ ThumbnailDelegate::ThumbnailDelegate(ThumbnailCache* cache, QObject* parent)
     , m_thumbnailsEnabled(true)
 {
     Q_ASSERT(cache != nullptr);
+    
+    // Connect to theme changes to update rendering
+    connect(ThemeManager::instance(), &ThemeManager::themeChanged,
+            this, [this]() {
+                // Force repaint of all items when theme changes
+                if (auto* view = qobject_cast<QAbstractItemView*>(this->parent())) {
+                    view->update();
+                }
+            });
 }
 
 void ThumbnailDelegate::paint(QPainter* painter,
@@ -153,9 +164,13 @@ void ThumbnailDelegate::drawThumbnail(QPainter* painter, const QRect& rect, cons
 {
     painter->save();
 
-    // Draw border
-    painter->setPen(QPen(QColor(200, 200, 200), 1));
-    painter->setBrush(Qt::white);
+    // Draw border with theme-aware colors
+    QColor borderColor = ThemeManager::instance()->currentTheme() == ThemeManager::Dark ? 
+                        QColor("#555555") : QColor("#ced4da");
+    QColor backgroundColor = ThemeManager::instance()->currentTheme() == ThemeManager::Dark ? 
+                           QColor("#2d2d30") : QColor("#ffffff");
+    painter->setPen(QPen(borderColor, 1));
+    painter->setBrush(backgroundColor);
     painter->drawRect(rect);
 
     // Scale thumbnail to fit while maintaining aspect ratio
@@ -174,13 +189,19 @@ void ThumbnailDelegate::drawPlaceholder(QPainter* painter, const QRect& rect) co
 {
     painter->save();
 
-    // Draw border
-    painter->setPen(QPen(QColor(200, 200, 200), 1));
-    painter->setBrush(QColor(240, 240, 240));
+    // Draw border with theme-aware colors
+    QColor borderColor = ThemeManager::instance()->currentTheme() == ThemeManager::Dark ? 
+                        QColor("#555555") : QColor("#ced4da");
+    QColor placeholderBg = ThemeManager::instance()->currentTheme() == ThemeManager::Dark ? 
+                          QColor("#3c3c3c") : QColor("#f8f9fa");
+    painter->setPen(QPen(borderColor, 1));
+    painter->setBrush(placeholderBg);
     painter->drawRect(rect);
 
-    // Draw loading indicator (simple icon)
-    painter->setPen(QPen(QColor(150, 150, 150), 2));
+    // Draw loading indicator with theme-aware color
+    QColor iconColor = ThemeManager::instance()->currentTheme() == ThemeManager::Dark ? 
+                      QColor("#aaaaaa") : QColor("#6c757d");
+    painter->setPen(QPen(iconColor, 2));
     
     int centerX = rect.center().x();
     int centerY = rect.center().y();

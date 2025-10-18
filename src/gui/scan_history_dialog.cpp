@@ -126,7 +126,8 @@ void ScanHistoryDialog::setupUI()
     
     // Stats
     m_statsLabel = new QLabel(this);
-    m_statsLabel->setStyleSheet("QLabel { padding: 5px; background: palette(base); border: 1px solid palette(mid); border-radius: 3px; }");
+    // Theme-aware styling applied by ThemeManager
+    m_statsLabel->setStyleSheet("padding: 5px; border-radius: 3px;");
     m_mainLayout->addWidget(m_statsLabel);
     
     // Action buttons

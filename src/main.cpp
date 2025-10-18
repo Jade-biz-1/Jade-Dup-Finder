@@ -4,6 +4,7 @@
 #include "duplicate_detector.h"
 #include "safety_manager.h"
 #include "file_manager.h"
+#include "theme_manager.h"
 #include "core/logger.h"
 #include <QtWidgets/QApplication>
 #include <QtCore/QTranslator>
@@ -54,6 +55,10 @@ int main(int argc, char *argv[])
     logger->info(LogCategories::SYSTEM, "Starting DupFinder application...");
     
     qDebug() << "First log message sent";
+    
+    // Initialize theme system
+    ThemeManager::instance()->loadFromSettings();
+    ThemeManager::instance()->applyToApplication();
     
     // Create core components
     FileScanner fileScanner;

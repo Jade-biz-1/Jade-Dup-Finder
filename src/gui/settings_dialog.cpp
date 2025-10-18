@@ -1,4 +1,5 @@
 #include "settings_dialog.h"
+#include "theme_manager.h"
 #include "core/logger.h"
 #include <QSettings>
 #include <QFileDialog>
@@ -31,7 +32,9 @@ SettingsDialog::SettingsDialog(QWidget* parent)
     
     setupUI();
     loadSettings();
-    applyTheme();
+    
+    // Register with ThemeManager for automatic theme updates
+    ThemeManager::instance()->registerDialog(this);
     
     LOG_INFO(LogCategories::UI, "Settings dialog created");
 }
@@ -76,6 +79,10 @@ void SettingsDialog::setupUI()
     connect(m_restoreDefaultsButton, &QPushButton::clicked, this, &SettingsDialog::onRestoreDefaultsClicked);
     
     mainLayout->addWidget(m_buttonBox);
+    
+    // Connect theme changes to immediate application
+    connect(m_themeCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &SettingsDialog::onThemeChanged);
 }
 
 void SettingsDialog::createGeneralTab()
@@ -702,19 +709,36 @@ void SettingsDialog::onOpenLogDirectory()
 
 void SettingsDialog::applyTheme()
 {
-    // Apply consistent styling
-    setStyleSheet(R"(
-        QGroupBox {
-            font-weight: bold;
-            border: 1px solid palette(mid);
-            border-radius: 4px;
-            margin-top: 10px;
-            padding-top: 10px;
+    // Apply comprehensive theme using enhanced ThemeManager
+    ThemeManager::instance()->applyComprehensiveTheme(this);
+    
+    // Force update of tab widget specifically
+    if (m_tabWidget) {
+        m_tabWidget->update();
+        // Force repaint of all tabs
+        for (int i = 0; i < m_tabWidget->count(); ++i) {
+            if (QWidget* tab = m_tabWidget->widget(i)) {
+                tab->update();
+            }
         }
-        QGroupBox::title {
-            subcontrol-origin: margin;
-            left: 10px;
-            padding: 0 5px;
-        }
-    )");
+    }
+}
+void SettingsDialog::onThemeChanged()
+{
+    QString themeStr = m_themeCombo->currentData().toString();
+    
+    ThemeManager::Theme theme = ThemeManager::SystemDefault;
+    if (themeStr == "light") {
+        theme = ThemeManager::Light;
+    } else if (themeStr == "dark") {
+        theme = ThemeManager::Dark;
+    }
+    
+    // Apply theme immediately
+    ThemeManager::instance()->setTheme(theme);
+    
+    // Force immediate theme application to this dialog
+    applyTheme();
+    
+    LOG_INFO(LogCategories::UI, QString("Theme changed to: %1").arg(themeStr));
 }

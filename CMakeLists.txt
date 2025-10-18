@@ -89,6 +89,7 @@ set(CORE_SOURCES
     src/core/scan_history_manager.cpp
     src/core/selection_history_manager.cpp
     src/core/file_operation_queue.cpp
+    src/core/theme_manager.cpp
 )
 
 set(GUI_SOURCES
@@ -131,6 +132,7 @@ set(HEADER_FILES
     include/safety_manager.h
     include/app_config.h
     src/core/logger.h
+    include/theme_manager.h
     include/scan_history_manager.h
     include/selection_history_manager.h
     include/file_operation_queue.h

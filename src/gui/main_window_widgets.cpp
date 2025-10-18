@@ -1,5 +1,6 @@
 #include "main_window.h"
 #include "scan_history_manager.h"
+#include "theme_manager.h"
 #include <QtWidgets/QListWidgetItem>
 #include <QtCore/QStandardPaths>
 #include <QtCore/QStorageInfo>
@@ -282,8 +283,8 @@ void SystemOverviewWidget::createStatsDisplay()
     QHBoxLayout* topLayout = new QHBoxLayout();
     QHBoxLayout* bottomLayout = new QHBoxLayout();
     
-    // Disk space info
-    m_diskSpaceLabel->setStyleSheet("QLabel { font-weight: bold; color: palette(window-text); }");
+    // Disk space info - theme-aware styling
+    m_diskSpaceLabel->setStyleSheet("font-weight: bold;");
     
     m_diskUsageBar->setMaximum(100);
     m_diskUsageBar->setTextVisible(true);
@@ -292,9 +293,9 @@ void SystemOverviewWidget::createStatsDisplay()
     
     m_availableSpaceLabel->setWordWrap(true);
     
-    // Statistics labels - use theme-aware colors
-    m_potentialSavingsLabel->setStyleSheet("QLabel { font-weight: bold; color: palette(window-text); }");
-    m_filesScannedLabel->setStyleSheet("QLabel { color: palette(window-text); }");
+    // Statistics labels - theme-aware styling
+    m_potentialSavingsLabel->setStyleSheet("font-weight: bold;");
+    // Theme-aware styling applied by ThemeManager for text color
     
     // Layout
     topLayout->addWidget(m_diskSpaceLabel);
@@ -369,12 +370,18 @@ QString SystemOverviewWidget::formatBytes(qint64 bytes) const
 
 QColor SystemOverviewWidget::getUsageColor(double percentage) const
 {
-    // Use more vibrant colors that work well in both light and dark themes
+    // Use theme-aware colors that adapt to current theme
     if (percentage < 60.0) {
-        return QColor("#2ecc71"); // Brighter Green
+        // Success color - green
+        return ThemeManager::instance()->currentTheme() == ThemeManager::Dark ? 
+               QColor("#4CAF50") : QColor("#28a745");
     } else if (percentage < 80.0) {
-        return QColor("#f39c12"); // Orange (already good)
+        // Warning color - orange
+        return ThemeManager::instance()->currentTheme() == ThemeManager::Dark ? 
+               QColor("#FF9800") : QColor("#ffc107");
     } else {
-        return QColor("#e74c3c"); // Red (already good)
+        // Error color - red
+        return ThemeManager::instance()->currentTheme() == ThemeManager::Dark ? 
+               QColor("#F44336") : QColor("#dc3545");
     }
 }

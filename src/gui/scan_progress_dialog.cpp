@@ -1,4 +1,5 @@
 #include "scan_progress_dialog.h"
+#include "theme_manager.h"
 #include <QGridLayout>
 #include <QFrame>
 #include <cmath>
@@ -23,6 +24,9 @@ ScanProgressDialog::ScanProgressDialog(QWidget* parent)
     , m_isPaused(false)
 {
     setupUI();
+    
+    // Register with ThemeManager for automatic theme updates
+    ThemeManager::instance()->registerDialog(this);
     m_scanTimer.start();
 }
 
@@ -56,6 +60,9 @@ void ScanProgressDialog::setupUI() {
     // Buttons section
     createButtonSection(mainLayout);
 
+    // Enforce minimum sizes for all controls
+    ThemeManager::instance()->enforceMinimumSizes(this);
+    
     setLayout(mainLayout);
 }
 
@@ -70,20 +77,8 @@ void ScanProgressDialog::createProgressSection(QVBoxLayout* mainLayout) {
     m_overallProgress->setValue(0);
     m_overallProgress->setTextVisible(true);
     m_overallProgress->setFormat("%p% - %v/%m files");
-    m_overallProgress->setStyleSheet(
-        "QProgressBar {"
-        "    border: 2px solid grey;"
-        "    border-radius: 5px;"
-        "    text-align: center;"
-        "    font-weight: bold;"
-        "    height: 25px;"
-        "}"
-        "QProgressBar::chunk {"
-        "    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "        stop:0 #4CAF50, stop:1 #45a049);"
-        "    border-radius: 3px;"
-        "}"
-    );
+    // Apply theme-aware progress bar styling
+    m_overallProgress->setStyleSheet(ThemeManager::instance()->getProgressBarStyle(ThemeManager::ProgressType::Normal));
     progressLayout->addWidget(m_overallProgress);
 
     // T12: Throughput indicator bar
@@ -98,20 +93,8 @@ void ScanProgressDialog::createProgressSection(QVBoxLayout* mainLayout) {
     m_throughputProgress->setTextVisible(true);
     m_throughputProgress->setFormat("Performance: %p%");
     m_throughputProgress->setMaximumHeight(15);
-    m_throughputProgress->setStyleSheet(
-        "QProgressBar {"
-        "    border: 1px solid grey;"
-        "    border-radius: 3px;"
-        "    text-align: center;"
-        "    font-size: 10px;"
-        "    height: 15px;"
-        "}"
-        "QProgressBar::chunk {"
-        "    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "        stop:0 #2196F3, stop:1 #1976D2);"
-        "    border-radius: 2px;"
-        "}"
-    );
+    // Apply theme-aware performance progress bar styling
+    m_throughputProgress->setStyleSheet(ThemeManager::instance()->getProgressBarStyle(ThemeManager::ProgressType::Performance));
     progressLayout->addWidget(m_throughputProgress);
 
     // Progress details grid
@@ -478,51 +461,24 @@ void ScanProgressDialog::updateVisualFeedback(const ProgressInfo& info) {
     // Update progress bar color based on performance
     QString progressStyle;
     
+    // Apply theme-aware progress styling based on performance
+    ThemeManager::ProgressType progressType;
     if (info.filesPerSecond > 50) {
-        // High performance - green
-        progressStyle = 
-            "QProgressBar::chunk {"
-            "    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-            "        stop:0 #4CAF50, stop:1 #45a049);"
-            "    border-radius: 3px;"
-            "}";
+        // High performance - success
+        progressType = ThemeManager::ProgressType::Success;
     } else if (info.filesPerSecond > 20) {
-        // Medium performance - blue
-        progressStyle = 
-            "QProgressBar::chunk {"
-            "    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-            "        stop:0 #2196F3, stop:1 #1976D2);"
-            "    border-radius: 3px;"
-            "}";
+        // Medium performance - normal/performance
+        progressType = ThemeManager::ProgressType::Performance;
     } else if (info.filesPerSecond > 5) {
-        // Low performance - orange
-        progressStyle = 
-            "QProgressBar::chunk {"
-            "    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-            "        stop:0 #FF9800, stop:1 #F57C00);"
-            "    border-radius: 3px;"
-            "}";
+        // Low performance - warning
+        progressType = ThemeManager::ProgressType::Warning;
     } else {
-        // Very low performance - red
-        progressStyle = 
-            "QProgressBar::chunk {"
-            "    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-            "        stop:0 #F44336, stop:1 #D32F2F);"
-            "    border-radius: 3px;"
-            "}";
+        // Very low performance - error
+        progressType = ThemeManager::ProgressType::Error;
     }
     
-    // Apply the style while preserving the base style
-    QString fullStyle = 
-        "QProgressBar {"
-        "    border: 2px solid grey;"
-        "    border-radius: 5px;"
-        "    text-align: center;"
-        "    font-weight: bold;"
-        "    height: 25px;"
-        "}" + progressStyle;
-    
-    m_overallProgress->setStyleSheet(fullStyle);
+    // Apply theme-aware styling
+    m_overallProgress->setStyleSheet(ThemeManager::instance()->getProgressBarStyle(progressType));
     
     // Update status text with performance indicator
     if (!m_isPaused) {

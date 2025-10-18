@@ -42,6 +42,7 @@ private slots:
     void onAddProtectedPath();
     void onRemoveProtectedPath();
     void onOpenLogDirectory();
+    void onThemeChanged();
 
 private:
     void setupUI();

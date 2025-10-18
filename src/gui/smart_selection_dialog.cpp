@@ -1,4 +1,5 @@
 #include "smart_selection_dialog.h"
+#include "theme_manager.h"
 #include <QApplication>
 #include <QMessageBox>
 #include <QInputDialog>
@@ -38,6 +39,9 @@ SmartSelectionDialog::SmartSelectionDialog(QWidget* parent)
     setupConnections();
     loadPresets();
     updateUIFromCriteria();
+    
+    // Register with ThemeManager for automatic theme updates
+    ThemeManager::instance()->registerDialog(this);
 }
 
 SmartSelectionDialog::~SmartSelectionDialog()
@@ -55,6 +59,9 @@ id SmartSelectionDialog::setupUI()
     createPreviewSection();
     createPresetSection();
     createButtonBox();
+    
+    // Enforce minimum sizes for all controls
+    ThemeManager::instance()->enforceMinimumSizes(this);
 }
 
 void SmartSelectionDialog::createModeSection()
@@ -75,7 +82,9 @@ void SmartSelectionDialog::createModeSection()
     
     m_modeDescription = new QLabel(this);
     m_modeDescription->setWordWrap(true);
-    m_modeDescription->setStyleSheet("color: #666; font-style: italic; padding: 5px;");
+    // Apply theme-aware styling for description text
+    m_modeDescription->setStyleSheet(ThemeManager::instance()->getStatusIndicatorStyle(ThemeManager::StatusType::Info) + 
+                                   " font-style: italic; padding: 5px;");
     
     m_modeLayout->addWidget(m_modeCombo);
     m_modeLayout->addWidget(m_modeDescription);
@@ -201,7 +210,9 @@ d SmartSelectionDialog::createPreviewSection()
     QHBoxLayout* previewControlsLayout = new QHBoxLayout();
     m_previewButton = new QPushButton(tr("Update Preview"), this);
     m_previewCountLabel = new QLabel(tr("No files selected"), this);
-    m_previewCountLabel->setStyleSheet("font-weight: bold; color: #2c3e50;");
+    // Apply theme-aware styling for preview count label
+    m_previewCountLabel->setStyleSheet(ThemeManager::instance()->getStatusIndicatorStyle(ThemeManager::StatusType::Neutral) + 
+                                     " font-weight: bold;");
     
     previewControlsLayout->addWidget(m_previewButton);
     previewControlsLayout->addStretch();

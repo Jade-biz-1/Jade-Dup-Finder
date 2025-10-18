@@ -1,4 +1,5 @@
 #include "advanced_filter_dialog.h"
+#include "theme_manager.h"
 #include <QMessageBox>
 #include <QTime>
 #include <QInputDialog>
@@ -42,6 +43,9 @@ AdvancedFilterDialog::AdvancedFilterDialog(QWidget* parent)
 {
     setupUI();
     connectSignals();
+    
+    // Register with ThemeManager for automatic theme updates
+    ThemeManager::instance()->registerDialog(this);
 }
 
 void AdvancedFilterDialog::setupUI() {

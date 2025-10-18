@@ -1,4 +1,5 @@
 #include "scan_error_dialog.h"
+#include "theme_manager.h"
 #include <QApplication>
 #include <QClipboard>
 #include <QMessageBox>
@@ -13,6 +14,9 @@ ScanErrorDialog::ScanErrorDialog(QWidget* parent)
     , m_closeButton(nullptr)
 {
     setupUI();
+    
+    // Register with ThemeManager for automatic theme updates
+    ThemeManager::instance()->registerDialog(this);
 }
 
 void ScanErrorDialog::setupUI() {
