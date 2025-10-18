@@ -1,0 +1,339 @@
+name: DupFinder CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  release:
+    types: [ published ]
+
+env:
+  # Set build type
+  BUILD_TYPE: Release
+  # Qt version to use
+  QT_VERSION: '6.4.*'
+
+jobs:
+  # Linux build and test job
+  build-linux:
+    runs-on: ubuntu-latest
+    name: Build and Test (Ubuntu)
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y \
+          build-essential \
+          cmake \
+          ninja-build \
+          qt6-base-dev \
+          qt6-tools-dev \
+          libqt6core6 \
+          libqt6gui6 \
+          libqt6widgets6 \
+          libqt6concurrent6 \
+          libqt6network6 \
+          libqt6test6 \
+          valgrind \
+          cppcheck \
+          clang-format \
+          doxygen \
+          lcov \
+          xvfb
+
+    - name: Setup Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: ${{ env.QT_VERSION }}
+        host: linux
+        target: desktop
+        arch: gcc_64
+        modules: 'qtbase qttools qtconcurrent qtnetwork'
+        cache: true
+
+    - name: Configure CMake
+      run: |
+        cmake -B build \
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+          -DCMAKE_CXX_COMPILER=g++ \
+          -DCMAKE_C_COMPILER=gcc \
+          -DENABLE_COVERAGE=ON \
+          -GNinja
+
+    - name: Build application
+      run: cmake --build build --config ${{ env.BUILD_TYPE }} --parallel
+
+    - name: Run tests
+      run: |
+        cd build
+        # Use xvfb for GUI tests
+        xvfb-run -a ctest --output-on-failure --verbose
+
+    - name: Run static analysis (cppcheck)
+      run: |
+        cd build
+        make cppcheck || echo "Static analysis completed with warnings"
+
+    - name: Check code formatting
+      run: |
+        cd build
+        make format
+        # Check if any files were modified by formatting
+        git diff --exit-code || (echo "Code formatting issues found. Please run 'make format'" && exit 1)
+
+    - name: Generate coverage report (if enabled)
+      if: matrix.build-type == 'Debug'
+      run: |
+        cd build
+        make coverage || echo "Coverage generation skipped"
+
+    - name: Memory check with Valgrind
+      if: matrix.build-type == 'Debug'
+      run: |
+        cd build
+        timeout 30 make memcheck || echo "Memory check completed or timed out"
+
+    - name: Upload coverage reports
+      if: matrix.build-type == 'Debug'
+      uses: codecov/codecov-action@v3
+      with:
+        directory: build/coverage
+        fail_ci_if_error: false
+
+    - name: Create build artifacts
+      run: |
+        cd build
+        make package
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: dupfinder-linux-${{ github.sha }}
+        path: build/dupfinder-*.tar.gz
+
+  # Windows build job
+  build-windows:
+    runs-on: windows-latest
+    name: Build and Test (Windows)
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Setup Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: ${{ env.QT_VERSION }}
+        host: windows
+        target: desktop
+        arch: win64_msvc2019_64
+        modules: 'qtbase qttools qtconcurrent qtnetwork'
+        cache: true
+
+    - name: Setup MSVC
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+
+    - name: Configure CMake
+      run: |
+        cmake -B build ^
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} ^
+          -G "Visual Studio 17 2022" ^
+          -A x64
+
+    - name: Build application
+      run: cmake --build build --config ${{ env.BUILD_TYPE }} --parallel
+
+    - name: Run tests
+      run: |
+        cd build
+        ctest -C ${{ env.BUILD_TYPE }} --output-on-failure --verbose
+
+    - name: Create installer
+      run: |
+        cd build
+        cpack -C ${{ env.BUILD_TYPE }}
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: dupfinder-windows-${{ github.sha }}
+        path: build/*.exe
+
+  # macOS build job  
+  build-macos:
+    runs-on: macos-latest
+    name: Build and Test (macOS)
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install system dependencies
+      run: |
+        brew update
+        brew install cmake ninja
+
+    - name: Setup Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: ${{ env.QT_VERSION }}
+        host: mac
+        target: desktop
+        arch: clang_64
+        modules: 'qtbase qttools qtconcurrent qtnetwork'
+        cache: true
+
+    - name: Configure CMake
+      run: |
+        cmake -B build \
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+          -DCMAKE_CXX_COMPILER=clang++ \
+          -DCMAKE_C_COMPILER=clang \
+          -GNinja
+
+    - name: Build application
+      run: cmake --build build --config ${{ env.BUILD_TYPE }} --parallel
+
+    - name: Run tests
+      run: |
+        cd build
+        ctest --output-on-failure --verbose
+
+    - name: Create DMG
+      run: |
+        cd build
+        make package
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: dupfinder-macos-${{ github.sha }}
+        path: build/*.dmg
+
+  # Documentation build job
+  build-docs:
+    runs-on: ubuntu-latest
+    name: Build Documentation
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y doxygen graphviz
+
+    - name: Setup Qt (for headers)
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: ${{ env.QT_VERSION }}
+        host: linux
+        target: desktop
+        arch: gcc_64
+        modules: 'qtbase'
+        cache: true
+
+    - name: Generate documentation
+      run: |
+        cmake -B build -DCMAKE_BUILD_TYPE=Release
+        cd build
+        make docs || echo "Documentation generation completed"
+
+    - name: Deploy to GitHub Pages
+      if: success()
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./build/docs/html
+
+  # Release job (only on tagged releases)
+  release:
+    needs: [build-linux, build-windows, build-macos]
+    runs-on: ubuntu-latest
+    name: Create Release
+    if: github.event_name == 'release'
+
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+
+    - name: Create release assets
+      run: |
+        # Create release directory
+        mkdir -p release-assets
+        
+        # Copy artifacts
+        find . -name "*.tar.gz" -exec cp {} release-assets/ \;
+        find . -name "*.exe" -exec cp {} release-assets/ \;
+        find . -name "*.dmg" -exec cp {} release-assets/ \;
+        
+        # List release assets
+        ls -la release-assets/
+
+    - name: Upload release assets
+      uses: softprops/action-gh-release@v1
+      with:
+        files: release-assets/*
+        tag_name: ${{ github.ref_name }}
+        name: DupFinder ${{ github.ref_name }}
+        draft: false
+        prerelease: ${{ contains(github.ref_name, 'rc') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') }}
+        body: |
+          ## DupFinder ${{ github.ref_name }}
+          
+          ### Downloads
+          - **Linux**: `dupfinder-*-Linux.tar.gz`
+          - **Windows**: `dupfinder-*-win64.exe` 
+          - **macOS**: `dupfinder-*.dmg`
+          
+          ### Changes
+          See [CHANGELOG.md](CHANGELOG.md) for detailed changes.
+          
+          ### Installation
+          See [README.md](README.md) for installation instructions.
+
+  # Code quality checks
+  code-quality:
+    runs-on: ubuntu-latest
+    name: Code Quality Checks
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y clang-format cppcheck
+
+    - name: Check code formatting
+      run: |
+        find src include tests -name "*.cpp" -o -name "*.h" | xargs clang-format --dry-run --Werror
+
+    - name: Run static analysis
+      run: |
+        cppcheck --enable=all --std=c++17 --error-exitcode=1 \
+          --suppress=missingIncludeSystem \
+          --suppress=unusedFunction \
+          src/ include/
+
+    - name: Check for TODO/FIXME comments
+      run: |
+        # Allow TODO/FIXME but report them
+        echo "Scanning for TODO/FIXME comments..."
+        grep -r "TODO\|FIXME" src/ include/ tests/ || echo "No TODO/FIXME comments found"
