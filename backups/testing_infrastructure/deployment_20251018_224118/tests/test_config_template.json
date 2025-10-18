@@ -1,0 +1,133 @@
+{
+  "global": {
+    "defaultExecutionMode": "Sequential",
+    "defaultTimeoutSeconds": 300,
+    "verboseOutput": false,
+    "generateReports": true,
+    "reportOutputDirectory": "test_reports",
+    "maxParallelTests": 4,
+    "stopOnFirstFailure": false,
+    "enableCodeCoverage": false,
+    "coverageOutputDirectory": "coverage_reports",
+    "enabledCategories": [
+      "Unit",
+      "Integration",
+      "Performance",
+      "UI",
+      "EndToEnd",
+      "Security",
+      "Regression",
+      "Smoke"
+    ],
+    "enabledTags": [],
+    "disabledTests": []
+  },
+  "testSuites": {
+    "ExampleEnhancedTest": {
+      "name": "ExampleEnhancedTest",
+      "category": "Unit",
+      "priority": "High",
+      "timeoutSeconds": 60,
+      "enabledByDefault": true,
+      "executionMode": "Sequential",
+      "tags": ["example", "framework", "demo"],
+      "customProperties": {}
+    },
+    "HashCalculatorTest": {
+      "name": "HashCalculatorTest",
+      "category": "Unit",
+      "priority": "Critical",
+      "timeoutSeconds": 120,
+      "enabledByDefault": true,
+      "executionMode": "Parallel",
+      "tags": ["unit", "core", "hash"],
+      "customProperties": {}
+    },
+    "FileManagerTest": {
+      "name": "FileManagerTest",
+      "category": "Unit",
+      "priority": "Critical",
+      "timeoutSeconds": 180,
+      "enabledByDefault": true,
+      "executionMode": "Sequential",
+      "tags": ["unit", "core", "file-operations"],
+      "customProperties": {}
+    },
+    "SafetyManagerTest": {
+      "name": "SafetyManagerTest",
+      "category": "Security",
+      "priority": "Critical",
+      "timeoutSeconds": 120,
+      "enabledByDefault": true,
+      "executionMode": "Sequential",
+      "tags": ["security", "safety", "file-operations"],
+      "customProperties": {}
+    },
+    "IntegrationWorkflowTest": {
+      "name": "IntegrationWorkflowTest",
+      "category": "Integration",
+      "priority": "High",
+      "timeoutSeconds": 600,
+      "enabledByDefault": true,
+      "executionMode": "Sequential",
+      "tags": ["integration", "workflow", "end-to-end"],
+      "customProperties": {}
+    },
+    "FileScannerPerformanceTest": {
+      "name": "FileScannerPerformanceTest",
+      "category": "Performance",
+      "priority": "Medium",
+      "timeoutSeconds": 1200,
+      "enabledByDefault": false,
+      "executionMode": "Isolated",
+      "tags": ["performance", "benchmark", "file-scanner"],
+      "customProperties": {
+        "requiresLargeDataset": true,
+        "memoryIntensive": true
+      }
+    },
+    "ThumbnailCacheTest": {
+      "name": "ThumbnailCacheTest",
+      "category": "Unit",
+      "priority": "Medium",
+      "timeoutSeconds": 90,
+      "enabledByDefault": true,
+      "executionMode": "Parallel",
+      "tags": ["unit", "ui", "cache", "thumbnails"],
+      "customProperties": {}
+    },
+    "PresetManagerTest": {
+      "name": "PresetManagerTest",
+      "category": "Unit",
+      "priority": "Medium",
+      "timeoutSeconds": 60,
+      "enabledByDefault": true,
+      "executionMode": "Parallel",
+      "tags": ["unit", "ui", "presets", "configuration"],
+      "customProperties": {}
+    },
+    "EndToEndWorkflowTest": {
+      "name": "EndToEndWorkflowTest",
+      "category": "EndToEnd",
+      "priority": "High",
+      "timeoutSeconds": 900,
+      "enabledByDefault": true,
+      "executionMode": "Sequential",
+      "tags": ["end-to-end", "workflow", "complete-flow"],
+      "customProperties": {
+        "requiresGUI": true,
+        "dataIntensive": true
+      }
+    },
+    "ErrorScenariosTest": {
+      "name": "ErrorScenariosTest",
+      "category": "Integration",
+      "priority": "High",
+      "timeoutSeconds": 300,
+      "enabledByDefault": true,
+      "executionMode": "Sequential",
+      "tags": ["integration", "error-handling", "robustness"],
+      "customProperties": {}
+    }
+  }
+}
