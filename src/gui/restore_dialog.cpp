@@ -1,5 +1,6 @@
 #include "restore_dialog.h"
 #include "core/logger.h"
+#include "theme_manager.h"
 #include <QHeaderView>
 #include <QMessageBox>
 #include <QFileInfo>
@@ -28,6 +29,9 @@ RestoreDialog::RestoreDialog(SafetyManager* safetyManager, QWidget* parent)
     setupUI();
     loadBackups();
     
+    // Register with ThemeManager for automatic theme updates
+    ThemeManager::instance()->registerDialog(this);
+    
     LOG_INFO(LogCategories::UI, "Restore dialog created");
 }
 
@@ -45,7 +49,8 @@ void RestoreDialog::setupUI()
     // Info label
     QLabel* infoLabel = new QLabel(tr("View and restore files from backups created before delete/move operations."), this);
     infoLabel->setWordWrap(true);
-    infoLabel->setStyleSheet("QLabel { padding: 8px; background: palette(base); border: 1px solid palette(mid); border-radius: 3px; }");
+    // Theme-aware styling applied by ThemeManager
+    infoLabel->setStyleSheet("padding: 8px; border-radius: 3px;");
     m_mainLayout->addWidget(infoLabel);
     
     // Filter controls
@@ -108,7 +113,8 @@ void RestoreDialog::setupUI()
     
     // Stats
     m_statsLabel = new QLabel(this);
-    m_statsLabel->setStyleSheet("QLabel { padding: 5px; background: palette(base); border: 1px solid palette(mid); border-radius: 3px; }");
+    // Theme-aware styling applied by ThemeManager
+    m_statsLabel->setStyleSheet("padding: 5px; border-radius: 3px;");
     m_mainLayout->addWidget(m_statsLabel);
     
     // Action buttons

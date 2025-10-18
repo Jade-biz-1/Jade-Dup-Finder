@@ -1,9 +1,61 @@
 # Test configuration for DupFinder
-find_package(Qt6 REQUIRED COMPONENTS Test)
+find_package(Qt6 REQUIRED COMPONENTS Test Core Widgets Concurrent)
 
 # Common test settings
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Enhanced Test Framework
+set(ENHANCED_TEST_FRAMEWORK_SOURCES
+    test_config.cpp
+    test_base.cpp
+    enhanced_test_runner.cpp
+)
+
+set(ENHANCED_TEST_FRAMEWORK_HEADERS
+    test_config.h
+    test_base.h
+    enhanced_test_runner.h
+)
+
+# Create enhanced test framework library
+add_library(enhanced_test_framework STATIC
+    ${ENHANCED_TEST_FRAMEWORK_SOURCES}
+    ${ENHANCED_TEST_FRAMEWORK_HEADERS}
+)
+
+target_link_libraries(enhanced_test_framework
+    Qt6::Core
+    Qt6::Test
+    Qt6::Concurrent
+)
+
+set_target_properties(enhanced_test_framework PROPERTIES
+    AUTOMOC ON
+)
+
+# Enhanced Test Framework Example
+add_executable(example_enhanced_test
+    example_enhanced_test.cpp
+)
+
+target_link_libraries(example_enhanced_test
+    enhanced_test_framework
+    Qt6::Core
+    Qt6::Test
+)
+
+set_target_properties(example_enhanced_test PROPERTIES
+    AUTOMOC ON
+)
+
+# Add enhanced framework tests to CTest
+add_test(NAME EnhancedFrameworkExample COMMAND example_enhanced_test)
+
+set_tests_properties(EnhancedFrameworkExample PROPERTIES
+    TIMEOUT 60
+    LABELS "enhanced;framework;example"
+)
 
 # Include directories for tests
 include_directories(

@@ -1,4 +1,5 @@
 #include "safety_features_dialog.h"
+#include "theme_manager.h"
 #include <QApplication>
 #include <QMessageBox>
 #include <QFileInfo>
@@ -17,6 +18,9 @@ SafetyFeaturesDialog::SafetyFeaturesDialog(SafetyManager* safetyManager, QWidget
     setupUI();
     setupConnections();
     refreshData();
+    
+    // Register with ThemeManager for automatic theme updates
+    ThemeManager::instance()->registerDialog(this);
 }
 
 void SafetyFeaturesDialog::setupUI() {
@@ -142,6 +146,9 @@ ProtectionRuleDialog::ProtectionRuleDialog(QWidget* parent)
 {
     setupUI();
     setupConnections();
+    
+    // Register with ThemeManager for automatic theme updates
+    ThemeManager::instance()->registerDialog(this);
 }
 
 ProtectionRuleDialog::ProtectionRuleDialog(const SafetyManager::ProtectionEntry& rule, QWidget* parent)
@@ -150,6 +157,9 @@ ProtectionRuleDialog::ProtectionRuleDialog(const SafetyManager::ProtectionEntry&
     setupUI();
     setupConnections();
     populateFields();
+    
+    // Register with ThemeManager for automatic theme updates
+    ThemeManager::instance()->registerDialog(this);
 }
 
 void ProtectionRuleDialog::setupUI() {

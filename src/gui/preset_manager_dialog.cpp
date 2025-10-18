@@ -1,4 +1,5 @@
 #include "preset_manager_dialog.h"
+#include "theme_manager.h"
 #include <QtWidgets/QMessageBox>
 #include <QtWidgets/QInputDialog>
 #include <QtWidgets/QGroupBox>
@@ -23,6 +24,9 @@ PresetManagerDialog::PresetManagerDialog(QWidget* parent)
     
     setupUI();
     setupConnections();
+    
+    // Register with ThemeManager for automatic theme updates
+    ThemeManager::instance()->registerDialog(this);
     loadPresets();
     updateButtonStates();
 }
@@ -40,7 +44,11 @@ void PresetManagerDialog::setupUI()
     
     // Title
     QLabel* titleLabel = new QLabel(tr("📋 Scan Configuration Presets"), this);
-    titleLabel->setStyleSheet("font-size: 14pt; font-weight: bold; margin-bottom: 8px;");
+    // Apply theme-aware title styling
+    QFont titleFont = titleLabel->font();
+    titleFont.setPointSize(titleFont.pointSize() + 3);
+    titleFont.setBold(true);
+    titleLabel->setFont(titleFont);
     mainLayout->addWidget(titleLabel);
     
     // Splitter for list and details
@@ -53,28 +61,15 @@ void PresetManagerDialog::setupUI()
     listLayout->setSpacing(8);
     
     QLabel* listLabel = new QLabel(tr("Available Presets:"), this);
-    listLabel->setStyleSheet("font-weight: bold;");
+    // Apply theme-aware bold styling
+    QFont listFont = listLabel->font();
+    listFont.setBold(true);
+    listLabel->setFont(listFont);
     listLayout->addWidget(listLabel);
     
     m_presetList = new QListWidget(this);
     m_presetList->setAlternatingRowColors(true);
-    m_presetList->setStyleSheet(
-        "QListWidget {"
-        "    border: 1px solid palette(mid);"
-        "    border-radius: 4px;"
-        "    padding: 4px;"
-        "    background: palette(base);"
-        "}"
-        "QListWidget::item {"
-        "    padding: 8px;"
-        "    margin: 2px;"
-        "    border-radius: 3px;"
-        "}"
-        "QListWidget::item:selected {"
-        "    background: palette(highlight);"
-        "    color: palette(highlighted-text);"
-        "}"
-    );
+    // Theme-aware styling will be applied by ThemeManager
     listLayout->addWidget(m_presetList);
     
     // Buttons for list
@@ -88,26 +83,7 @@ void PresetManagerDialog::setupUI()
     m_deleteButton = new QPushButton(tr("🗑 Delete"), this);
     m_deleteButton->setToolTip(tr("Delete the selected preset"));
     
-    QString buttonStyle = 
-        "QPushButton {"
-        "    padding: 6px 12px;"
-        "    border: 1px solid palette(mid);"
-        "    border-radius: 4px;"
-        "    background: palette(button);"
-        "}"
-        "QPushButton:hover {"
-        "    background: palette(light);"
-        "    border-color: palette(highlight);"
-        "}"
-        "QPushButton:disabled {"
-        "    color: palette(mid);"
-        "    background: palette(window);"
-        "}"
-    ;
-    
-    m_newButton->setStyleSheet(buttonStyle);
-    m_editButton->setStyleSheet(buttonStyle);
-    m_deleteButton->setStyleSheet(buttonStyle);
+    // Theme-aware styling will be applied by ThemeManager
     
     listButtonLayout->addWidget(m_newButton);
     listButtonLayout->addWidget(m_editButton);
@@ -123,20 +99,18 @@ void PresetManagerDialog::setupUI()
     detailsLayout->setSpacing(8);
     
     QLabel* detailsLabel = new QLabel(tr("Preset Details:"), this);
-    detailsLabel->setStyleSheet("font-weight: bold;");
+    // Apply theme-aware bold styling
+    QFont detailsFont = detailsLabel->font();
+    detailsFont.setBold(true);
+    detailsLabel->setFont(detailsFont);
     detailsLayout->addWidget(detailsLabel);
     
     m_presetDetails = new QTextEdit(this);
     m_presetDetails->setReadOnly(true);
-    m_presetDetails->setStyleSheet(
-        "QTextEdit {"
-        "    border: 1px solid palette(mid);"
-        "    border-radius: 4px;"
-        "    padding: 8px;"
-        "    background: palette(base);"
-        "    font-family: monospace;"
-        "}"
-    );
+    // Set monospace font for better readability
+    QFont monoFont("monospace");
+    m_presetDetails->setFont(monoFont);
+    // Theme-aware styling will be applied by ThemeManager
     detailsLayout->addWidget(m_presetDetails);
     
     splitter->addWidget(listWidget);
@@ -154,47 +128,16 @@ void PresetManagerDialog::setupUI()
     m_loadButton->setToolTip(tr("Load the selected preset into scan configuration"));
     m_closeButton = new QPushButton(tr("Close"), this);
     
-    QString primaryButtonStyle = 
-        "QPushButton {"
-        "    background: palette(highlight);"
-        "    color: palette(highlighted-text);"
-        "    border: none;"
-        "    padding: 8px 16px;"
-        "    border-radius: 4px;"
-        "    font-weight: bold;"
-        "    min-width: 100px;"
-        "}"
-        "QPushButton:hover {"
-        "    background: palette(dark);"
-        "}"
-        "QPushButton:disabled {"
-        "    background: palette(mid);"
-        "    color: palette(window);"
-        "}"
-    ;
-    
-    QString normalButtonStyle = 
-        "QPushButton {"
-        "    padding: 8px 16px;"
-        "    border: 1px solid palette(mid);"
-        "    border-radius: 4px;"
-        "    background: palette(button);"
-        "    min-width: 80px;"
-        "}"
-        "QPushButton:hover {"
-        "    background: palette(light);"
-        "    border-color: palette(highlight);"
-        "}"
-    ;
-    
-    m_loadButton->setStyleSheet(primaryButtonStyle);
-    m_closeButton->setStyleSheet(normalButtonStyle);
+    // Theme-aware styling will be applied by ThemeManager
     
     bottomLayout->addStretch();
     bottomLayout->addWidget(m_loadButton);
     bottomLayout->addWidget(m_closeButton);
     
     mainLayout->addLayout(bottomLayout);
+    
+    // Enforce minimum sizes for all controls
+    ThemeManager::instance()->enforceMinimumSizes(this);
 }
 
 void PresetManagerDialog::setupConnections()

@@ -1,4 +1,5 @@
 #include "grouping_options_dialog.h"
+#include "theme_manager.h"
 #include <QApplication>
 
 GroupingOptionsDialog::GroupingOptionsDialog(QWidget* parent)
@@ -28,6 +29,9 @@ GroupingOptionsDialog::GroupingOptionsDialog(QWidget* parent)
 {
     setupUI();
     setupConnections();
+    
+    // Register with ThemeManager for automatic theme updates
+    ThemeManager::instance()->registerDialog(this);
     
     // Set default options
     GroupingOptions defaultOptions;
@@ -130,7 +134,8 @@ void GroupingOptionsDialog::setupUI() {
     auto* previewLayout = new QVBoxLayout(previewGroup);
     m_previewLabel = new QLabel(this);
     m_previewLabel->setWordWrap(true);
-    m_previewLabel->setStyleSheet("QLabel { background-color: palette(base); padding: 8px; border: 1px solid palette(mid); border-radius: 4px; }");
+    // Theme-aware styling applied by ThemeManager
+    m_previewLabel->setStyleSheet("padding: 8px; border-radius: 4px;");
     previewLayout->addWidget(m_previewLabel);
     mainLayout->addWidget(previewGroup);
 

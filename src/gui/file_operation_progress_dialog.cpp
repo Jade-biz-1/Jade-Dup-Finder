@@ -1,4 +1,5 @@
 #include "file_operation_progress_dialog.h"
+#include "theme_manager.h"
 #include <QGridLayout>
 #include <QGroupBox>
 #include <QApplication>
@@ -23,6 +24,9 @@ FileOperationProgressDialog::FileOperationProgressDialog(QWidget* parent)
     , m_updateTimer(new QTimer(this))
 {
     setupUI();
+    
+    // Register with ThemeManager for automatic theme updates
+    ThemeManager::instance()->registerDialog(this);
     connectSignals();
     resetDisplay();
 }
@@ -89,7 +93,9 @@ void FileOperationProgressDialog::setupUI() {
     infoLayout->addWidget(new QLabel(tr("Current file:"), this), 0, 0);
     m_currentFileLabel = new QLabel(tr("None"), this);
     m_currentFileLabel->setWordWrap(true);
-    m_currentFileLabel->setStyleSheet("QLabel { font-family: monospace; }");
+    // Apply monospace font for better path readability
+    QFont monoFont("monospace");
+    m_currentFileLabel->setFont(monoFont);
     infoLayout->addWidget(m_currentFileLabel, 0, 1);
     
     infoLayout->addWidget(new QLabel(tr("Time elapsed:"), this), 1, 0);
@@ -122,6 +128,9 @@ void FileOperationProgressDialog::setupUI() {
     buttonLayout->addWidget(m_closeButton);
     
     mainLayout->addLayout(buttonLayout);
+    
+    // Enforce minimum sizes for all controls
+    ThemeManager::instance()->enforceMinimumSizes(this);
 }
 
 void FileOperationProgressDialog::connectSignals() {

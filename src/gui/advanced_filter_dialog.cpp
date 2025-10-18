@@ -1,4 +1,5 @@
 #include "advanced_filter_dialog.h"
+#include "theme_manager.h"
 #include <QMessageBox>
 #include <QTime>
 #include <QInputDialog>
@@ -42,6 +43,9 @@ AdvancedFilterDialog::AdvancedFilterDialog(QWidget* parent)
 {
     setupUI();
     connectSignals();
+    
+    // Register with ThemeManager for automatic theme updates
+    ThemeManager::instance()->registerDialog(this);
 }
 
 void AdvancedFilterDialog::setupUI() {
@@ -706,4 +710,9 @@ void AdvancedFilterDialog::onPresetSelectionChanged() {
     bool hasSelection = m_presetCombo->currentIndex() > 0;
     m_loadPresetButton->setEnabled(hasSelection);
     m_deletePresetButton->setEnabled(hasSelection);
+}
+
+void AdvancedFilterDialog::updateSizeUnits()
+{
+    // TODO: Implement size units update
 }

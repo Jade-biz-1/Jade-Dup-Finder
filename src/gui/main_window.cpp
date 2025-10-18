@@ -6,6 +6,7 @@
 #include "restore_dialog.h"
 #include "safety_features_dialog.h"
 #include "file_scanner.h"
+#include "theme_manager.h"
 #include "app_config.h"
 #include "scan_history_manager.h"
 
@@ -83,6 +84,11 @@ MainWindow::MainWindow(QWidget *parent)
     
     // Initial system stats update
     QTimer::singleShot(1000, this, &MainWindow::refreshSystemStats);
+    
+    // Perform comprehensive theme compliance validation after UI is fully loaded
+    QTimer::singleShot(2000, []() {
+        ThemeManager::instance()->performThemeComplianceTest();
+    });
 }
 
 MainWindow::~MainWindow()
@@ -108,6 +114,9 @@ void MainWindow::setFileScanner(FileScanner* scanner)
             if (!m_scanProgressDialog) {
                 m_scanProgressDialog = new ScanProgressDialog(this);
                 
+                // Register with ThemeManager for automatic theme updates
+                ThemeManager::instance()->registerDialog(m_scanProgressDialog);
+                
                 // Connect pause/resume buttons to FileScanner
                 connect(m_scanProgressDialog, &ScanProgressDialog::pauseRequested, 
                         m_fileScanner, &FileScanner::pauseScan);
@@ -121,6 +130,9 @@ void MainWindow::setFileScanner(FileScanner* scanner)
                         this, [this]() {
                             if (!m_scanErrorDialog) {
                                 m_scanErrorDialog = new ScanErrorDialog(this);
+                                
+                                // Register with ThemeManager for automatic theme updates
+                                ThemeManager::instance()->registerDialog(m_scanErrorDialog);
                             }
                             
                             // Get current errors from FileScanner
@@ -474,6 +486,9 @@ void MainWindow::onRestoreRequested()
     // Create and show restore dialog
     RestoreDialog* restoreDialog = new RestoreDialog(m_safetyManager, this);
     
+    // Register with ThemeManager for automatic theme updates
+    ThemeManager::instance()->registerDialog(restoreDialog);
+    
     // Connect filesRestored signal
     connect(restoreDialog, &RestoreDialog::filesRestored,
             this, [this](const QStringList& backupPaths) {
@@ -579,6 +594,9 @@ void MainWindow::onViewAllHistoryClicked()
     
     // Create and show scan history dialog
     ScanHistoryDialog* historyDialog = new ScanHistoryDialog(this);
+    
+    // Register with ThemeManager for automatic theme updates
+    ThemeManager::instance()->registerDialog(historyDialog);
     
     // Connect signals
     connect(historyDialog, &ScanHistoryDialog::scanSelected,
@@ -738,6 +756,10 @@ void MainWindow::setupConnections()
     connect(m_systemUpdateTimer, &QTimer::timeout, this, &MainWindow::refreshSystemStats);
     
     // DuplicateDetector connections are set up in setDuplicateDetector() method
+    
+    // Theme manager connections
+    connect(ThemeManager::instance(), &ThemeManager::themeChanged,
+            this, &MainWindow::applyTheme);
 }
 
 void MainWindow::setupKeyboardShortcuts()
@@ -893,8 +915,8 @@ void MainWindow::updatePlanIndicator()
     // This will be updated based on license status
     if (m_planIndicator) {
         m_planIndicator->setText(tr("👤 Free Plan"));
-        // Use system colors for better theme compatibility
-        m_planIndicator->setStyleSheet("QLabel { color: palette(mid); font-weight: bold; }");
+        // Theme-aware styling applied by ThemeManager
+        m_planIndicator->setStyleSheet("font-weight: bold;");
     }
 }
 
@@ -1045,70 +1067,14 @@ void MainWindow::createStatusBar()
 
 void MainWindow::applyTheme()
 {
-    // Apply theme-aware styling using system palette colors
-    QString styleSheet = QString(R"(
-        QGroupBox {
-            font-weight: bold;
-            border: 1px solid palette(mid);
-            border-radius: 5px;
-            margin-top: 8px;
-            padding-top: 8px;
-            color: palette(window-text);
-        }
-        
-        QGroupBox::title {
-            subcontrol-origin: margin;
-            left: 10px;
-            padding: 0 8px 0 8px;
-            color: palette(window-text);
-        }
-        
-        QPushButton {
-            border: 1px solid palette(mid);
-            border-radius: 4px;
-            padding: 6px 12px;
-            background: palette(button);
-            color: palette(button-text);
-        }
-        
-        QPushButton:hover {
-            background: palette(light);
-            border-color: palette(highlight);
-        }
-        
-        QPushButton:pressed {
-            background: palette(midlight);
-        }
-        
-        QLabel {
-            color: palette(window-text);
-        }
-        
-        QListWidget {
-            background: palette(base);
-            color: palette(text);
-            border: 1px solid palette(mid);
-            border-radius: 3px;
-        }
-        
-        QListWidget::item:selected {
-            background: palette(highlight);
-            color: palette(highlighted-text);
-        }
-        
-        QProgressBar {
-            border: 1px solid palette(mid);
-            border-radius: 3px;
-            text-align: center;
-            color: palette(window-text);
-        }
-        
-        QProgressBar::chunk {
-            border-radius: 2px;
-        }
-    )");
+    // Apply theme using ThemeManager
+    ThemeManager::instance()->applyToWidget(this);
     
-    setStyleSheet(styleSheet);
+    // Force update of all child widgets
+    QList<QWidget*> children = findChildren<QWidget*>();
+    for (QWidget* child : children) {
+        child->update();
+    }
 }
 
 void MainWindow::loadSettings()

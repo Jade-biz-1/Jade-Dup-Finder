@@ -1,5 +1,6 @@
 #include "scan_scope_preview_widget.h"
 #include "core/logger.h"
+#include "theme_manager.h"
 #include <QtCore/QDir>
 #include <QtCore/QDirIterator>
 #include <QtCore/QFileInfo>
@@ -28,6 +29,9 @@ ScanScopePreviewWidget::ScanScopePreviewWidget(QWidget* parent)
     m_updateTimer->setSingleShot(true);
     m_updateTimer->setInterval(UPDATE_DELAY_MS);
     connect(m_updateTimer, &QTimer::timeout, this, &ScanScopePreviewWidget::performCalculation);
+    
+    // Register with ThemeManager for automatic theme updates
+    ThemeManager::instance()->registerCustomWidget(this, "ScanScopePreviewWidget");
 }
 
 ScanScopePreviewWidget::~ScanScopePreviewWidget()
@@ -111,6 +115,9 @@ void ScanScopePreviewWidget::setupUI()
     m_layout->addWidget(m_statusLabel);
     m_layout->addWidget(m_pathsTree);
     m_layout->addStretch();
+    
+    // Enforce minimum sizes for all controls
+    ThemeManager::instance()->enforceMinimumSizes(this);
 }
 
 void ScanScopePreviewWidget::updatePreview(const QStringList& targetPaths,
@@ -266,13 +273,9 @@ void ScanScopePreviewWidget::updateDisplay()
     // Update status
     if (!m_currentStats.errorMessage.isEmpty()) {
         m_statusLabel->setText(m_currentStats.errorMessage);
-        m_statusLabel->setStyleSheet(
-            "QLabel {"
-            "    color: #d32f2f;"
-            "    font-style: italic;"
-            "    padding: 4px;"
-            "}"
-        );
+        // Apply theme-aware error styling
+        m_statusLabel->setStyleSheet(ThemeManager::instance()->getStatusIndicatorStyle(ThemeManager::StatusType::Error) + 
+                                   " font-style: italic; padding: 4px;");
         m_statusLabel->setVisible(true);
     } else {
         m_statusLabel->setVisible(false);
@@ -289,10 +292,16 @@ void ScanScopePreviewWidget::updateDisplay()
         QDir dir(path);
         if (dir.exists()) {
             item->setText(1, tr("✓ Included"));
-            item->setForeground(1, QColor("#2e7d32"));
+            // Use theme-aware success color
+            QColor successColor = ThemeManager::instance()->currentTheme() == ThemeManager::Dark ? 
+                                QColor("#4CAF50") : QColor("#28a745");
+            item->setForeground(1, successColor);
         } else {
             item->setText(1, tr("✗ Not Found"));
-            item->setForeground(1, QColor("#d32f2f"));
+            // Use theme-aware error color
+            QColor errorColor = ThemeManager::instance()->currentTheme() == ThemeManager::Dark ? 
+                              QColor("#F44336") : QColor("#dc3545");
+            item->setForeground(1, errorColor);
         }
         
         item->setIcon(0, style()->standardIcon(QStyle::SP_DirIcon));
@@ -304,7 +313,10 @@ void ScanScopePreviewWidget::updateDisplay()
             QTreeWidgetItem* item = new QTreeWidgetItem(m_pathsTree);
             item->setText(0, path);
             item->setText(1, tr("⊘ Excluded"));
-            item->setForeground(1, QColor("#f57c00"));
+            // Use theme-aware warning color
+            QColor warningColor = ThemeManager::instance()->currentTheme() == ThemeManager::Dark ? 
+                                QColor("#FF9800") : QColor("#ffc107");
+            item->setForeground(1, warningColor);
             item->setIcon(0, style()->standardIcon(QStyle::SP_DirIcon));
         }
     }
