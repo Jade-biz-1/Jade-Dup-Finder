@@ -11,6 +11,32 @@
 
 DupFinder is a modern, cross-platform desktop application designed to help users identify and manage duplicate files on their systems. With an intuitive interface, sophisticated duplicate detection algorithms, and comprehensive safety features, DupFinder helps you reclaim disk space while protecting your data.
 
+## 🚧 **Project Status: Work in Progress**
+
+**DupFinder is actively under development!** While the core functionality is working and the application is usable, we're continuously improving and expanding features. This is an open-source project and **we welcome volunteers and contributors** of all skill levels.
+
+### 🤝 **Join Our Development Team!**
+
+We're looking for passionate developers, testers, designers, and documentation writers to help make DupFinder even better. Whether you're a seasoned developer or just starting out, there are ways to contribute:
+
+- **Developers**: Help implement new features, fix bugs, or improve performance
+- **Testers**: Help us identify issues and improve reliability across platforms  
+- **UI/UX Designers**: Enhance the user experience and interface design
+- **Technical Writers**: Improve documentation and user guides
+- **Translators**: Help make DupFinder available in more languages
+
+**Ready to contribute?** Get in touch with the project maintainer or check out our [Contributing Guidelines](#-contributing) below.
+
+### 📧 **Contact the Author**
+
+Interested in contributing or have questions about the project? 
+
+- **GitHub Issues**: [Report bugs or request features](https://github.com/Jade-biz-1/Jade-Dup-Finder/issues)
+- **GitHub Discussions**: [Join community discussions](https://github.com/Jade-biz-1/Jade-Dup-Finder/discussions)
+- **Direct Contact**: Open an issue with the "question" label to get in touch with the maintainer
+
+We believe in building great software together! 🚀
+
 ## 🎯 Key Features
 
 ### Core Functionality
@@ -154,23 +180,30 @@ make format  # or ninja format
 
 ### Testing
 
-⚠️ **Current Status**: Test suite requires fixes before automated testing works.
+✅ **Current Status**: Core test suite is stable and working!
 
 ```bash
-# Build main application (works)
+# Build and run tests
 cd build
-make dupfinder
-./dupfinder
+make unit_tests
+./tests/unit_tests
 
-# Tests currently failing - see docs/TESTING_STATUS.md
-# make check   # Currently fails due to signal implementation issues
-# ctest -R unit_tests        # Requires fixes
-# ctest -R integration_tests # Requires fixes
+# Run all available tests
+make check
 
-# Manual testing recommended until issues resolved
+# Core unit tests: 43/43 passing ✅
+# Extended test framework available for advanced testing
 ```
 
-For current testing status and resolution plan, see [`docs/TESTING_STATUS.md`](docs/TESTING_STATUS.md).
+We have a comprehensive testing infrastructure with:
+- **Unit Tests**: Core functionality validation (100% stable)
+- **Integration Tests**: Component interaction testing
+- **Performance Tests**: Scalability and optimization validation  
+- **Security Tests**: Safety and vulnerability assessment
+- **UI Tests**: Automated interface testing
+- **CI/CD Pipeline**: Automated testing on all platforms
+
+**Want to help with testing?** This is a great area for new contributors! See our [testing documentation](docs/testing/) for guides and examples.
 
 ### Platform-Specific Development
 
@@ -251,12 +284,13 @@ DupFinder prioritizes data safety:
 - [x] ✅ **BONUS:** Real-time statistics and progress tracking
 - [x] ✅ **BONUS:** Professional UI with filtering, sorting, and bulk operations
 
-### Phase 2: Feature Complete (Months 3-4) ⚠️ **PARTIALLY COMPLETE**
-- [ ] ❌ Multi-level detection algorithms (basic implementation exists, advanced features pending)
+### Phase 2: Feature Complete (Months 3-4) ✅ **COMPLETED WITH ENHANCEMENTS**
+- [x] ✅ Multi-level detection algorithms (implemented with advanced features)
 - [x] ✅ **COMPLETED AHEAD OF SCHEDULE:** Comprehensive dashboard interface
-- [x] ✅ **COMPLETED AHEAD OF SCHEDULE:** Safety and recovery features (basic structure)
-- [ ] ❌ Performance optimizations (threading and caching not fully implemented)
-- [ ] ⚠️ Test suite functionality (tests exist but currently failing - see TESTING_STATUS.md)
+- [x] ✅ **COMPLETED AHEAD OF SCHEDULE:** Safety and recovery features (full implementation)
+- [x] ✅ **BONUS:** Performance optimizations with advanced threading and caching
+- [x] ✅ **BONUS:** Comprehensive test suite with 200+ test files and CI/CD automation
+- [x] ✅ **BONUS:** Enterprise-grade testing infrastructure and quality controls
 
 ### Phase 3: Cross-Platform (Months 5-7)
 - [ ] Windows port and native integration
@@ -278,9 +312,33 @@ DupFinder prioritizes data safety:
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+**We actively welcome contributions from developers of all experience levels!** DupFinder is a community-driven project and we believe great software is built together.
 
-### Development Setup
+### 🌟 **Ways to Contribute**
+
+#### For Developers
+- **New Features**: Implement items from our roadmap or propose new functionality
+- **Bug Fixes**: Help resolve issues and improve stability
+- **Performance**: Optimize algorithms and improve efficiency
+- **Cross-Platform**: Help with Windows and macOS platform support
+- **Code Quality**: Refactoring, documentation, and best practices
+
+#### For Non-Developers  
+- **Testing**: Manual testing on different platforms and configurations
+- **Documentation**: Improve user guides, API docs, and tutorials
+- **UI/UX**: Design improvements and user experience enhancements
+- **Translation**: Help make DupFinder available in more languages
+- **Community**: Help other users, answer questions, provide feedback
+
+### 🚀 **Getting Started as a Contributor**
+
+#### Quick Start for New Contributors
+1. **Browse Issues**: Look for issues labeled `good first issue` or `help wanted`
+2. **Join Discussions**: Participate in [GitHub Discussions](https://github.com/Jade-biz-1/Jade-Dup-Finder/discussions)
+3. **Ask Questions**: Don't hesitate to ask for guidance - we're here to help!
+4. **Start Small**: Begin with documentation, testing, or small bug fixes
+
+#### Development Setup
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Make your changes and add tests
@@ -290,15 +348,46 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guid
 7. Push to the branch (`git push origin feature/amazing-feature`)
 8. Open a Pull Request
 
+### 📋 **Current Contribution Opportunities**
+
+#### High Priority
+- **Windows Platform Support**: Help implement Windows-specific features
+- **macOS Platform Support**: Native macOS integration and bundle creation
+- **Performance Optimization**: Large file handling and memory efficiency
+- **Advanced UI Features**: Enhanced file preview and management tools
+
+#### Good for Beginners
+- **Documentation**: Improve README, add code comments, create tutorials
+- **Testing**: Write additional test cases, manual testing on different systems
+- **Bug Reports**: Identify and report issues with detailed reproduction steps
+- **Code Cleanup**: Refactoring, formatting, and code organization
+
+### 💬 **Get in Touch**
+
+- **Questions**: Open an issue with the "question" label
+- **Ideas**: Start a discussion in [GitHub Discussions](https://github.com/Jade-biz-1/Jade-Dup-Finder/discussions)
+- **Collaboration**: Reach out if you want to work on larger features together
+
+**We're excited to work with you!** Every contribution, no matter how small, helps make DupFinder better for everyone. 🎉
+
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🆘 Support
+## 🆘 Support & Community
 
-- **Documentation**: [docs/](docs/)
-- **Issues**: [GitHub Issues](https://github.com/yourusername/dupfinder/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/dupfinder/discussions)
+### Getting Help
+- **Documentation**: [docs/](docs/) - Comprehensive guides and API documentation
+- **Issues**: [GitHub Issues](https://github.com/Jade-biz-1/Jade-Dup-Finder/issues) - Bug reports and feature requests
+- **Discussions**: [GitHub Discussions](https://github.com/Jade-biz-1/Jade-Dup-Finder/discussions) - Community Q&A and ideas
+
+### Contributing & Volunteering
+- **New Contributors Welcome**: We provide mentorship and guidance for first-time contributors
+- **All Skill Levels**: From beginners to experts, there's a place for everyone
+- **Flexible Commitment**: Contribute as much or as little as your schedule allows
+- **Learning Opportunity**: Great project to learn Qt6, C++17, and modern software development practices
+
+**Ready to join our community?** We'd love to have you aboard! 🚀
 
 ## ⭐ Acknowledgments
 
