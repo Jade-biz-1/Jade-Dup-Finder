@@ -1,5 +1,5 @@
 #include "scan_history_dialog.h"
-#include "core/logger.h"
+#include "logger.h"
 #include <QHeaderView>
 #include <QMessageBox>
 #include <QFileDialog>

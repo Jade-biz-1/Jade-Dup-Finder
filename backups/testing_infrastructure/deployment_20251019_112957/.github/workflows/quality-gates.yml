@@ -1,0 +1,325 @@
+name: Quality Gates
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [ main, develop ]
+
+env:
+  BUILD_TYPE: Release
+  QT_VERSION: 6.5.0
+
+jobs:
+  # Quality gate validation
+  quality-gates:
+    runs-on: ubuntu-latest
+    outputs:
+      quality-passed: ${{ steps.quality-check.outputs.passed }}
+      coverage-passed: ${{ steps.coverage-check.outputs.passed }}
+      performance-passed: ${{ steps.performance-check.outputs.passed }}
+      security-passed: ${{ steps.security-check.outputs.passed }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for better analysis
+
+      - name: Setup Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: ${{ env.QT_VERSION }}
+          cache: true
+
+      - name: Setup CMake
+        uses: jwlawson/actions-setup-cmake@v1.14
+        with:
+          cmake-version: '3.20'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            ninja-build \
+            libgl1-mesa-dev \
+            libxkbcommon-x11-0 \
+            libxcb-icccm4 \
+            libxcb-image0 \
+            libxcb-keysyms1 \
+            libxcb-randr0 \
+            libxcb-render-util0 \
+            libxcb-xinerama0 \
+            libxcb-xfixes0 \
+            xvfb \
+            gcovr \
+            cppcheck \
+            clang-tidy
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+            -DBUILD_TESTING=ON \
+            -DENABLE_COVERAGE=ON \
+            -DENABLE_STATIC_ANALYSIS=ON
+
+      - name: Build
+        run: cmake --build build --config ${{ env.BUILD_TYPE }} --parallel 4
+
+      - name: Run Unit Tests
+        run: |
+          xvfb-run -a ctest --test-dir build --output-on-failure --verbose -L "unit" --output-junit test-results/unit-tests.xml
+
+      - name: Run Integration Tests
+        run: |
+          xvfb-run -a ctest --test-dir build --output-on-failure --verbose -L "integration" --output-junit test-results/integration-tests.xml
+
+      - name: Generate Coverage Report
+        run: |
+          mkdir -p coverage-reports
+          gcovr --root . --build-root build \
+            --exclude-unreachable-branches \
+            --exclude-throw-branches \
+            --exclude 'tests/.*' \
+            --exclude 'third_party/.*' \
+            --html-details coverage-reports/coverage.html \
+            --xml coverage-reports/coverage.xml \
+            --json coverage-reports/coverage.json
+
+      - name: Run Static Analysis
+        run: |
+          mkdir -p analysis-reports
+          
+          # Run cppcheck
+          cppcheck --enable=all --xml --xml-version=2 \
+            --suppress=missingIncludeSystem \
+            --suppress=unusedFunction \
+            --suppress=unmatchedSuppression \
+            src/ include/ 2> analysis-reports/cppcheck.xml || true
+          
+          # Run clang-tidy (on a subset to avoid timeout)
+          find src -name "*.cpp" | head -10 | xargs clang-tidy \
+            -p build --format-style=file \
+            --export-fixes=analysis-reports/clang-tidy-fixes.yaml || true
+
+      - name: Security Scan
+        run: |
+          # Basic security checks
+          mkdir -p security-reports
+          
+          # Check for hardcoded secrets (basic patterns)
+          echo "Scanning for potential security issues..."
+          grep -r -n -i "password\|secret\|key\|token" src/ include/ || echo "No obvious secrets found"
+          
+          # Check file permissions
+          find . -type f -perm /o+w -not -path "./.git/*" > security-reports/world-writable-files.txt || true
+
+      - name: Quality Gate - Coverage Check
+        id: coverage-check
+        run: |
+          python3 scripts/ci/coverage-reporter.py trend --storage-dir ./coverage-reports --branch ${{ github.ref_name }} --output coverage-trend.json
+          
+          # Extract current coverage
+          COVERAGE=$(python3 -c "
+          import json
+          with open('coverage-trend.json', 'r') as f:
+              data = json.load(f)
+              print(data.get('statistics', {}).get('current_coverage', 0))
+          " 2>/dev/null || echo "0")
+          
+          echo "Current coverage: ${COVERAGE}%"
+          
+          # Check against threshold (85%)
+          if (( $(echo "$COVERAGE >= 85" | bc -l) )); then
+            echo "✅ Coverage check passed: ${COVERAGE}%"
+            echo "passed=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Coverage check failed: ${COVERAGE}% (minimum: 85%)"
+            echo "passed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Quality Gate - Performance Check
+        id: performance-check
+        run: |
+          # Run basic performance tests
+          xvfb-run -a ctest --test-dir build --verbose -L "performance" --timeout 300 || PERF_FAILED=true
+          
+          if [ "$PERF_FAILED" = "true" ]; then
+            echo "❌ Performance tests failed or timed out"
+            echo "passed=false" >> $GITHUB_OUTPUT
+          else
+            echo "✅ Performance tests passed"
+            echo "passed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Quality Gate - Security Check
+        id: security-check
+        run: |
+          SECURITY_ISSUES=0
+          
+          # Check for world-writable files
+          if [ -s security-reports/world-writable-files.txt ]; then
+            echo "❌ Found world-writable files:"
+            cat security-reports/world-writable-files.txt
+            SECURITY_ISSUES=$((SECURITY_ISSUES + 1))
+          fi
+          
+          # Check static analysis results
+          if [ -f analysis-reports/cppcheck.xml ]; then
+            ERROR_COUNT=$(grep -c '<error' analysis-reports/cppcheck.xml || echo "0")
+            if [ "$ERROR_COUNT" -gt 10 ]; then
+              echo "❌ Too many static analysis errors: $ERROR_COUNT"
+              SECURITY_ISSUES=$((SECURITY_ISSUES + 1))
+            fi
+          fi
+          
+          if [ "$SECURITY_ISSUES" -eq 0 ]; then
+            echo "✅ Security checks passed"
+            echo "passed=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Security checks failed: $SECURITY_ISSUES issues found"
+            echo "passed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Overall Quality Gate Check
+        id: quality-check
+        run: |
+          COVERAGE_PASSED="${{ steps.coverage-check.outputs.passed }}"
+          PERFORMANCE_PASSED="${{ steps.performance-check.outputs.passed }}"
+          SECURITY_PASSED="${{ steps.security-check.outputs.passed }}"
+          
+          echo "Quality Gate Results:"
+          echo "- Coverage: $COVERAGE_PASSED"
+          echo "- Performance: $PERFORMANCE_PASSED"
+          echo "- Security: $SECURITY_PASSED"
+          
+          if [ "$COVERAGE_PASSED" = "true" ] && [ "$PERFORMANCE_PASSED" = "true" ] && [ "$SECURITY_PASSED" = "true" ]; then
+            echo "✅ All quality gates passed"
+            echo "passed=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Quality gates failed"
+            echo "passed=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      - name: Upload Quality Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: quality-reports
+          path: |
+            coverage-reports/
+            analysis-reports/
+            security-reports/
+            test-results/
+          retention-days: 30
+
+      - name: Comment PR with Quality Results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            
+            let coverageData = {};
+            try {
+              coverageData = JSON.parse(fs.readFileSync('coverage-trend.json', 'utf8'));
+            } catch (e) {
+              console.log('Could not read coverage data');
+            }
+            
+            const coverage = coverageData.statistics?.current_coverage || 0;
+            const coveragePassed = '${{ steps.coverage-check.outputs.passed }}' === 'true';
+            const performancePassed = '${{ steps.performance-check.outputs.passed }}' === 'true';
+            const securityPassed = '${{ steps.security-check.outputs.passed }}' === 'true';
+            const overallPassed = '${{ steps.quality-check.outputs.passed }}' === 'true';
+            
+            const statusEmoji = overallPassed ? '✅' : '❌';
+            const coverageEmoji = coveragePassed ? '✅' : '❌';
+            const performanceEmoji = performancePassed ? '✅' : '❌';
+            const securityEmoji = securityPassed ? '✅' : '❌';
+            
+            const body = `## ${statusEmoji} Quality Gate Results
+            
+            | Check | Status | Details |
+            |-------|--------|---------|
+            | Coverage | ${coverageEmoji} | ${coverage.toFixed(1)}% (target: 85%) |
+            | Performance | ${performanceEmoji} | Performance tests ${performancePassed ? 'passed' : 'failed'} |
+            | Security | ${securityEmoji} | Security checks ${securityPassed ? 'passed' : 'failed'} |
+            
+            ${overallPassed ? 
+              '🎉 All quality gates passed! This PR is ready for review.' : 
+              '⚠️ Some quality gates failed. Please address the issues before merging.'
+            }
+            
+            [View detailed reports](${context.payload.repository.html_url}/actions/runs/${context.runId})
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+  # Deployment control job
+  deployment-gate:
+    needs: quality-gates
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+      - name: Check Quality Gates
+        run: |
+          if [ "${{ needs.quality-gates.outputs.quality-passed }}" != "true" ]; then
+            echo "❌ Deployment blocked: Quality gates failed"
+            echo "Coverage: ${{ needs.quality-gates.outputs.coverage-passed }}"
+            echo "Performance: ${{ needs.quality-gates.outputs.performance-passed }}"
+            echo "Security: ${{ needs.quality-gates.outputs.security-passed }}"
+            exit 1
+          else
+            echo "✅ Quality gates passed - deployment can proceed"
+          fi
+
+      - name: Create Deployment Issue on Failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = `Deployment Blocked - Quality Gates Failed`;
+            const body = `
+            # 🚫 Deployment Blocked
+            
+            Deployment to production has been blocked due to quality gate failures.
+            
+            ## Failed Checks
+            - Coverage: ${{ needs.quality-gates.outputs.coverage-passed }}
+            - Performance: ${{ needs.quality-gates.outputs.performance-passed }}
+            - Security: ${{ needs.quality-gates.outputs.security-passed }}
+            
+            ## Action Required
+            Please review and fix the failing quality checks before attempting deployment.
+            
+            **Build:** ${{ github.run_number }}
+            **Commit:** ${{ github.sha }}
+            **Workflow:** [View Run](${context.payload.repository.html_url}/actions/runs/${context.runId})
+            `;
+            
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: title,
+              body: body,
+              labels: ['deployment-blocked', 'quality-gate-failure']
+            });
+
+      - name: Notify Success
+        if: success()
+        run: |
+          echo "🚀 Quality gates passed - ready for deployment"
+          echo "All quality checks have been satisfied:"
+          echo "✅ Code coverage meets requirements"
+          echo "✅ Performance tests passed"
+          echo "✅ Security checks passed"

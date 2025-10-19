@@ -9,7 +9,7 @@
 #include <QWheelEvent>
 #include <QMouseEvent>
 #include <QToolTip>
-#include <QDebug>
+
 #include <QtMath>
 #include <QRandomGenerator>
 

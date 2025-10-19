@@ -1,5 +1,5 @@
 #include "scan_scope_preview_widget.h"
-#include "core/logger.h"
+#include "logger.h"
 #include "theme_manager.h"
 #include <QtCore/QDir>
 #include <QtCore/QDirIterator>

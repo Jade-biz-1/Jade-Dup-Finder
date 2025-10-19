@@ -175,7 +175,7 @@ private slots:
     void processScanQueue();
 
 private:
-    // TODO: Implement these methods
+    // Core scanning methods
     bool shouldIncludeFile(const QFileInfo& fileInfo) const;
     bool shouldScanDirectory(const QDir& directory) const;
     void scanDirectory(const QString& directoryPath);

@@ -1,6 +1,6 @@
 #include "settings_dialog.h"
 #include "theme_manager.h"
-#include "core/logger.h"
+#include "logger.h"
 #include <QSettings>
 #include <QFileDialog>
 #include <QStandardPaths>

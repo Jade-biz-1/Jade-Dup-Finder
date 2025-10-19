@@ -7,7 +7,7 @@
 #include "duplicate_relationship_widget.h"
 #include "smart_selection_dialog.h"
 #include "settings_dialog.h"
-#include "core/logger.h"
+#include "logger.h"
 #include "theme_manager.h"
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QMessageBox>
@@ -25,20 +25,9 @@
 #include <QtCore/QDir>
 #include <QtCore/QMimeDatabase>
 #include <QtCore/QStandardPaths>
-#include <QtCore/QDebug>
 
-// Undefine old AppConfig logging macros to use new Logger system
-#undef LOG_DEBUG
-#undef LOG_INFO
-#undef LOG_WARNING
-#undef LOG_ERROR
-#undef LOG_FILE
 
-// Redefine for ResultsWindow to use UI category
-#define LOG_DEBUG(msg) Logger::instance()->debug(LogCategories::UI, msg)
-#define LOG_INFO(msg) Logger::instance()->info(LogCategories::UI, msg)
-#define LOG_WARNING(msg) Logger::instance()->warning(LogCategories::UI, msg)
-#define LOG_ERROR(msg) Logger::instance()->error(LogCategories::UI, msg)
+// Logger macros are available from logger.h included above
 
 // Constants
 const QSize ResultsWindow::MIN_WINDOW_SIZE(800, 600);
@@ -602,7 +591,7 @@ void ResultsWindow::setupConnections()
     // Thumbnail timer
     connect(m_thumbnailTimer, &QTimer::timeout, this, [this]() {
         // Generate thumbnails in batches
-        qDebug() << "Generating thumbnails...";
+        LOG_DEBUG(LogCategories::UI, "Generating thumbnails batch");
     });
     
     // Thumbnail cache signals
@@ -864,7 +853,7 @@ void ResultsWindow::displayResults(const ScanResults& results)
 
 void ResultsWindow::displayDuplicateGroups(const QList<DuplicateDetector::DuplicateGroup>& groups)
 {
-    qDebug() << "ResultsWindow: Displaying" << groups.size() << "duplicate groups";
+    LOG_INFO(LogCategories::UI, QString("Displaying %1 duplicate groups").arg(groups.size()));
     
     // Convert DuplicateDetector groups to ResultsWindow format
     ScanResults results;
@@ -881,9 +870,10 @@ void ResultsWindow::displayDuplicateGroups(const QList<DuplicateDetector::Duplic
     results.calculateTotals();
     results.scanTime = QDateTime::currentDateTime();
     
-    qDebug() << "ResultsWindow: Converted" << results.duplicateGroups.size() << "groups";
-    qDebug() << "ResultsWindow: Total duplicates:" << results.totalDuplicatesFound;
-    qDebug() << "ResultsWindow: Potential savings:" << formatFileSize(results.potentialSavings);
+    LOG_INFO(LogCategories::UI, QString("Converted %1 groups, %2 total duplicates, %3 potential savings")
+             .arg(results.duplicateGroups.size())
+             .arg(results.totalDuplicatesFound)
+             .arg(formatFileSize(results.potentialSavings)));
     
     // Display the results
     displayResults(results);
@@ -892,7 +882,7 @@ void ResultsWindow::displayDuplicateGroups(const QList<DuplicateDetector::Duplic
 void ResultsWindow::setFileManager(FileManager* fileManager)
 {
     m_fileManager = fileManager;
-    qDebug() << "ResultsWindow: FileManager reference set";
+    LOG_DEBUG(LogCategories::UI, "FileManager reference set");
 }
 
 void ResultsWindow::convertDetectorGroupToDisplayGroup(const DuplicateDetector::DuplicateGroup& source, DuplicateGroup& target)
@@ -944,7 +934,7 @@ void ResultsWindow::updateStatisticsDisplay()
 
 void ResultsWindow::removeFilesFromDisplay(const QStringList& filePaths)
 {
-    qDebug() << "ResultsWindow: Removing" << filePaths.size() << "files from display";
+    LOG_INFO(LogCategories::UI, QString("Removing %1 files from display").arg(filePaths.size()));
     
     // Remove files from groups
     for (auto& group : m_currentResults.duplicateGroups) {
@@ -969,7 +959,7 @@ void ResultsWindow::removeFilesFromDisplay(const QStringList& filePaths)
     updateStatisticsDisplay();
     updateStatusBar();
     
-    qDebug() << "ResultsWindow: Remaining groups:" << m_currentResults.duplicateGroups.size();
+    LOG_DEBUG(LogCategories::UI, QString("Remaining groups: %1").arg(m_currentResults.duplicateGroups.size()));
 }
 
 void ResultsWindow::populateResultsTree()
@@ -1185,7 +1175,7 @@ int ResultsWindow::getSelectedFilesCount() const
 // Action slots (basic implementations)
 void ResultsWindow::refreshResults()
 {
-    qDebug() << "Refreshing results...";
+    LOG_DEBUG(LogCategories::UI, "Refreshing results display");
     populateResultsTree();
     updateStatusBar();
 }
@@ -1200,7 +1190,7 @@ void ResultsWindow::exportResults()
         return;
     }
     
-    qDebug() << "Exporting results to:" << fileName;
+    LOG_INFO(LogCategories::EXPORT, QString("Exporting results to: %1").arg(fileName));
     
     // Determine format from file extension
     QString format = "csv";
@@ -1240,7 +1230,7 @@ void ResultsWindow::exportResults()
     if (success) {
         QMessageBox::information(this, tr("Export Complete"), 
                                tr("Results exported successfully to:\n%1").arg(fileName));
-        qDebug() << "Export completed successfully:" << fileName;
+        LOG_INFO(LogCategories::EXPORT, QString("Export completed successfully: %1").arg(fileName));
         emit resultsExported(fileName);
     } else {
         QMessageBox::warning(this, tr("Export Warning"), 
@@ -1652,7 +1642,7 @@ void ResultsWindow::previewSelectedFile()
     }
     
     QString filePath = item->data(0, Qt::UserRole).toString();
-    qDebug() << "Preview file:" << filePath;
+    LOG_DEBUG(LogCategories::PREVIEW, QString("Preview file: %1").arg(filePath));
     
     if (!QFile::exists(filePath)) {
         QMessageBox::warning(this, tr("Preview Error"), 
@@ -2073,7 +2063,7 @@ bool ResultsWindow::matchesCurrentFilters(const DuplicateGroup& group) const
 // Progress dialog methods
 void ResultsWindow::showProgressDialog(const QString& title)
 {
-    qDebug() << "ResultsWindow: Show progress dialog:" << title;
+    LOG_DEBUG(LogCategories::UI, QString("Show progress dialog: %1").arg(title));
     
     if (m_progressBar) {
         m_progressBar->setVisible(true);
@@ -2087,7 +2077,7 @@ void ResultsWindow::showProgressDialog(const QString& title)
 
 void ResultsWindow::hideProgressDialog()
 {
-    qDebug() << "ResultsWindow: Hide progress dialog";
+    LOG_DEBUG(LogCategories::UI, "Hide progress dialog");
     
     if (m_progressBar) {
         m_progressBar->setVisible(false);
@@ -2101,14 +2091,14 @@ void ResultsWindow::hideProgressDialog()
 // Sorting and filtering methods
 void ResultsWindow::sortResults()
 {
-    qDebug() << "ResultsWindow: Sort results";
+    LOG_DEBUG(LogCategories::UI, "Sort results");
     
     if (!m_sortCombo) {
         return;
     }
     
     QString sortBy = m_sortCombo->currentText();
-    qDebug() << "Sorting by:" << sortBy;
+    LOG_DEBUG(LogCategories::UI, QString("Sorting by: %1").arg(sortBy));
     
     // Sort duplicate groups based on selected criteria
     if (sortBy.contains("Size")) {
@@ -2137,7 +2127,7 @@ void ResultsWindow::sortResults()
 
 void ResultsWindow::filterResults()
 {
-    qDebug() << "ResultsWindow: Filter results";
+    LOG_DEBUG(LogCategories::UI, "Filter results");
     
     // Apply current filter settings and refresh display
     populateResultsTree();
@@ -2147,7 +2137,7 @@ void ResultsWindow::filterResults()
 
 bool ResultsWindow::exportToCSV(QTextStream& out)
 {
-    qDebug() << "Exporting to CSV format";
+    LOG_INFO(LogCategories::EXPORT, "Exporting to CSV format");
     
     // Write CSV header
     out << "Group ID,File Path,File Name,Directory,Size (bytes),Size (formatted),Last Modified,Hash,Recommended Action\n";
@@ -2178,13 +2168,13 @@ bool ResultsWindow::exportToCSV(QTextStream& out)
         }
     }
     
-    qDebug() << "CSV export completed";
+    LOG_INFO(LogCategories::EXPORT, "CSV export completed");
     return true;
 }
 
 bool ResultsWindow::exportToJSON(QTextStream& out)
 {
-    qDebug() << "Exporting to JSON format";
+    LOG_INFO(LogCategories::EXPORT, "Exporting to JSON format");
     
     // Start JSON document
     out << "{\n";
@@ -2250,13 +2240,13 @@ bool ResultsWindow::exportToJSON(QTextStream& out)
     out << "  ]\n";
     out << "}\n";
     
-    qDebug() << "JSON export completed";
+    LOG_INFO(LogCategories::EXPORT, "JSON export completed");
     return true;
 }
 
 bool ResultsWindow::exportToText(QTextStream& out)
 {
-    qDebug() << "Exporting to text format";
+    LOG_INFO(LogCategories::EXPORT, "Exporting to text format");
     
     // Write header
     out << "===========================================\n";
@@ -2303,7 +2293,7 @@ bool ResultsWindow::exportToText(QTextStream& out)
     out << "End of Report\n";
     out << "===========================================\n";
     
-    qDebug() << "Text export completed";
+    LOG_INFO(LogCategories::EXPORT, "Text export completed");
     return true;
 }
 
@@ -2313,7 +2303,7 @@ bool ResultsWindow::exportToText(QTextStream& out)
 /*
 bool ResultsWindow::exportToHTML(QTextStream& out, const QString& fileName)
 {
-    qDebug() << "Exporting to HTML format with thumbnails";
+    LOG_INFO(LogCategories::EXPORT, "Exporting to HTML format with thumbnails");
     
     // Create directory for thumbnails
     QFileInfo fileInfo(fileName);
@@ -2548,7 +2538,7 @@ bool ResultsWindow::exportToHTML(QTextStream& out, const QString& fileName)
     out << "</body>\n";
     out << "</html>\n";
     
-    qDebug() << "HTML export completed with thumbnails";
+    LOG_INFO(LogCategories::EXPORT, "HTML export completed with thumbnails");
     return true;
 }
 
@@ -2578,7 +2568,7 @@ QString ResultsWindow::generateThumbnailForExport(const QString& filePath, const
     
     // Save thumbnail
     if (thumbnail.save(thumbnailPath, "JPEG", 85)) {
-        qDebug() << "Generated thumbnail:" << thumbnailPath;
+        LOG_DEBUG(LogCategories::PREVIEW, QString("Generated thumbnail: %1").arg(thumbnailPath));
         return thumbnailPath;
     } else {
         qWarning() << "Failed to save thumbnail:" << thumbnailPath;
@@ -2590,7 +2580,7 @@ QString ResultsWindow::generateThumbnailForExport(const QString& filePath, const
 
 void ResultsWindow::previewImageFile(const QString& filePath)
 {
-    qDebug() << "Previewing image file:" << filePath;
+    LOG_DEBUG(LogCategories::PREVIEW, QString("Previewing image file: %1").arg(filePath));
     
     QPixmap pixmap(filePath);
     if (pixmap.isNull()) {
@@ -2642,7 +2632,7 @@ void ResultsWindow::previewImageFile(const QString& filePath)
 
 void ResultsWindow::previewTextFile(const QString& filePath)
 {
-    qDebug() << "Previewing text file:" << filePath;
+    LOG_DEBUG(LogCategories::PREVIEW, QString("Previewing text file: %1").arg(filePath));
     
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
@@ -2703,7 +2693,7 @@ void ResultsWindow::previewTextFile(const QString& filePath)
 
 void ResultsWindow::showFileInfo(const QString& filePath)
 {
-    qDebug() << "Showing file info:" << filePath;
+    LOG_DEBUG(LogCategories::PREVIEW, QString("Showing file info: %1").arg(filePath));
     
     QFileInfo fileInfo(filePath);
     
@@ -3642,42 +3632,7 @@ QString ResultsWindow::getGroupKey(const DuplicateFile& file,
 // END OF TEMPORARILY DISABLED P3 METHODS
 // ============================================================================
 // Missing method implementations (stubs for now)
-void ResultsWindow::onUndoRequested()
-{
-    LOG_INFO("Undo requested");
-    // TODO: Implement undo functionality
-}
 
-void ResultsWindow::onRedoRequested()
-{
-    LOG_INFO("Redo requested");
-    // TODO: Implement redo functionality
-}
-
-void ResultsWindow::onInvertSelection()
-{
-    LOG_INFO("Invert selection requested");
-    // TODO: Implement selection inversion
-}
-
-void ResultsWindow::showGroupingOptions()
-{
-    LOG_INFO("Show grouping options requested");
-    // TODO: Implement grouping options dialog
-}
-
-void ResultsWindow::applyGrouping(const GroupingOptionsDialog::GroupingOptions& options)
-{
-    Q_UNUSED(options);
-    LOG_INFO("Apply grouping requested");
-    // TODO: Implement grouping application
-}
-
-void ResultsWindow::recordSelectionState(const QString& operation)
-{
-    LOG_INFO("Recording selection state for operation: " + operation);
-    // TODO: Implement selection state recording
-}
 
 void ResultsWindow::setupOperationQueue()
 {
@@ -3716,4 +3671,58 @@ void ResultsWindow::showFileInfo(const QString& filePath)
 {
     LOG_INFO("Showing file info for: " + filePath);
     // TODO: Implement file info display
+}
+
+void ResultsWindow::showAdvancedFilterDialog()
+{
+    LOG_INFO("Advanced filter dialog requested");
+    // TODO: Implement advanced filter dialog
+    QMessageBox::information(this, tr("Advanced Filter"), 
+                           tr("Advanced filter dialog not yet implemented."));
+}
+
+void ResultsWindow::showSmartSelectionDialog()
+{
+    LOG_INFO("Smart selection dialog requested");
+    // TODO: Implement smart selection dialog
+    QMessageBox::information(this, tr("Smart Selection"), 
+                           tr("Smart selection dialog not yet implemented."));
+}
+
+void ResultsWindow::onUndoRequested()
+{
+    LOG_INFO("Undo requested");
+    // TODO: Implement undo functionality
+}
+
+void ResultsWindow::onRedoRequested()
+{
+    LOG_INFO("Redo requested");
+    // TODO: Implement redo functionality
+}
+
+void ResultsWindow::onInvertSelection()
+{
+    LOG_INFO("Invert selection requested");
+    // TODO: Implement invert selection functionality
+}
+
+void ResultsWindow::showGroupingOptions()
+{
+    LOG_INFO("Grouping options requested");
+    // TODO: Implement grouping options dialog
+}
+
+void ResultsWindow::applyGrouping(const GroupingOptionsDialog::GroupingOptions& options)
+{
+    LOG_INFO("Apply grouping requested");
+    // TODO: Implement grouping application
+    Q_UNUSED(options)
+}
+
+void ResultsWindow::recordSelectionState(const QString& description)
+{
+    LOG_INFO("Record selection state requested");
+    // TODO: Implement selection state recording
+    Q_UNUSED(description)
 }

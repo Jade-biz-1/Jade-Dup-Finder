@@ -32,11 +32,11 @@
 #undef LOG_ERROR
 #undef LOG_FILE
 
-// Redefine for ResultsWindow to use UI category
-#define LOG_DEBUG(msg) Logger::instance()->debug(LogCategories::UI, msg)
-#define LOG_INFO(msg) Logger::instance()->info(LogCategories::UI, msg)
-#define LOG_WARNING(msg) Logger::instance()->warning(LogCategories::UI, msg)
-#define LOG_ERROR(msg) Logger::instance()->error(LogCategories::UI, msg)
+// Use UI-specific logging macros for ResultsWindow
+#define UI_LOG_DEBUG(msg) Logger::instance()->debug(LogCategories::UI, msg)
+#define UI_LOG_INFO(msg) Logger::instance()->info(LogCategories::UI, msg)
+#define UI_LOG_WARNING(msg) Logger::instance()->warning(LogCategories::UI, msg)
+#define UI_LOG_ERROR(msg) Logger::instance()->error(LogCategories::UI, msg)
 
 // Constants
 const QSize ResultsWindow::MIN_WINDOW_SIZE(800, 600);

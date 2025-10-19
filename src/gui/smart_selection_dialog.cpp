@@ -8,7 +8,7 @@
 #include <QDir>
 #include <QRegularExpression>
 #include <QTimer>
-#include <QDebug>
+
 #include <QtAlgorithms>
 
 // Static constants

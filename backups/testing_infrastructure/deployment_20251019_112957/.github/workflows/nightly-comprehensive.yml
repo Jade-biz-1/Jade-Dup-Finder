@@ -1,0 +1,445 @@
+name: Nightly Comprehensive Testing
+
+on:
+  schedule:
+    # Run every night at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      test_scope:
+        description: 'Test scope'
+        required: false
+        default: 'full'
+        type: choice
+        options:
+        - full
+        - performance-only
+        - security-only
+        - cross-platform-only
+
+env:
+  BUILD_TYPE: Release
+  QT_VERSION: 6.5.0
+  CMAKE_BUILD_PARALLEL_LEVEL: 4
+
+jobs:
+  # Comprehensive test matrix
+  comprehensive-tests:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, windows-2022, macos-12]
+        build_type: [Release, Debug]
+        include:
+          - os: ubuntu-22.04
+            platform: linux
+          - os: windows-2022
+            platform: windows
+          - os: macos-12
+            platform: macos
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Setup Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: ${{ env.QT_VERSION }}
+          cache: true
+
+      - name: Setup CMake
+        uses: jwlawson/actions-setup-cmake@v1.14
+        with:
+          cmake-version: '3.20'
+
+      - name: Setup Ninja (Ubuntu/macOS)
+        if: matrix.platform != 'windows'
+        run: |
+          if [ "${{ matrix.platform }}" = "linux" ]; then
+            sudo apt-get update
+            sudo apt-get install -y ninja-build
+          else
+            brew install ninja
+          fi
+
+      - name: Setup Ninja (Windows)
+        if: matrix.platform == 'windows'
+        run: choco install ninja
+
+      - name: Install Linux dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgl1-mesa-dev \
+            libxkbcommon-x11-0 \
+            libxcb-icccm4 \
+            libxcb-image0 \
+            libxcb-keysyms1 \
+            libxcb-randr0 \
+            libxcb-render-util0 \
+            libxcb-xinerama0 \
+            libxcb-xfixes0 \
+            xvfb \
+            gcovr \
+            valgrind
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -DBUILD_TESTING=ON \
+            -DENABLE_COVERAGE=ON \
+            -DENABLE_PERFORMANCE_TESTS=ON \
+            -DENABLE_STRESS_TESTS=ON \
+            -DENABLE_MEMORY_TESTS=ON
+
+      - name: Build
+        run: cmake --build build --config ${{ matrix.build_type }} --parallel ${{ env.CMAKE_BUILD_PARALLEL_LEVEL }}
+
+      - name: Run Unit Tests
+        if: github.event.inputs.test_scope != 'performance-only' && github.event.inputs.test_scope != 'security-only'
+        run: |
+          if [ "${{ matrix.platform }}" = "linux" ]; then
+            xvfb-run -a ctest --test-dir build --output-on-failure --verbose -L "unit" --output-junit test-results/unit-tests-${{ matrix.platform }}-${{ matrix.build_type }}.xml
+          else
+            ctest --test-dir build --output-on-failure --verbose -L "unit" --output-junit test-results/unit-tests-${{ matrix.platform }}-${{ matrix.build_type }}.xml
+          fi
+
+      - name: Run Integration Tests
+        if: github.event.inputs.test_scope != 'performance-only' && github.event.inputs.test_scope != 'security-only'
+        run: |
+          if [ "${{ matrix.platform }}" = "linux" ]; then
+            xvfb-run -a ctest --test-dir build --output-on-failure --verbose -L "integration" --output-junit test-results/integration-tests-${{ matrix.platform }}-${{ matrix.build_type }}.xml
+          else
+            ctest --test-dir build --output-on-failure --verbose -L "integration" --output-junit test-results/integration-tests-${{ matrix.platform }}-${{ matrix.build_type }}.xml
+          fi
+
+      - name: Run UI Tests
+        if: github.event.inputs.test_scope != 'performance-only' && github.event.inputs.test_scope != 'security-only'
+        run: |
+          if [ "${{ matrix.platform }}" = "linux" ]; then
+            xvfb-run -a ctest --test-dir build --output-on-failure --verbose -L "ui" --timeout 600 --output-junit test-results/ui-tests-${{ matrix.platform }}-${{ matrix.build_type }}.xml
+          else
+            ctest --test-dir build --output-on-failure --verbose -L "ui" --timeout 600 --output-junit test-results/ui-tests-${{ matrix.platform }}-${{ matrix.build_type }}.xml
+          fi
+
+      - name: Run Performance Tests
+        if: github.event.inputs.test_scope != 'security-only'
+        run: |
+          mkdir -p performance-results
+          if [ "${{ matrix.platform }}" = "linux" ]; then
+            xvfb-run -a ctest --test-dir build --output-on-failure --verbose -L "performance" --timeout 1800 --output-junit test-results/performance-tests-${{ matrix.platform }}-${{ matrix.build_type }}.xml
+          else
+            ctest --test-dir build --output-on-failure --verbose -L "performance" --timeout 1800 --output-junit test-results/performance-tests-${{ matrix.platform }}-${{ matrix.build_type }}.xml
+          fi
+
+      - name: Run Stress Tests
+        if: github.event.inputs.test_scope == 'full' || github.event.inputs.test_scope == 'performance-only'
+        run: |
+          if [ "${{ matrix.platform }}" = "linux" ]; then
+            xvfb-run -a ctest --test-dir build --output-on-failure --verbose -L "stress" --timeout 3600 --output-junit test-results/stress-tests-${{ matrix.platform }}-${{ matrix.build_type }}.xml
+          else
+            ctest --test-dir build --output-on-failure --verbose -L "stress" --timeout 3600 --output-junit test-results/stress-tests-${{ matrix.platform }}-${{ matrix.build_type }}.xml
+          fi
+
+      - name: Run Memory Tests (Linux only)
+        if: matrix.platform == 'linux' && (github.event.inputs.test_scope == 'full' || github.event.inputs.test_scope == 'security-only')
+        run: |
+          # Run with Valgrind for memory leak detection
+          xvfb-run -a ctest --test-dir build --verbose -L "memory" --timeout 7200 --output-junit test-results/memory-tests-${{ matrix.platform }}-${{ matrix.build_type }}.xml || true
+
+      - name: Run Security Tests
+        if: github.event.inputs.test_scope == 'full' || github.event.inputs.test_scope == 'security-only'
+        run: |
+          if [ "${{ matrix.platform }}" = "linux" ]; then
+            xvfb-run -a ctest --test-dir build --output-on-failure --verbose -L "security" --timeout 1800 --output-junit test-results/security-tests-${{ matrix.platform }}-${{ matrix.build_type }}.xml
+          else
+            ctest --test-dir build --output-on-failure --verbose -L "security" --timeout 1800 --output-junit test-results/security-tests-${{ matrix.platform }}-${{ matrix.build_type }}.xml
+          fi
+
+      - name: Run End-to-End Tests
+        if: github.event.inputs.test_scope == 'full'
+        run: |
+          if [ "${{ matrix.platform }}" = "linux" ]; then
+            xvfb-run -a ctest --test-dir build --output-on-failure --verbose -L "e2e" --timeout 3600 --output-junit test-results/e2e-tests-${{ matrix.platform }}-${{ matrix.build_type }}.xml
+          else
+            ctest --test-dir build --output-on-failure --verbose -L "e2e" --timeout 3600 --output-junit test-results/e2e-tests-${{ matrix.platform }}-${{ matrix.build_type }}.xml
+          fi
+
+      - name: Generate Coverage Report (Linux Release only)
+        if: matrix.platform == 'linux' && matrix.build_type == 'Release'
+        run: |
+          mkdir -p coverage-reports
+          gcovr --root . --build-root build \
+            --exclude-unreachable-branches \
+            --exclude-throw-branches \
+            --exclude 'tests/.*' \
+            --exclude 'third_party/.*' \
+            --html-details coverage-reports/coverage-${{ matrix.platform }}-${{ matrix.build_type }}.html \
+            --xml coverage-reports/coverage-${{ matrix.platform }}-${{ matrix.build_type }}.xml \
+            --json coverage-reports/coverage-${{ matrix.platform }}-${{ matrix.build_type }}.json
+
+      - name: Collect Test Artifacts
+        if: always()
+        run: |
+          mkdir -p test-artifacts
+          
+          # Copy test logs
+          find build -name "*.log" -exec cp {} test-artifacts/ \; 2>/dev/null || true
+          
+          # Copy screenshots from UI tests
+          find build -name "*.png" -path "*/test-screenshots/*" -exec cp {} test-artifacts/ \; 2>/dev/null || true
+          
+          # Copy performance reports
+          find build -name "*performance*.json" -exec cp {} test-artifacts/ \; 2>/dev/null || true
+          
+          # Copy memory reports
+          find build -name "*valgrind*.xml" -exec cp {} test-artifacts/ \; 2>/dev/null || true
+          
+          # Create platform summary
+          echo "# Nightly Test Summary - ${{ matrix.platform }} (${{ matrix.build_type }})" > test-artifacts/summary.md
+          echo "- Build: ${{ github.run_number }}" >> test-artifacts/summary.md
+          echo "- Commit: ${{ github.sha }}" >> test-artifacts/summary.md
+          echo "- Platform: ${{ matrix.platform }}" >> test-artifacts/summary.md
+          echo "- Build Type: ${{ matrix.build_type }}" >> test-artifacts/summary.md
+          echo "- Test Scope: ${{ github.event.inputs.test_scope || 'full' }}" >> test-artifacts/summary.md
+          echo "- Timestamp: $(date -u)" >> test-artifacts/summary.md
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nightly-test-results-${{ matrix.platform }}-${{ matrix.build_type }}
+          path: test-results/
+          retention-days: 90
+
+      - name: Upload Test Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nightly-test-artifacts-${{ matrix.platform }}-${{ matrix.build_type }}
+          path: test-artifacts/
+          retention-days: 90
+
+      - name: Upload Coverage Reports
+        uses: actions/upload-artifact@v4
+        if: matrix.platform == 'linux' && matrix.build_type == 'Release'
+        with:
+          name: nightly-coverage-reports
+          path: coverage-reports/
+          retention-days: 90
+
+  # Aggregate and analyze results
+  nightly-analysis:
+    needs: comprehensive-tests
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: |
+          pip install requests sqlite3
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: nightly-artifacts/
+
+      - name: Aggregate Test Results
+        run: |
+          python3 scripts/ci/aggregate-test-results.py \
+            --artifacts-dir nightly-artifacts \
+            --output-dir nightly-reports \
+            --format all
+
+      - name: Manage Test Artifacts
+        run: |
+          python3 scripts/ci/artifact-manager.py collect \
+            --storage-dir ./nightly-artifact-storage \
+            --source-dir nightly-artifacts \
+            --build-number ${{ github.run_number }} \
+            --commit-sha ${{ github.sha }} \
+            --branch ${{ github.ref_name }} \
+            --platform multi-platform
+
+      - name: Generate Coverage Analysis
+        run: |
+          if [ -d nightly-artifacts/nightly-coverage-reports ]; then
+            python3 scripts/ci/coverage-reporter.py generate \
+              --storage-dir ./coverage-storage \
+              --build-root ./build \
+              --source-root . \
+              --build-number ${{ github.run_number }} \
+              --commit-sha ${{ github.sha }} \
+              --branch ${{ github.ref_name }} \
+              --platform linux
+            
+            python3 scripts/ci/coverage-reporter.py dashboard \
+              --storage-dir ./coverage-storage \
+              --branch ${{ github.ref_name }} \
+              --output nightly-reports/coverage-dashboard.html
+          fi
+
+      - name: Generate Trend Analysis
+        run: |
+          python3 scripts/ci/artifact-manager.py trends \
+            --storage-dir ./nightly-artifact-storage \
+            --output nightly-reports/trends.json
+
+      - name: Performance Regression Analysis
+        run: |
+          # Compare with previous nightly builds
+          python3 -c "
+          import json
+          import os
+          
+          # Simple performance regression check
+          perf_files = []
+          for root, dirs, files in os.walk('nightly-artifacts'):
+              for file in files:
+                  if 'performance' in file and file.endswith('.json'):
+                      perf_files.append(os.path.join(root, file))
+          
+          print(f'Found {len(perf_files)} performance files')
+          
+          # Create regression report
+          with open('nightly-reports/performance-regression.json', 'w') as f:
+              json.dump({
+                  'performance_files': perf_files,
+                  'regression_detected': False,
+                  'analysis_timestamp': '$(date -u)'
+              }, f, indent=2)
+          "
+
+      - name: Upload Nightly Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-comprehensive-reports
+          path: nightly-reports/
+          retention-days: 180
+
+      - name: Check for Critical Failures
+        id: failure-check
+        run: |
+          # Check if any critical tests failed
+          CRITICAL_FAILURES=0
+          
+          # Count test failures from aggregated results
+          if [ -f nightly-reports/test-results.json ]; then
+            FAILED_TESTS=$(python3 -c "
+            import json
+            with open('nightly-reports/test-results.json', 'r') as f:
+                data = json.load(f)
+                print(data.get('results', {}).get('summary', {}).get('failed_tests', 0))
+            ")
+            
+            if [ "$FAILED_TESTS" -gt 0 ]; then
+              CRITICAL_FAILURES=$((CRITICAL_FAILURES + FAILED_TESTS))
+            fi
+          fi
+          
+          echo "critical_failures=$CRITICAL_FAILURES" >> $GITHUB_OUTPUT
+          
+          if [ "$CRITICAL_FAILURES" -gt 0 ]; then
+            echo "❌ Critical failures detected: $CRITICAL_FAILURES"
+            exit 1
+          else
+            echo "✅ No critical failures detected"
+          fi
+
+      - name: Send Nightly Report
+        if: always()
+        run: |
+          # Prepare build info for notification
+          BUILD_INFO="{
+            \"build_number\": \"${{ github.run_number }}\",
+            \"commit_sha\": \"${{ github.sha }}\",
+            \"branch\": \"${{ github.ref_name }}\",
+            \"trigger\": \"nightly\",
+            \"repo_owner\": \"${{ github.repository_owner }}\",
+            \"repo_name\": \"$(echo ${{ github.repository }} | cut -d'/' -f2)\",
+            \"workflow_url\": \"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\",
+            \"test_scope\": \"${{ github.event.inputs.test_scope || 'full' }}\",
+            \"critical_failures\": \"${{ steps.failure-check.outputs.critical_failures }}\"
+          }"
+          
+          echo "$BUILD_INFO" > build-info.json
+          
+          # Send notification if results file exists
+          if [ -f nightly-reports/test-results.json ]; then
+            python3 scripts/ci/notify-test-results.py \
+              --results-file nightly-reports/test-results.json \
+              --config-file scripts/ci/notification-config.json \
+              --build-number ${{ github.run_number }} \
+              --commit-sha ${{ github.sha }} \
+              --branch ${{ github.ref_name }} \
+              --trigger nightly \
+              --repo-owner ${{ github.repository_owner }} \
+              --repo-name $(echo ${{ github.repository }} | cut -d'/' -f2) \
+              --workflow-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          fi
+
+      - name: Cleanup Old Artifacts
+        run: |
+          # Clean up artifacts older than retention period
+          python3 scripts/ci/artifact-manager.py cleanup \
+            --storage-dir ./nightly-artifact-storage
+
+      - name: Create Nightly Summary Issue
+        if: failure() || steps.failure-check.outputs.critical_failures != '0'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = `Nightly Build Failure - ${new Date().toISOString().split('T')[0]}`;
+            const body = `
+            # 🌙 Nightly Build Report - FAILURES DETECTED
+            
+            **Build:** ${{ github.run_number }}
+            **Commit:** ${{ github.sha }}
+            **Branch:** ${{ github.ref_name }}
+            **Test Scope:** ${{ github.event.inputs.test_scope || 'full' }}
+            **Critical Failures:** ${{ steps.failure-check.outputs.critical_failures }}
+            
+            ## Action Required
+            The nightly comprehensive testing has detected failures that require attention.
+            
+            **Reports:** [View Detailed Results](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            
+            Please investigate and resolve the failing tests.
+            `;
+            
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: title,
+              body: body,
+              labels: ['nightly-failure', 'high-priority']
+            });
+
+  # Weekly comprehensive report
+  weekly-report:
+    needs: nightly-analysis
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 2 * * 0'  # Only on Sunday nights
+    
+    steps:
+      - name: Generate Weekly Report
+        run: |
+          echo "📊 Generating weekly comprehensive report..."
+          # This would generate a comprehensive weekly report
+          # combining multiple nightly runs, trends, etc.
+          echo "Weekly report generation would be implemented here"

@@ -1,6 +1,5 @@
 #include "ui_automation.h"
 #include <QApplication>
-#include <QDesktopWidget>
 #include <QScreen>
 #include <QWindow>
 #include <QSignalSpy>

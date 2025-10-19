@@ -137,6 +137,8 @@ public slots:
     void selectBySize(qint64 minSize);
     void selectByType(const QString& fileType);
     void selectRecommended();
+    void showAdvancedFilterDialog();
+    void showSmartSelectionDialog();
     
     // Selection history slots (Task 17)
     void onUndoRequested();

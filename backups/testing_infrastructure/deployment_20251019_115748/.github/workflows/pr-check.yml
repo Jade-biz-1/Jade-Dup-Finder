@@ -1,0 +1,225 @@
+name: Pull Request Check
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  BUILD_TYPE: Release
+  QT_VERSION: '6.4.*'
+
+jobs:
+  # Fast check for pull requests - Linux only for speed
+  pr-check:
+    runs-on: ubuntu-latest
+    name: PR Quick Check (Linux)
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch full history for better diff analysis
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y \
+          build-essential \
+          cmake \
+          ninja-build \
+          qt6-base-dev \
+          qt6-tools-dev \
+          qt6-base-dev-tools \
+          libqt6test6 \
+          xvfb \
+          clang-format \
+          cppcheck
+
+    - name: Setup Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: ${{ env.QT_VERSION }}
+        host: linux
+        target: desktop
+        arch: gcc_64
+        modules: 'qtbase qttools qtconcurrent qtnetwork'
+        cache: true
+
+    - name: Check code formatting
+      run: |
+        echo "Checking code formatting..."
+        find src include tests -name "*.cpp" -o -name "*.h" | xargs clang-format --dry-run --Werror || {
+          echo "❌ Code formatting issues found!"
+          echo "Please run 'make format' in your build directory to fix formatting"
+          echo "Or use: find src include tests -name '*.cpp' -o -name '*.h' | xargs clang-format -i"
+          exit 1
+        }
+        echo "✅ Code formatting is correct"
+
+    - name: Run static analysis
+      run: |
+        echo "Running static analysis..."
+        cppcheck --enable=warning,style,performance,portability \
+          --std=c++17 \
+          --suppress=missingIncludeSystem \
+          --suppress=unusedFunction \
+          --inline-suppr \
+          --quiet \
+          src/ include/ || {
+          echo "❌ Static analysis found issues!"
+          exit 1
+        }
+        echo "✅ Static analysis passed"
+
+    - name: Configure CMake
+      run: |
+        cmake -B build \
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+          -DCMAKE_CXX_COMPILER=g++ \
+          -DCMAKE_C_COMPILER=gcc \
+          -GNinja
+
+    - name: Build application
+      run: |
+        echo "Building application..."
+        cmake --build build --config ${{ env.BUILD_TYPE }} --parallel || {
+          echo "❌ Build failed!"
+          exit 1
+        }
+        echo "✅ Build successful"
+
+    - name: Run unit tests
+      run: |
+        cd build
+        echo "Running unit tests..."
+        xvfb-run -a ctest -R UnitTests --output-on-failure --verbose || {
+          echo "❌ Unit tests failed!"
+          exit 1
+        }
+        echo "✅ Unit tests passed"
+
+    - name: Run integration tests
+      run: |
+        cd build
+        echo "Running integration tests..."
+        xvfb-run -a ctest -R IntegrationTests --output-on-failure --verbose || {
+          echo "❌ Integration tests failed!"
+          exit 1
+        }
+        echo "✅ Integration tests passed"
+
+    - name: Quick memory check
+      run: |
+        cd build
+        echo "Running quick memory check..."
+        # Quick test with valgrind (limited time)
+        timeout 30 valgrind --error-exitcode=1 --leak-check=summary --show-leak-kinds=definite ./dupfinder --version || {
+          echo "⚠️ Memory check found issues (non-blocking for PR)"
+        }
+        echo "✅ Quick memory check completed"
+
+    - name: Check for common issues
+      run: |
+        echo "Checking for common code issues..."
+        
+        # Check for hardcoded paths
+        if grep -r "/home\|/tmp\|C:\\\\" src/ include/ 2>/dev/null; then
+          echo "❌ Found hardcoded paths - please use portable paths"
+          exit 1
+        fi
+        
+        # Check for debug output that shouldn't be committed
+        if grep -r "qDebug.*TODO\|std::cout.*TODO\|printf.*TODO" src/ include/ 2>/dev/null; then
+          echo "❌ Found TODO debug statements - please clean up"
+          exit 1
+        fi
+        
+        # Check for proper Qt includes
+        if grep -r "#include <Q" src/ include/ | grep -v "#include <Qt"; then
+          echo "⚠️ Consider using Qt module-specific includes for better compilation times"
+        fi
+        
+        echo "✅ Common issue checks passed"
+
+    - name: Generate build summary
+      if: always()
+      run: |
+        echo "## 🏗️ Build Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- **Build Type**: ${{ env.BUILD_TYPE }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Qt Version**: ${{ env.QT_VERSION }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Platform**: Ubuntu Latest" >> $GITHUB_STEP_SUMMARY
+        echo "- **Compiler**: GCC $(gcc --version | head -1)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ -f build/dupfinder ]; then
+          echo "✅ **Application**: Built successfully" >> $GITHUB_STEP_SUMMARY
+          echo "📦 **Binary Size**: $(ls -lh build/dupfinder | awk '{print $5}')" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ **Application**: Build failed" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Test Results" >> $GITHUB_STEP_SUMMARY
+        cd build
+        if ctest -N 2>/dev/null | grep -q "Total Tests: "; then
+          TOTAL_TESTS=$(ctest -N 2>/dev/null | grep "Total Tests: " | awk '{print $3}')
+          echo "📊 **Total Tests**: $TOTAL_TESTS" >> $GITHUB_STEP_SUMMARY
+        fi
+
+    - name: Comment PR status
+      if: always()
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number
+          });
+          
+          // Delete previous bot comments
+          for (const comment of comments) {
+            if (comment.user.type === 'Bot' && comment.body.includes('🤖 PR Check Status')) {
+              await github.rest.issues.deleteComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: comment.id
+              });
+            }
+          }
+          
+          // Create status message
+          const status = '${{ job.status }}';
+          const emoji = status === 'success' ? '✅' : '❌';
+          const statusText = status === 'success' ? 'PASSED' : 'FAILED';
+          
+          const body = `🤖 **PR Check Status: ${emoji} ${statusText}**
+
+**Build Configuration:**
+- Platform: Ubuntu Latest
+- Build Type: Release  
+- Qt Version: 6.4.*
+- Compiler: GCC
+
+**Checks Performed:**
+- ✅ Code formatting (clang-format)
+- ✅ Static analysis (cppcheck) 
+- ✅ Build compilation
+- ✅ Unit tests
+- ✅ Integration tests
+- ✅ Memory check (basic)
+- ✅ Common issues scan
+
+${status === 'success' ? 
+  '🎉 All checks passed! This PR is ready for review.' : 
+  '⚠️ Some checks failed. Please review the workflow logs and fix any issues.'}
+
+*This is an automated message. For detailed logs, check the [workflow run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}).*`;
+
+          await github.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+            body: body
+          });

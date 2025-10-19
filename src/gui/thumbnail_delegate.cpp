@@ -8,7 +8,7 @@
 #include <QtGui/QPainter>
 #include <QtGui/QPixmap>
 #include <QtCore/QFileInfo>
-#include <QtCore/QDebug>
+
 
 ThumbnailDelegate::ThumbnailDelegate(ThumbnailCache* cache, QObject* parent)
     : QStyledItemDelegate(parent)

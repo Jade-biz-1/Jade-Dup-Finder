@@ -1,0 +1,395 @@
+name: Automated Testing Suite
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run nightly comprehensive tests at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      test_category:
+        description: 'Test category to run'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+        - all
+        - unit
+        - integration
+        - ui
+        - performance
+        - e2e
+      platform:
+        description: 'Platform to test'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+        - all
+        - ubuntu
+        - windows
+        - macos
+
+env:
+  BUILD_TYPE: Release
+  QT_VERSION: 6.5.0
+  CMAKE_BUILD_PARALLEL_LEVEL: 4
+
+jobs:
+  # Job to determine test matrix based on trigger
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      test-category: ${{ steps.set-category.outputs.category }}
+      is-nightly: ${{ steps.check-schedule.outputs.is-nightly }}
+    steps:
+      - name: Check if nightly build
+        id: check-schedule
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            echo "is-nightly=true" >> $GITHUB_OUTPUT
+          else
+            echo "is-nightly=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set test category
+        id: set-category
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            echo "category=all" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "category=${{ github.event.inputs.test_category }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "category=unit,integration" >> $GITHUB_OUTPUT
+          else
+            echo "category=unit,integration,ui" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set platform matrix
+        id: set-matrix
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            # Nightly: test all platforms
+            echo 'matrix={"os": ["ubuntu-22.04", "windows-2022", "macos-12"], "include": [{"os": "ubuntu-22.04", "platform": "linux"}, {"os": "windows-2022", "platform": "windows"}, {"os": "macos-12", "platform": "macos"}]}' >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.platform }}" != "all" ]; then
+            # Manual dispatch with specific platform
+            case "${{ github.event.inputs.platform }}" in
+              ubuntu) echo 'matrix={"os": ["ubuntu-22.04"], "include": [{"os": "ubuntu-22.04", "platform": "linux"}]}' >> $GITHUB_OUTPUT ;;
+              windows) echo 'matrix={"os": ["windows-2022"], "include": [{"os": "windows-2022", "platform": "windows"}]}' >> $GITHUB_OUTPUT ;;
+              macos) echo 'matrix={"os": ["macos-12"], "include": [{"os": "macos-12", "platform": "macos"}]}' >> $GITHUB_OUTPUT ;;
+              *) echo 'matrix={"os": ["ubuntu-22.04", "windows-2022", "macos-12"], "include": [{"os": "ubuntu-22.04", "platform": "linux"}, {"os": "windows-2022", "platform": "windows"}, {"os": "macos-12", "platform": "macos"}]}' >> $GITHUB_OUTPUT ;;
+            esac
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            # PR: test only Ubuntu for speed
+            echo 'matrix={"os": ["ubuntu-22.04"], "include": [{"os": "ubuntu-22.04", "platform": "linux"}]}' >> $GITHUB_OUTPUT
+          else
+            # Push: test Ubuntu and Windows
+            echo 'matrix={"os": ["ubuntu-22.04", "windows-2022"], "include": [{"os": "ubuntu-22.04", "platform": "linux"}, {"os": "windows-2022", "platform": "windows"}]}' >> $GITHUB_OUTPUT
+          fi
+
+  # Main testing job
+  test:
+    needs: setup
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: ${{ env.QT_VERSION }}
+          cache: true
+
+      - name: Setup CMake
+        uses: jwlawson/actions-setup-cmake@v1.14
+        with:
+          cmake-version: '3.20'
+
+      - name: Setup Ninja (Ubuntu/macOS)
+        if: matrix.platform != 'windows'
+        run: |
+          if [ "${{ matrix.platform }}" = "linux" ]; then
+            sudo apt-get update
+            sudo apt-get install -y ninja-build
+          else
+            brew install ninja
+          fi
+
+      - name: Setup Ninja (Windows)
+        if: matrix.platform == 'windows'
+        run: |
+          choco install ninja
+
+      - name: Install Linux dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgl1-mesa-dev \
+            libxkbcommon-x11-0 \
+            libxcb-icccm4 \
+            libxcb-image0 \
+            libxcb-keysyms1 \
+            libxcb-randr0 \
+            libxcb-render-util0 \
+            libxcb-xinerama0 \
+            libxcb-xfixes0 \
+            xvfb
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+            -DBUILD_TESTING=ON \
+            -DENABLE_COVERAGE=ON \
+            -DENABLE_PERFORMANCE_TESTS=${{ needs.setup.outputs.is-nightly == 'true' && 'ON' || 'OFF' }}
+
+      - name: Build
+        run: cmake --build build --config ${{ env.BUILD_TYPE }} --parallel ${{ env.CMAKE_BUILD_PARALLEL_LEVEL }}
+
+      - name: Setup test environment
+        run: |
+          mkdir -p test-results
+          mkdir -p test-artifacts
+          mkdir -p coverage-reports
+
+      - name: Run Unit Tests
+        if: contains(needs.setup.outputs.test-category, 'unit') || contains(needs.setup.outputs.test-category, 'all')
+        run: |
+          if [ "${{ matrix.platform }}" = "linux" ]; then
+            xvfb-run -a ctest --test-dir build --output-on-failure --verbose -L "unit" --output-junit test-results/unit-tests.xml
+          else
+            ctest --test-dir build --output-on-failure --verbose -L "unit" --output-junit test-results/unit-tests.xml
+          fi
+
+      - name: Run Integration Tests
+        if: contains(needs.setup.outputs.test-category, 'integration') || contains(needs.setup.outputs.test-category, 'all')
+        run: |
+          if [ "${{ matrix.platform }}" = "linux" ]; then
+            xvfb-run -a ctest --test-dir build --output-on-failure --verbose -L "integration" --output-junit test-results/integration-tests.xml
+          else
+            ctest --test-dir build --output-on-failure --verbose -L "integration" --output-junit test-results/integration-tests.xml
+          fi
+
+      - name: Run UI Tests
+        if: contains(needs.setup.outputs.test-category, 'ui') || contains(needs.setup.outputs.test-category, 'all')
+        run: |
+          if [ "${{ matrix.platform }}" = "linux" ]; then
+            xvfb-run -a ctest --test-dir build --output-on-failure --verbose -L "ui" --output-junit test-results/ui-tests.xml
+          else
+            ctest --test-dir build --output-on-failure --verbose -L "ui" --output-junit test-results/ui-tests.xml
+          fi
+
+      - name: Run Performance Tests
+        if: (contains(needs.setup.outputs.test-category, 'performance') || contains(needs.setup.outputs.test-category, 'all')) && needs.setup.outputs.is-nightly == 'true'
+        run: |
+          if [ "${{ matrix.platform }}" = "linux" ]; then
+            xvfb-run -a ctest --test-dir build --output-on-failure --verbose -L "performance" --output-junit test-results/performance-tests.xml
+          else
+            ctest --test-dir build --output-on-failure --verbose -L "performance" --output-junit test-results/performance-tests.xml
+          fi
+
+      - name: Run End-to-End Tests
+        if: (contains(needs.setup.outputs.test-category, 'e2e') || contains(needs.setup.outputs.test-category, 'all')) && needs.setup.outputs.is-nightly == 'true'
+        run: |
+          if [ "${{ matrix.platform }}" = "linux" ]; then
+            xvfb-run -a ctest --test-dir build --output-on-failure --verbose -L "e2e" --output-junit test-results/e2e-tests.xml
+          else
+            ctest --test-dir build --output-on-failure --verbose -L "e2e" --output-junit test-results/e2e-tests.xml
+          fi
+
+      - name: Generate Coverage Report (Linux only)
+        if: matrix.platform == 'linux'
+        run: |
+          # Install gcovr if not available
+          pip install gcovr
+          
+          # Generate coverage reports
+          gcovr --root . --build-root build \
+            --exclude-unreachable-branches \
+            --exclude-throw-branches \
+            --exclude 'tests/.*' \
+            --exclude 'third_party/.*' \
+            --html-details coverage-reports/coverage.html \
+            --xml coverage-reports/coverage.xml \
+            --txt coverage-reports/coverage.txt
+
+      - name: Collect Test Artifacts
+        if: always()
+        run: |
+          # Copy test logs
+          find build -name "*.log" -exec cp {} test-artifacts/ \; 2>/dev/null || true
+          
+          # Copy screenshots from UI tests
+          find build -name "*.png" -path "*/test-screenshots/*" -exec cp {} test-artifacts/ \; 2>/dev/null || true
+          
+          # Copy performance reports
+          find build -name "*performance*.json" -exec cp {} test-artifacts/ \; 2>/dev/null || true
+          
+          # Create test summary
+          echo "# Test Summary for ${{ matrix.platform }}" > test-artifacts/summary.md
+          echo "- Build: ${{ github.run_number }}" >> test-artifacts/summary.md
+          echo "- Commit: ${{ github.sha }}" >> test-artifacts/summary.md
+          echo "- Platform: ${{ matrix.platform }}" >> test-artifacts/summary.md
+          echo "- Test Category: ${{ needs.setup.outputs.test-category }}" >> test-artifacts/summary.md
+          echo "- Timestamp: $(date -u)" >> test-artifacts/summary.md
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ matrix.platform }}
+          path: test-results/
+          retention-days: 30
+
+      - name: Upload Test Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-artifacts-${{ matrix.platform }}
+          path: test-artifacts/
+          retention-days: 30
+
+      - name: Upload Coverage Reports
+        uses: actions/upload-artifact@v4
+        if: matrix.platform == 'linux'
+        with:
+          name: coverage-reports
+          path: coverage-reports/
+          retention-days: 30
+
+      - name: Publish Test Results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Test Results (${{ matrix.platform }})
+          path: test-results/*.xml
+          reporter: java-junit
+          fail-on-error: false
+
+  # Aggregate results and send notifications
+  aggregate-results:
+    needs: [setup, test]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: Aggregate test results
+        run: |
+          mkdir -p aggregated-results
+          
+          # Combine all test result files
+          find artifacts -name "*.xml" -exec cp {} aggregated-results/ \;
+          
+          # Create aggregated summary
+          echo "# Aggregated Test Results" > aggregated-results/summary.md
+          echo "- Build: ${{ github.run_number }}" >> aggregated-results/summary.md
+          echo "- Commit: ${{ github.sha }}" >> aggregated-results/summary.md
+          echo "- Trigger: ${{ github.event_name }}" >> aggregated-results/summary.md
+          echo "- Test Category: ${{ needs.setup.outputs.test-category }}" >> aggregated-results/summary.md
+          echo "- Platforms: ${{ join(fromJson(needs.setup.outputs.matrix).os, ', ') }}" >> aggregated-results/summary.md
+          echo "- Timestamp: $(date -u)" >> aggregated-results/summary.md
+          echo "" >> aggregated-results/summary.md
+          
+          # Count test results
+          total_tests=0
+          passed_tests=0
+          failed_tests=0
+          
+          for xml_file in aggregated-results/*.xml; do
+            if [ -f "$xml_file" ]; then
+              tests=$(grep -o 'tests="[0-9]*"' "$xml_file" | grep -o '[0-9]*' || echo "0")
+              failures=$(grep -o 'failures="[0-9]*"' "$xml_file" | grep -o '[0-9]*' || echo "0")
+              errors=$(grep -o 'errors="[0-9]*"' "$xml_file" | grep -o '[0-9]*' || echo "0")
+              
+              total_tests=$((total_tests + tests))
+              failed_tests=$((failed_tests + failures + errors))
+            fi
+          done
+          
+          passed_tests=$((total_tests - failed_tests))
+          
+          echo "## Results Summary" >> aggregated-results/summary.md
+          echo "- Total Tests: $total_tests" >> aggregated-results/summary.md
+          echo "- Passed: $passed_tests" >> aggregated-results/summary.md
+          echo "- Failed: $failed_tests" >> aggregated-results/summary.md
+          
+          if [ $failed_tests -gt 0 ]; then
+            echo "❌ Tests failed" >> aggregated-results/summary.md
+            echo "TESTS_FAILED=true" >> $GITHUB_ENV
+          else
+            echo "✅ All tests passed" >> aggregated-results/summary.md
+            echo "TESTS_FAILED=false" >> $GITHUB_ENV
+          fi
+
+      - name: Upload Aggregated Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: aggregated-test-results
+          path: aggregated-results/
+          retention-days: 90
+
+      - name: Comment PR with results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const summary = fs.readFileSync('aggregated-results/summary.md', 'utf8');
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });
+
+      - name: Send failure notification
+        if: env.TESTS_FAILED == 'true' && (github.event_name == 'push' || github.event_name == 'schedule')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = `Test Failure - ${context.eventName} on ${context.ref}`;
+            const body = `
+            Tests failed in build #${context.runNumber}
+            
+            - Commit: ${context.sha}
+            - Branch: ${context.ref}
+            - Trigger: ${context.eventName}
+            - Workflow: ${context.workflow}
+            
+            Please check the [workflow run](${context.payload.repository.html_url}/actions/runs/${context.runId}) for details.
+            `;
+            
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: title,
+              body: body,
+              labels: ['bug', 'ci-failure']
+            });
+
+      - name: Set job status
+        if: always()
+        run: |
+          if [ "$TESTS_FAILED" = "true" ]; then
+            echo "Tests failed - marking job as failed"
+            exit 1
+          else
+            echo "All tests passed"
+          fi
