@@ -3,7 +3,7 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QSettings>
-#include <QtCore/QDebug>
+#include "logger.h"
 
 /**
  * @brief Application-wide configuration and settings
@@ -36,7 +36,7 @@ public:
     // Convenience logging macros
     void logDebug(const QString& message) const {
         if (m_verboseLogging) {
-            qDebug() << "[DEBUG]" << message;
+            LOG_DEBUG(LogCategories::CONFIG, message);
         }
     }
     
@@ -54,7 +54,7 @@ public:
     
     void logFileProgress(const QString& operation, const QString& filePath) const {
         if (m_fileProgressLogging) {
-            qDebug() << "[FILE]" << operation << ":" << filePath;
+            LOG_DEBUG(LogCategories::FILE_OPS, QString("%1: %2").arg(operation, filePath));
         }
     }
     
@@ -87,11 +87,12 @@ private:
     AppConfig& operator=(const AppConfig&) = delete;
 };
 
-// Convenience macros for logging
-#define LOG_DEBUG(msg) AppConfig::instance().logDebug(msg)
-#define LOG_INFO(msg) AppConfig::instance().logInfo(msg)
-#define LOG_WARNING(msg) AppConfig::instance().logWarning(msg)
-#define LOG_ERROR(msg) AppConfig::instance().logError(msg)
+// Legacy convenience macros for logging (deprecated - use Logger directly)
+// These are kept for backward compatibility but should be replaced with Logger::instance()->debug() etc.
+#define APPCONFIG_LOG_DEBUG(msg) AppConfig::instance().logDebug(msg)
+#define APPCONFIG_LOG_INFO(msg) AppConfig::instance().logInfo(msg)
+#define APPCONFIG_LOG_WARNING(msg) AppConfig::instance().logWarning(msg)
+#define APPCONFIG_LOG_ERROR(msg) AppConfig::instance().logError(msg)
 #define LOG_FILE(op, path) AppConfig::instance().logFileProgress(op, path)
 
 #endif // APP_CONFIG_H

@@ -3,7 +3,7 @@
 #include "preset_manager_dialog.h"
 #include "scan_scope_preview_widget.h"
 #include "file_scanner.h"
-#include "core/logger.h"
+#include "logger.h"
 #include "theme_manager.h"
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QFileDialog>
@@ -12,7 +12,7 @@
 #include <QtWidgets/QInputDialog>
 #include <QtCore/QStandardPaths>
 #include <QtCore/QDir>
-#include <QtCore/QDebug>
+
 #include <QtCore/QSettings>
 #include <QtCore/QDirIterator>
 #include <QtGui/QShowEvent>
@@ -1536,9 +1536,9 @@ ScanSetupDialog::ScanConfiguration ScanSetupDialog::getCurrentConfiguration() co
     config.detectionMode = static_cast<DetectionMode>(m_detectionMode->currentData().toInt());
     
     // Get size settings
-    qDebug() << "getCurrentConfiguration: m_minimumSize->value() =" << m_minimumSize->value() << "MB";
+    LOG_DEBUG(LogCategories::CONFIG, QString("Minimum size setting: %1 MB").arg(m_minimumSize->value()));
     config.minimumFileSize = static_cast<qint64>(m_minimumSize->value()) * 1024 * 1024; // Convert MB to bytes
-    qDebug() << "getCurrentConfiguration: config.minimumFileSize =" << config.minimumFileSize << "bytes";
+    LOG_DEBUG(LogCategories::CONFIG, QString("Minimum file size: %1 bytes").arg(config.minimumFileSize));
     
     // T11: Maximum file size
     config.maximumFileSize = static_cast<qint64>(m_maximumSize->value()) * 1024 * 1024; // Convert MB to bytes
@@ -1729,9 +1729,9 @@ void ScanSetupDialog::loadPreset(const QString& presetName)
             selectPath(downloadsPath);
         }
         
-        qDebug() << "Downloads preset: Setting minimum size to 0";
+        LOG_DEBUG(LogCategories::CONFIG, "Downloads preset: Setting minimum size to 0");
         m_minimumSize->setValue(0); // All files
-        qDebug() << "Downloads preset: Minimum size spinbox value is now:" << m_minimumSize->value();
+        LOG_DEBUG(LogCategories::CONFIG, QString("Downloads preset: Minimum size spinbox value: %1").arg(m_minimumSize->value()));
         m_includeHidden->setChecked(false);
         m_allTypesCheck->setChecked(true);
         

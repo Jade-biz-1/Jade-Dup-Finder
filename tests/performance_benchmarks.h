@@ -220,7 +220,7 @@ private:
     // Memory tracking
     qint64 m_initialMemory;
     qint64 m_peakMemory;
-    QMutex m_memoryMutex;
+    mutable QMutex m_memoryMutex;
     
     // CPU monitoring
     QThread* m_cpuMonitorThread;

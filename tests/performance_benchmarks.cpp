@@ -305,8 +305,9 @@ PerformanceBenchmarks::PerformanceResult PerformanceBenchmarks::compareWithBasel
     }
     
     return comparison;
-}//
- Statistical analysis methods
+}
+
+// Statistical analysis methods
 double PerformanceBenchmarks::calculateMean(const QList<double>& values) const {
     if (values.isEmpty()) {
         return 0.0;

@@ -157,6 +157,8 @@ public slots:
     void selectBySize(qint64 minSize);
     void selectByType(const QString& fileType);
     void selectRecommended();
+    void showAdvancedFilterDialog();
+    void showSmartSelectionDialog();
 
 signals:
     void filesDeleted(const QStringList& filePaths);

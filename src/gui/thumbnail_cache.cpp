@@ -1,7 +1,8 @@
 #include "thumbnail_cache.h"
+#include "logger.h"
 #include <QtCore/QFileInfo>
 #include <QtCore/QMutexLocker>
-#include <QtCore/QDebug>
+
 #include <QtGui/QImageReader>
 #include <QtGui/QPainter>
 #include <QtWidgets/QApplication>
@@ -23,7 +24,7 @@ ThumbnailCache::ThumbnailCache(QObject* parent)
         m_threadPool->setMaxThreadCount(1);
     }
     
-    qDebug() << "ThumbnailCache initialized with max threads:" << m_threadPool->maxThreadCount();
+    LOG_DEBUG(LogCategories::UI, QString("ThumbnailCache initialized with max threads: %1").arg(m_threadPool->maxThreadCount()));
 }
 
 ThumbnailCache::~ThumbnailCache()
@@ -114,14 +115,14 @@ void ThumbnailCache::clearCache()
 {
     QMutexLocker locker(&m_cacheMutex);
     m_cache->clear();
-    qDebug() << "ThumbnailCache cleared";
+    LOG_DEBUG(LogCategories::UI, "ThumbnailCache cleared");
 }
 
 void ThumbnailCache::setCacheSize(int maxItems)
 {
     QMutexLocker locker(&m_cacheMutex);
     m_cache->setMaxCost(maxItems);
-    qDebug() << "ThumbnailCache max size set to:" << maxItems;
+    LOG_DEBUG(LogCategories::UI, QString("ThumbnailCache max size set to: %1").arg(maxItems));
 }
 
 int ThumbnailCache::cacheSize() const

@@ -18,6 +18,8 @@
  */
 class TestBase : public QObject {
     Q_OBJECT
+    
+    friend class EnhancedTestRunner;
 
 public:
     explicit TestBase(QObject* parent = nullptr);

@@ -123,6 +123,7 @@ private:
     QMap<QString, TestSuiteConfig> m_testSuites;
     
     void setupDefaultConfiguration();
+    void registerDefaultTestSuites();
     QJsonObject configToJson() const;
     void configFromJson(const QJsonObject& json);
 };

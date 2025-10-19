@@ -231,6 +231,8 @@ private:
     QString generateEnvironmentId();
     void setupEnvironmentIsolation(const QString& environmentPath);
     void cleanupEnvironment(const QString& environmentPath);
+    qint64 getCurrentMemoryUsage();
+    qint64 getAvailableDiskSpace(const QString& path);
 };
 
 /**

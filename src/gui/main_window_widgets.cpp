@@ -5,7 +5,7 @@
 #include <QtCore/QStandardPaths>
 #include <QtCore/QStorageInfo>
 #include <QtCore/QDateTime>
-#include <QtCore/QDebug>
+
 #include <QtGui/QPalette>
 
 // ScanHistoryWidget Implementation

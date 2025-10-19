@@ -61,8 +61,9 @@ VisualTesting::TestConfig VisualTesting::getTestConfig() const {
 
 void VisualTesting::setDiffVisualization(const DiffVisualization& visualization) {
     m_diffVisualization = visualization;
-}VisualT
-esting::DiffVisualization VisualTesting::getDiffVisualization() const {
+}
+
+VisualTesting::DiffVisualization VisualTesting::getDiffVisualization() const {
     return m_diffVisualization;
 }
 
@@ -188,8 +189,9 @@ VisualTesting::ComparisonResult VisualTesting::compareImages(const QPixmap& actu
     result.matches = result.similarity >= threshold;
     
     return result;
-}Visual
-Testing::ComparisonResult VisualTesting::compareWithBaseline(const QString& baselineName, const QPixmap& actual) const {
+}
+
+VisualTesting::ComparisonResult VisualTesting::compareWithBaseline(const QString& baselineName, const QPixmap& actual) const {
     QPixmap baseline = loadBaseline(baselineName);
     if (baseline.isNull()) {
         ComparisonResult result;
@@ -349,8 +351,9 @@ VisualTesting::ComparisonResult VisualTesting::comparePerceptual(const QImage& i
     result.differentPixels = differentPixels;
     
     return result;
-}// H
-elper methods
+}
+
+// Helper methods
 QString VisualTesting::getBaselinePath(const QString& name) const {
     QString fileName = QString("%1.png").arg(name);
     return QDir(m_config.baselineDirectory).absoluteFilePath(fileName);

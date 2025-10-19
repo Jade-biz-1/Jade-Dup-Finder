@@ -98,13 +98,15 @@ signals:
 private slots:
     void onTestProcessFinished(int exitCode, QProcess::ExitStatus exitStatus);
 
-private:
+public:
     struct TestExecutable {
         QString name;
         QString executablePath;
         TestConfig::TestSuiteConfig config;
         TestBase* testInstance = nullptr; // For in-process tests
     };
+
+private:
 
     TestConfig::GlobalConfig m_globalConfig;
     QMap<QString, TestExecutable> m_availableTests;
@@ -138,7 +140,8 @@ private:
 /**
  * @brief Test execution task for parallel execution
  */
-class TestExecutionTask : public QRunnable {
+class TestExecutionTask : public QObject, public QRunnable {
+    Q_OBJECT
 public:
     TestExecutionTask(EnhancedTestRunner* runner, const EnhancedTestRunner::TestExecutable& test);
     void run() override;
