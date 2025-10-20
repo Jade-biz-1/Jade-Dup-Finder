@@ -164,11 +164,10 @@ void ThumbnailDelegate::drawThumbnail(QPainter* painter, const QRect& rect, cons
 {
     painter->save();
 
-    // Draw border with theme-aware colors
-    QColor borderColor = ThemeManager::instance()->currentTheme() == ThemeManager::Dark ? 
-                        QColor("#555555") : QColor("#ced4da");
-    QColor backgroundColor = ThemeManager::instance()->currentTheme() == ThemeManager::Dark ? 
-                           QColor("#2d2d30") : QColor("#ffffff");
+    // Draw border with theme-aware colors from ThemeManager
+    ThemeData currentTheme = ThemeManager::instance()->getCurrentThemeData();
+    QColor borderColor = currentTheme.colors.border;
+    QColor backgroundColor = currentTheme.colors.background;
     painter->setPen(QPen(borderColor, 1));
     painter->setBrush(backgroundColor);
     painter->drawRect(rect);
@@ -189,18 +188,16 @@ void ThumbnailDelegate::drawPlaceholder(QPainter* painter, const QRect& rect) co
 {
     painter->save();
 
-    // Draw border with theme-aware colors
-    QColor borderColor = ThemeManager::instance()->currentTheme() == ThemeManager::Dark ? 
-                        QColor("#555555") : QColor("#ced4da");
-    QColor placeholderBg = ThemeManager::instance()->currentTheme() == ThemeManager::Dark ? 
-                          QColor("#3c3c3c") : QColor("#f8f9fa");
+    // Draw border with theme-aware colors from ThemeManager
+    ThemeData currentTheme = ThemeManager::instance()->getCurrentThemeData();
+    QColor borderColor = currentTheme.colors.border;
+    QColor placeholderBg = currentTheme.colors.hover;
     painter->setPen(QPen(borderColor, 1));
     painter->setBrush(placeholderBg);
     painter->drawRect(rect);
 
-    // Draw loading indicator with theme-aware color
-    QColor iconColor = ThemeManager::instance()->currentTheme() == ThemeManager::Dark ? 
-                      QColor("#aaaaaa") : QColor("#6c757d");
+    // Draw loading indicator with theme-aware color from ThemeManager
+    QColor iconColor = currentTheme.colors.disabled;
     painter->setPen(QPen(iconColor, 2));
     
     int centerX = rect.center().x();

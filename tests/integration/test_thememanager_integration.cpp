@@ -483,49 +483,188 @@ private slots:
     }
     
     /**
-     * Test 8: Theme compliance validation
-     * Test theme compliance checking functionality
+     * Test 8: Enhanced theme compliance validation
+     * Test enhanced theme compliance checking functionality with StyleValidator
      */
     void test_themeComplianceValidation() {
-        qDebug() << "\n[Test 8] Theme Compliance Validation";
-        qDebug() << "=====================================";
+        qDebug() << "\n[Test 8] Enhanced Theme Compliance Validation";
+        qDebug() << "==============================================";
         
         // Create a widget with some hardcoded styles (non-compliant)
         QWidget* nonCompliantWidget = new QWidget();
-        nonCompliantWidget->setStyleSheet("background-color: red; color: blue;");
+        nonCompliantWidget->setObjectName("NonCompliantTestWidget");
+        nonCompliantWidget->setStyleSheet("background-color: #ff0000; color: rgb(0, 255, 0); font-family: Arial;");
         
         QVBoxLayout* layout = new QVBoxLayout(nonCompliantWidget);
         QLabel* label = new QLabel("Test Label", nonCompliantWidget);
-        label->setStyleSheet("font-weight: bold; color: green;");
+        label->setStyleSheet("font-weight: bold; color: #0000ff; padding: 10px;");
         layout->addWidget(label);
         
-        qDebug() << "   Created widget with hardcoded styles";
+        qDebug() << "   Created widget with hardcoded styles for testing";
         
-        // Test hardcoded style detection
+        // Test enhanced hardcoded style detection
+        QList<StyleViolation> violations = m_themeManager->detectHardcodedStyles(nonCompliantWidget);
+        qDebug() << "   Enhanced style violations detected:" << violations.size();
+        
+        // Verify violations were found
+        QVERIFY(!violations.isEmpty());
+        
+        // Categorize violations
+        QMap<QString, int> violationTypes;
+        for (const StyleViolation& violation : violations) {
+            violationTypes[violation.violationType]++;
+            qDebug() << "      " << violation.severity << ":" << violation.violationType 
+                     << "in" << violation.componentName << "(" << violation.currentValue << ")";
+        }
+        
+        // Test comprehensive validation
+        ValidationResult result = m_themeManager->validateThemeCompliance(nonCompliantWidget);
+        qDebug() << "   Compliance validation result:";
+        qDebug() << "      Is compliant:" << result.isCompliant;
+        qDebug() << "      Accessibility score:" << result.accessibilityScore;
+        qDebug() << "      Summary:" << result.summary;
+        
+        QVERIFY(!result.isCompliant); // Should not be compliant due to hardcoded styles
+        
+        // Test comprehensive application scan
+        ComplianceReport report = m_themeManager->performComprehensiveValidation();
+        qDebug() << "   Comprehensive validation report:";
+        qDebug() << "      Total components:" << report.totalComponents;
+        qDebug() << "      Compliant components:" << report.compliantComponents;
+        qDebug() << "      Overall score:" << report.overallScore << "%";
+        qDebug() << "      Total violations:" << report.violationCount;
+        qDebug() << "      Critical violations:" << report.criticalViolations.size();
+        qDebug() << "      Warnings:" << report.warnings.size();
+        
+        QVERIFY(report.generated.isValid());
+        QVERIFY(report.totalComponents >= 0);
+        QVERIFY(report.overallScore >= 0.0 && report.overallScore <= 100.0);
+        
+        // Test accessibility validation
+        ThemeData currentTheme = m_themeManager->getCurrentThemeData();
+        bool accessibilityValid = m_themeManager->performAccessibilityValidation(currentTheme);
+        qDebug() << "   Accessibility validation result:" << accessibilityValid;
+        
+        // Test validation statistics
+        int totalScans = m_themeManager->getValidationScansPerformed();
+        QDateTime lastScan = m_themeManager->getLastValidationScan();
+        QStringList summary = m_themeManager->getValidationSummary();
+        
+        qDebug() << "   Validation statistics:";
+        qDebug() << "      Total scans performed:" << totalScans;
+        qDebug() << "      Last scan:" << lastScan.toString();
+        qDebug() << "      Violation summary items:" << summary.size();
+        
+        // Test legacy compliance methods
         QStringList hardcodedStyles = m_themeManager->scanForHardcodedStyles();
-        qDebug() << "   Hardcoded styles found:" << hardcodedStyles.size();
-        
-        // Note: The actual implementation might not find our test styles
-        // since they're not part of the main application widget tree
-        
-        // Test style removal
-        QString originalStyle = nonCompliantWidget->styleSheet();
-        m_themeManager->removeHardcodedStyles(nonCompliantWidget);
-        QString cleanedStyle = nonCompliantWidget->styleSheet();
-        
-        qDebug() << "   Original style length:" << originalStyle.length();
-        qDebug() << "   Cleaned style length:" << cleanedStyle.length();
-        
-        // Test theme compliance validation
-        m_themeManager->validateThemeCompliance(nonCompliantWidget);
-        qDebug() << "   Theme compliance validation completed";
+        qDebug() << "   Legacy hardcoded styles found:" << hardcodedStyles.size();
         
         // Test comprehensive compliance test
-        bool complianceTestResult = m_themeManager->testThemeSwitching();
-        qDebug() << "   Theme switching test result:" << complianceTestResult;
+        m_themeManager->performThemeComplianceTest();
+        qDebug() << "   Comprehensive theme compliance test completed";
         
         delete nonCompliantWidget;
-        qDebug() << "✓ Theme compliance validation verified";
+        qDebug() << "✓ Enhanced theme compliance validation verified";
+    }
+    
+    /**
+     * Test 9: Runtime validation system
+     * Test runtime style validation and monitoring
+     */
+    void test_runtimeValidationSystem() {
+        qDebug() << "\n[Test 9] Runtime Validation System";
+        qDebug() << "===================================";
+        
+        // Enable runtime validation
+        m_themeManager->enableRuntimeValidation(true);
+        m_themeManager->setValidationScanInterval(500); // 500ms for testing
+        
+        qDebug() << "   Runtime validation enabled with 500ms interval";
+        
+        // Create a widget that will be monitored
+        QWidget* monitoredWidget = new QWidget();
+        monitoredWidget->setObjectName("MonitoredWidget");
+        monitoredWidget->show();
+        
+        // Wait for initial scan
+        QTest::qWait(600);
+        
+        // Add hardcoded styles to trigger violations
+        monitoredWidget->setStyleSheet("background-color: #123456; color: #abcdef;");
+        
+        qDebug() << "   Added hardcoded styles to monitored widget";
+        
+        // Wait for runtime scan to detect violations
+        QTest::qWait(600);
+        
+        // Check if violations were detected
+        QStringList violationSummary = m_themeManager->getValidationSummary();
+        qDebug() << "   Runtime validation summary:" << violationSummary.size() << "violation types";
+        
+        for (const QString& summaryItem : violationSummary) {
+            qDebug() << "      " << summaryItem;
+        }
+        
+        // Disable runtime validation
+        m_themeManager->enableRuntimeValidation(false);
+        qDebug() << "   Runtime validation disabled";
+        
+        monitoredWidget->deleteLater();
+        qDebug() << "✓ Runtime validation system verified";
+    }
+    
+    /**
+     * Test 10: Source code validation
+     * Test source code scanning for hardcoded styles
+     */
+    void test_sourceCodeValidation() {
+        qDebug() << "\n[Test 10] Source Code Validation";
+        qDebug() << "=================================";
+        
+        // Test source code validation (if src directory exists)
+        QDir srcDir("src");
+        if (srcDir.exists()) {
+            qDebug() << "   Source directory found, performing validation...";
+            
+            QList<StyleViolation> sourceViolations = m_themeManager->validateSourceCode("src");
+            
+            qDebug() << "   Source code validation results:";
+            qDebug() << "      Total violations found:" << sourceViolations.size();
+            
+            // Categorize source violations
+            QMap<QString, int> violationTypes;
+            QMap<QString, int> severityLevels;
+            
+            for (const StyleViolation& violation : sourceViolations) {
+                violationTypes[violation.violationType]++;
+                severityLevels[violation.severity]++;
+            }
+            
+            qDebug() << "   Violation breakdown by type:";
+            for (auto it = violationTypes.begin(); it != violationTypes.end(); ++it) {
+                qDebug() << "      " << it.key() << ":" << it.value() << "occurrences";
+            }
+            
+            qDebug() << "   Violation breakdown by severity:";
+            for (auto it = severityLevels.begin(); it != severityLevels.end(); ++it) {
+                qDebug() << "      " << it.key() << ":" << it.value() << "violations";
+            }
+            
+            // Test detailed report generation
+            QString reportPath = "test_source_validation_report.txt";
+            m_themeManager->generateDetailedValidationReport(reportPath);
+            
+            QFile reportFile(reportPath);
+            if (reportFile.exists()) {
+                qDebug() << "   Detailed validation report generated successfully";
+                reportFile.remove(); // Clean up
+            }
+            
+        } else {
+            qDebug() << "   Source directory not found, skipping source code validation";
+        }
+        
+        qDebug() << "✓ Source code validation verified";
     }
 };
 

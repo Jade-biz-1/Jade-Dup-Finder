@@ -47,44 +47,30 @@ void ScanScopePreviewWidget::setupUI()
     
     // Title
     m_titleLabel = new QLabel(tr("📊 Scan Scope Preview"), this);
-    m_titleLabel->setStyleSheet(
-        "QLabel {"
-        "    font-weight: bold;"
-        "    font-size: 11pt;"
-        "    padding: 4px;"
-        "}"
-    );
+    m_titleLabel->setStyleSheet(ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::Label));
     
     // Statistics labels
     m_folderCountLabel = new QLabel(tr("Folders: -"), this);
     m_fileCountLabel = new QLabel(tr("Estimated Files: -"), this);
     m_sizeLabel = new QLabel(tr("Estimated Size: -"), this);
     
-    QString labelStyle = 
-        "QLabel {"
-        "    padding: 4px 8px;"
-        "    background: palette(base);"
-        "    border: 1px solid palette(mid);"
-        "    border-radius: 3px;"
-        "    font-size: 10pt;"
-        "}"
-    ;
+    QString labelStyle = ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::Label);
     
     m_folderCountLabel->setStyleSheet(labelStyle);
     m_fileCountLabel->setStyleSheet(labelStyle);
     m_sizeLabel->setStyleSheet(labelStyle);
     
+    // Set minimum sizes for better visibility
+    QSize labelMinSize = ThemeManager::instance()->getMinimumControlSize(ThemeManager::ControlType::Label);
+    m_folderCountLabel->setMinimumSize(labelMinSize);
+    m_fileCountLabel->setMinimumSize(labelMinSize);
+    m_sizeLabel->setMinimumSize(labelMinSize);
+    
     // Status label
     m_statusLabel = new QLabel(this);
     m_statusLabel->setWordWrap(true);
     m_statusLabel->setVisible(false);
-    m_statusLabel->setStyleSheet(
-        "QLabel {"
-        "    color: palette(mid);"
-        "    font-style: italic;"
-        "    padding: 4px;"
-        "}"
-    );
+    m_statusLabel->setStyleSheet(ThemeManager::instance()->getStatusIndicatorStyle(ThemeManager::StatusType::Info));
     
     // Paths tree
     m_pathsTree = new QTreeWidget(this);
@@ -95,17 +81,10 @@ void ScanScopePreviewWidget::setupUI()
     m_pathsTree->header()->setStretchLastSection(false);
     m_pathsTree->header()->setSectionResizeMode(0, QHeaderView::Stretch);
     m_pathsTree->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
-    m_pathsTree->setStyleSheet(
-        "QTreeWidget {"
-        "    border: 1px solid palette(mid);"
-        "    border-radius: 4px;"
-        "    background: palette(base);"
-        "    font-size: 9pt;"
-        "}"
-        "QTreeWidget::item {"
-        "    padding: 2px;"
-        "}"
-    );
+    m_pathsTree->setStyleSheet(ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::TreeView));
+    
+    // Set minimum size for better visibility
+    m_pathsTree->setMinimumSize(200, 100);
     
     // Add to layout
     m_layout->addWidget(m_titleLabel);
@@ -172,6 +151,9 @@ void ScanScopePreviewWidget::calculateStats(const QStringList& targetPaths,
                                             int maxDepth,
                                             bool includeHidden)
 {
+    // Get current theme data for consistent color usage
+    ThemeData currentTheme = ThemeManager::instance()->getCurrentThemeData();
+    
     // Reset stats
     m_currentStats = ScopeStats();
     m_currentStats.includedPaths = targetPaths;
@@ -292,16 +274,14 @@ void ScanScopePreviewWidget::updateDisplay()
         QDir dir(path);
         if (dir.exists()) {
             item->setText(1, tr("✓ Included"));
-            // Use theme-aware success color
-            QColor successColor = ThemeManager::instance()->currentTheme() == ThemeManager::Dark ? 
-                                QColor("#4CAF50") : QColor("#28a745");
-            item->setForeground(1, successColor);
+            // Use theme-aware success color from ThemeManager
+            ThemeData currentTheme = ThemeManager::instance()->getCurrentThemeData();
+            item->setForeground(1, currentTheme.colors.success);
         } else {
             item->setText(1, tr("✗ Not Found"));
-            // Use theme-aware error color
-            QColor errorColor = ThemeManager::instance()->currentTheme() == ThemeManager::Dark ? 
-                              QColor("#F44336") : QColor("#dc3545");
-            item->setForeground(1, errorColor);
+            // Use theme-aware error color from ThemeManager
+            ThemeData currentTheme = ThemeManager::instance()->getCurrentThemeData();
+            item->setForeground(1, currentTheme.colors.error);
         }
         
         item->setIcon(0, style()->standardIcon(QStyle::SP_DirIcon));
@@ -313,10 +293,9 @@ void ScanScopePreviewWidget::updateDisplay()
             QTreeWidgetItem* item = new QTreeWidgetItem(m_pathsTree);
             item->setText(0, path);
             item->setText(1, tr("⊘ Excluded"));
-            // Use theme-aware warning color
-            QColor warningColor = ThemeManager::instance()->currentTheme() == ThemeManager::Dark ? 
-                                QColor("#FF9800") : QColor("#ffc107");
-            item->setForeground(1, warningColor);
+            // Use theme-aware warning color from ThemeManager
+            ThemeData currentTheme = ThemeManager::instance()->getCurrentThemeData();
+            item->setForeground(1, currentTheme.colors.warning);
             item->setIcon(0, style()->standardIcon(QStyle::SP_DirIcon));
         }
     }

@@ -207,14 +207,8 @@ ScanSetupDialog::ScanSetupDialog(QWidget* parent)
     // Make dialog clearly distinguishable from main window
     setWindowFlags(Qt::Dialog | Qt::WindowTitleHint | Qt::WindowCloseButtonHint | Qt::WindowSystemMenuHint);
     
-    // Add distinctive lighter background for the dialog only
-    setStyleSheet(
-        "QDialog {"
-        "    background-color: palette(light);"
-        "    border: 2px solid palette(highlight);"
-        "    border-radius: 8px;"
-        "}"
-    );
+    // Apply theme-aware dialog styling
+    ThemeManager::instance()->applyToDialog(this);
     
     // Initialize configuration with defaults
     m_currentConfig.detectionMode = DetectionMode::Smart;
@@ -287,20 +281,8 @@ void ScanSetupDialog::createLocationsPanel()
     m_directoryTree->setAlternatingRowColors(true);
     m_directoryTree->setRootIsDecorated(true);
     
-    // Improve tree widget appearance
-    m_directoryTree->setStyleSheet(
-        "QTreeWidget {"
-        "    border: 1px solid palette(mid);"
-        "    border-radius: 4px;"
-        "    padding: 4px;"
-        "    background: palette(base);"
-        "    selection-background-color: palette(highlight);"
-        "}"
-        "QTreeWidget::item {"
-        "    padding: 4px;"
-        "    margin: 1px;"
-        "}"
-    );
+    // Apply theme-aware tree widget styling
+    m_directoryTree->setStyleSheet(ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::TreeView));
     
     // Directory buttons
     m_directoryButtonsLayout = new QHBoxLayout();
@@ -312,28 +294,14 @@ void ScanSetupDialog::createLocationsPanel()
     m_removeFolderButton->setToolTip(tr("Remove selected folder from scan list"));
     m_removeFolderButton->setEnabled(false);
     
-    // Style the directory buttons
-    QString directoryButtonStyle = 
-        "QPushButton {"
-        "    padding: 6px 12px;"
-        "    border: 1px solid palette(mid);"
-        "    border-radius: 4px;"
-        "    background: palette(button);"
-        "    color: palette(button-text);"
-        "    font-weight: normal;"
-        "}"
-        "QPushButton:hover {"
-        "    background: palette(light);"
-        "    border-color: palette(highlight);"
-        "}"
-        "QPushButton:disabled {"
-        "    color: palette(mid);"
-        "    background: palette(window);"
-        "}"
-    ;
-    
+    // Apply theme-aware button styling
+    QString directoryButtonStyle = ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::Button);
     m_addFolderButton->setStyleSheet(directoryButtonStyle);
     m_removeFolderButton->setStyleSheet(directoryButtonStyle);
+    
+    // Set minimum sizes for better visibility
+    m_addFolderButton->setMinimumSize(ThemeManager::instance()->getMinimumControlSize(ThemeManager::ControlType::Button));
+    m_removeFolderButton->setMinimumSize(ThemeManager::instance()->getMinimumControlSize(ThemeManager::ControlType::Button));
     
     m_directoryButtonsLayout->addWidget(m_addFolderButton);
     m_directoryButtonsLayout->addWidget(m_removeFolderButton);
@@ -341,7 +309,7 @@ void ScanSetupDialog::createLocationsPanel()
     
     // Quick presets
     QLabel* presetsLabel = new QLabel(tr("📋 Quick Presets:"), this);
-    presetsLabel->setStyleSheet("font-weight: bold; font-size: 11pt; margin-top: 8px;");
+    presetsLabel->setStyleSheet(ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::Label));
     
     m_presetsWidget = new QWidget(this);
     m_presetsLayout = new QGridLayout(m_presetsWidget);
@@ -427,7 +395,7 @@ void ScanSetupDialog::createOptionsPanel()
     
     // Include options
     QLabel* includeLabel = new QLabel(tr("Include:"), this);
-    includeLabel->setStyleSheet("font-weight: bold; font-size: 11pt; margin-top: 12px; margin-bottom: 4px;");
+    includeLabel->setStyleSheet(ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::Label));
     
     m_includeHidden = new QCheckBox(tr("Hidden files"), this);
     m_includeHidden->setToolTip(tr("Include hidden files and folders in scan"));
@@ -438,16 +406,23 @@ void ScanSetupDialog::createOptionsPanel()
     m_followSymlinks->setChecked(true);
     m_scanArchives = new QCheckBox(tr("Archives"), this);
     
-    // Style checkboxes for better visibility
-    QString checkboxStyle = "QCheckBox { padding: 2px; margin: 2px; } QCheckBox::indicator { width: 16px; height: 16px; }";
+    // Apply theme-aware checkbox styling for better visibility
+    QString checkboxStyle = ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::CheckBox);
     m_includeHidden->setStyleSheet(checkboxStyle);
     m_includeSystem->setStyleSheet(checkboxStyle);
     m_followSymlinks->setStyleSheet(checkboxStyle);
     m_scanArchives->setStyleSheet(checkboxStyle);
     
+    // Set minimum sizes for better visibility
+    QSize checkboxMinSize = ThemeManager::instance()->getMinimumControlSize(ThemeManager::ControlType::CheckBox);
+    m_includeHidden->setMinimumSize(checkboxMinSize);
+    m_includeSystem->setMinimumSize(checkboxMinSize);
+    m_followSymlinks->setMinimumSize(checkboxMinSize);
+    m_scanArchives->setMinimumSize(checkboxMinSize);
+    
     // File types
     QLabel* typesLabel = new QLabel(tr("File Types:"), this);
-    typesLabel->setStyleSheet("font-weight: bold; font-size: 11pt; margin-top: 12px; margin-bottom: 4px;");
+    typesLabel->setStyleSheet(ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::Label));
     
     m_fileTypesWidget = new QWidget(this);
     QGridLayout* typesLayout = new QGridLayout(m_fileTypesWidget);
@@ -462,13 +437,21 @@ void ScanSetupDialog::createOptionsPanel()
     m_audioCheck = new QCheckBox(tr("Audio"), this);
     m_archivesCheck = new QCheckBox(tr("Archives"), this);
     
-    // Apply checkbox styling to file type checkboxes
+    // Apply theme-aware checkbox styling to file type checkboxes
     m_allTypesCheck->setStyleSheet(checkboxStyle);
     m_imagesCheck->setStyleSheet(checkboxStyle);
     m_documentsCheck->setStyleSheet(checkboxStyle);
     m_videosCheck->setStyleSheet(checkboxStyle);
     m_audioCheck->setStyleSheet(checkboxStyle);
     m_archivesCheck->setStyleSheet(checkboxStyle);
+    
+    // Set minimum sizes for file type checkboxes
+    m_allTypesCheck->setMinimumSize(checkboxMinSize);
+    m_imagesCheck->setMinimumSize(checkboxMinSize);
+    m_documentsCheck->setMinimumSize(checkboxMinSize);
+    m_videosCheck->setMinimumSize(checkboxMinSize);
+    m_audioCheck->setMinimumSize(checkboxMinSize);
+    m_archivesCheck->setMinimumSize(checkboxMinSize);
     
     typesLayout->addWidget(m_allTypesCheck, 0, 0);
     typesLayout->addWidget(m_imagesCheck, 0, 1);
@@ -487,7 +470,7 @@ void ScanSetupDialog::createOptionsPanel()
     
     // Exclude folders
     QLabel* excludeFoldersLabel = new QLabel(tr("Exclude Folders:"), this);
-    excludeFoldersLabel->setStyleSheet("font-weight: bold; font-size: 11pt; margin-top: 12px; margin-bottom: 4px;");
+    excludeFoldersLabel->setStyleSheet(ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::Label));
     
     m_excludeFoldersTree = new QTreeWidget(this);
     m_excludeFoldersTree->setHeaderLabel(tr("Folders to exclude from scan"));
@@ -495,18 +478,7 @@ void ScanSetupDialog::createOptionsPanel()
     m_excludeFoldersTree->setMinimumHeight(80);
     m_excludeFoldersTree->setAlternatingRowColors(true);
     m_excludeFoldersTree->setRootIsDecorated(false);
-    m_excludeFoldersTree->setStyleSheet(
-        "QTreeWidget {"
-        "    border: 1px solid palette(mid);"
-        "    border-radius: 4px;"
-        "    padding: 2px;"
-        "    background: palette(base);"
-        "}"
-        "QTreeWidget::item {"
-        "    padding: 2px;"
-        "    margin: 1px;"
-        "}"
-    );
+    m_excludeFoldersTree->setStyleSheet(ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::TreeView));
     
     // Exclude folder buttons
     QHBoxLayout* excludeFolderButtonsLayout = new QHBoxLayout();
@@ -516,27 +488,14 @@ void ScanSetupDialog::createOptionsPanel()
     m_removeExcludeFolderButton = new QPushButton(tr("- Remove"), this);
     m_removeExcludeFolderButton->setEnabled(false);
     
-    QString excludeButtonStyle = 
-        "QPushButton {"
-        "    padding: 4px 8px;"
-        "    border: 1px solid palette(mid);"
-        "    border-radius: 3px;"
-        "    background: palette(button);"
-        "    color: palette(button-text);"
-        "    font-size: 9pt;"
-        "}"
-        "QPushButton:hover {"
-        "    background: palette(light);"
-        "    border-color: palette(highlight);"
-        "}"
-        "QPushButton:disabled {"
-        "    color: palette(mid);"
-        "    background: palette(window);"
-        "}"
-    ;
-    
+    QString excludeButtonStyle = ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::Button);
     m_addExcludeFolderButton->setStyleSheet(excludeButtonStyle);
     m_removeExcludeFolderButton->setStyleSheet(excludeButtonStyle);
+    
+    // Set minimum sizes for exclude folder buttons
+    QSize buttonMinSize = ThemeManager::instance()->getMinimumControlSize(ThemeManager::ControlType::Button);
+    m_addExcludeFolderButton->setMinimumSize(buttonMinSize);
+    m_removeExcludeFolderButton->setMinimumSize(buttonMinSize);
     
     excludeFolderButtonsLayout->addWidget(m_addExcludeFolderButton);
     excludeFolderButtonsLayout->addWidget(m_removeExcludeFolderButton);
@@ -612,12 +571,19 @@ void ScanSetupDialog::createAdvancedOptionsPanel()
     m_enablePrefiltering->setChecked(true);
     m_enablePrefiltering->setToolTip(tr("Group files by size before hash calculation (recommended)"));
     
-    // Style checkboxes
-    QString checkboxStyle = "QCheckBox { padding: 2px; margin: 2px; } QCheckBox::indicator { width: 16px; height: 16px; }";
-    m_enableCaching->setStyleSheet(checkboxStyle);
-    m_skipEmptyFiles->setStyleSheet(checkboxStyle);
-    m_skipDuplicateNames->setStyleSheet(checkboxStyle);
-    m_enablePrefiltering->setStyleSheet(checkboxStyle);
+    // Apply theme-aware checkbox styling
+    QString advancedCheckboxStyle = ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::CheckBox);
+    m_enableCaching->setStyleSheet(advancedCheckboxStyle);
+    m_skipEmptyFiles->setStyleSheet(advancedCheckboxStyle);
+    m_skipDuplicateNames->setStyleSheet(advancedCheckboxStyle);
+    m_enablePrefiltering->setStyleSheet(advancedCheckboxStyle);
+    
+    // Set minimum sizes for advanced checkboxes
+    QSize advancedCheckboxMinSize = ThemeManager::instance()->getMinimumControlSize(ThemeManager::ControlType::CheckBox);
+    m_enableCaching->setMinimumSize(advancedCheckboxMinSize);
+    m_skipEmptyFiles->setMinimumSize(advancedCheckboxMinSize);
+    m_skipDuplicateNames->setMinimumSize(advancedCheckboxMinSize);
+    m_enablePrefiltering->setMinimumSize(advancedCheckboxMinSize);
     
     // Layout
     QGridLayout* advancedGrid = new QGridLayout();
@@ -664,10 +630,15 @@ void ScanSetupDialog::createPerformanceOptionsPanel()
     m_enableParallelHashing->setChecked(true);
     m_enableParallelHashing->setToolTip(tr("Calculate hashes in parallel (faster on multi-core systems)"));
     
-    // Style checkboxes
-    QString checkboxStyle = "QCheckBox { padding: 2px; margin: 2px; } QCheckBox::indicator { width: 16px; height: 16px; }";
-    m_useMemoryMapping->setStyleSheet(checkboxStyle);
-    m_enableParallelHashing->setStyleSheet(checkboxStyle);
+    // Apply theme-aware checkbox styling
+    QString performanceCheckboxStyle = ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::CheckBox);
+    m_useMemoryMapping->setStyleSheet(performanceCheckboxStyle);
+    m_enableParallelHashing->setStyleSheet(performanceCheckboxStyle);
+    
+    // Set minimum sizes for performance checkboxes
+    QSize performanceCheckboxMinSize = ThemeManager::instance()->getMinimumControlSize(ThemeManager::ControlType::CheckBox);
+    m_useMemoryMapping->setMinimumSize(performanceCheckboxMinSize);
+    m_enableParallelHashing->setMinimumSize(performanceCheckboxMinSize);
     
     // Layout
     QGridLayout* performanceGrid = new QGridLayout();
@@ -696,76 +667,28 @@ void ScanSetupDialog::createPreviewPanel()
     
     m_estimateLabel = new QLabel(tr("Estimated: Calculating..."), this);
     m_estimateLabel->setWordWrap(true);
-    m_estimateLabel->setStyleSheet(
-        "QLabel {"
-        "    font-size: 11pt;"
-        "    padding: 8px;"
-        "    background: palette(base);"
-        "    border: 1px solid palette(mid);"
-        "    border-radius: 4px;"
-        "    color: palette(window-text);"
-        "}"
-    );
+    m_estimateLabel->setStyleSheet(ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::Label));
     
     m_estimationProgress = new QProgressBar(this);
     m_estimationProgress->setRange(0, 0); // Indeterminate progress
     m_estimationProgress->setVisible(false);
     m_estimationProgress->setFixedHeight(20);
-    m_estimationProgress->setStyleSheet(
-        "QProgressBar {"
-        "    border: 1px solid palette(mid);"
-        "    border-radius: 4px;"
-        "    background: palette(base);"
-        "}"
-        "QProgressBar::chunk {"
-        "    background: palette(highlight);"
-        "    border-radius: 2px;"
-        "}"
-    );
+    m_estimationProgress->setStyleSheet(ThemeManager::instance()->getProgressBarStyle(ThemeManager::ProgressType::Normal));
     
     m_validationLabel = new QLabel(this);
     m_validationLabel->setWordWrap(true);
     m_validationLabel->setVisible(false);
-    m_validationLabel->setStyleSheet(
-        "QLabel {"
-        "    color: #d32f2f;"
-        "    background: #ffebee;"
-        "    padding: 12px;"
-        "    border: 2px solid #d32f2f;"
-        "    border-radius: 6px;"
-        "    font-weight: bold;"
-        "}"
-    );
+    m_validationLabel->setStyleSheet(ThemeManager::instance()->getStatusIndicatorStyle(ThemeManager::StatusType::Error));
     
     m_limitWarning = new QLabel(this);
     m_limitWarning->setWordWrap(true);
     m_limitWarning->setVisible(false);
-    m_limitWarning->setStyleSheet(
-        "QLabel {"
-        "    color: #f57c00;"
-        "    background: #fff3e0;"
-        "    padding: 12px;"
-        "    border: 2px solid #f57c00;"
-        "    border-radius: 6px;"
-        "    font-weight: bold;"
-        "}"
-    );
+    m_limitWarning->setStyleSheet(ThemeManager::instance()->getStatusIndicatorStyle(ThemeManager::StatusType::Warning));
     
     m_upgradeButton = new QPushButton(tr("🔒 Upgrade to Premium"), this);
     m_upgradeButton->setVisible(false);
-    m_upgradeButton->setStyleSheet(
-        "QPushButton {"
-        "    background: palette(highlight);"
-        "    color: palette(highlighted-text);"
-        "    border: none;"
-        "    padding: 8px 16px;"
-        "    border-radius: 4px;"
-        "    font-weight: bold;"
-        "}"
-        "QPushButton:hover {"
-        "    background: palette(dark);"
-        "}"
-    );
+    m_upgradeButton->setStyleSheet(ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::Button));
+    m_upgradeButton->setMinimumSize(ThemeManager::instance()->getMinimumControlSize(ThemeManager::ControlType::Button));
     
     // Add scope preview widget
     m_scopePreviewWidget = new ScanScopePreviewWidget(this);
@@ -798,60 +721,21 @@ void ScanSetupDialog::createButtonBar()
     m_startScanButton = new QPushButton(tr("▶ Start Scan"), this);
     m_startScanButton->setToolTip(tr("Start scanning with current configuration"));
     
-    // Style buttons with better visibility
-    QString cancelButtonStyle = 
-        "QPushButton {"
-        "    background: palette(button);"
-        "    border: 1px solid palette(mid);"
-        "    padding: 8px 16px;"
-        "    border-radius: 4px;"
-        "    color: palette(button-text);"
-        "    min-width: 80px;"
-        "}"
-        "QPushButton:hover {"
-        "    background: palette(light);"
-        "    border-color: palette(highlight);"
-        "}"
-    ;
+    // Apply theme-aware button styling with proper minimum sizes
+    QString buttonStyle = ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::Button);
+    QSize buttonMinSize = ThemeManager::instance()->getMinimumControlSize(ThemeManager::ControlType::Button);
     
-    QString actionButtonStyle = 
-        "QPushButton {"
-        "    background: palette(button);"
-        "    border: 1px solid palette(mid);"
-        "    padding: 8px 16px;"
-        "    border-radius: 4px;"
-        "    color: palette(button-text);"
-        "    min-width: 100px;"
-        "}"
-        "QPushButton:hover {"
-        "    background: palette(light);"
-        "    border-color: palette(highlight);"
-        "}"
-    ;
+    m_cancelButton->setStyleSheet(buttonStyle);
+    m_cancelButton->setMinimumSize(buttonMinSize);
     
-    QString primaryButtonStyle = 
-        "QPushButton {"
-        "    background: palette(highlight);"
-        "    border: 1px solid palette(highlight);"
-        "    padding: 8px 20px;"
-        "    border-radius: 4px;"
-        "    color: palette(highlighted-text);"
-        "    font-weight: bold;"
-        "    min-width: 120px;"
-        "}"
-        "QPushButton:hover {"
-        "    background: palette(dark);"
-        "    border-color: palette(dark);"
-        "}"
-        "QPushButton:pressed {"
-        "    background: palette(shadow);"
-        "}"
-    ;
+    m_managePresetsButton->setStyleSheet(buttonStyle);
+    m_managePresetsButton->setMinimumSize(buttonMinSize);
     
-    m_cancelButton->setStyleSheet(cancelButtonStyle);
-    m_managePresetsButton->setStyleSheet(actionButtonStyle);
-    m_savePresetButton->setStyleSheet(actionButtonStyle);
-    m_startScanButton->setStyleSheet(primaryButtonStyle);
+    m_savePresetButton->setStyleSheet(buttonStyle);
+    m_savePresetButton->setMinimumSize(buttonMinSize);
+    
+    m_startScanButton->setStyleSheet(buttonStyle);
+    m_startScanButton->setMinimumSize(buttonMinSize);
     m_startScanButton->setDefault(true);
     
     m_buttonBox->addButton(m_cancelButton, QDialogButtonBox::RejectRole);
@@ -871,8 +755,8 @@ void ScanSetupDialog::createButtonBar()
     QFrame* separator = new QFrame(this);
     separator->setFrameShape(QFrame::HLine);
     separator->setFrameShadow(QFrame::Sunken);
-    // Theme-aware styling applied by ThemeManager
-    separator->setStyleSheet("margin: 8px 0px;");
+    // Apply theme-aware separator styling
+    ThemeManager::instance()->applyToWidget(separator);
     
     mainVLayout->addWidget(mainWidget);
     mainVLayout->addWidget(separator);
@@ -1073,34 +957,33 @@ void ScanSetupDialog::validateConfiguration()
 
 void ScanSetupDialog::applyTheme()
 {
-    QPalette palette = QApplication::palette();
+    // Apply comprehensive theme to entire dialog
+    ThemeManager::instance()->applyToDialog(this);
     
-    // Apply theme-aware styling
-    QString buttonStyle = QString(
-        "QPushButton {"
-        "    background: palette(button);"
-        "    border: 1px solid palette(mid);"
-        "    padding: 4px 8px;"
-        "    border-radius: 4px;"
-        "    color: palette(button-text);"
-        "}"
-        "QPushButton:hover {"
-        "    background: palette(light);"
-        "}"
-        "QPushButton:pressed {"
-        "    background: palette(mid);"
-        "}"
-    );
+    // Apply theme-aware styling to preset buttons
+    QString buttonStyle = ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::Button);
+    QSize buttonMinSize = ThemeManager::instance()->getMinimumControlSize(ThemeManager::ControlType::Button);
     
-    // Apply to preset buttons
     m_downloadsButton->setStyleSheet(buttonStyle);
-    m_photosButton->setStyleSheet(buttonStyle);
-    m_documentsButton->setStyleSheet(buttonStyle);
-    m_mediaButton->setStyleSheet(buttonStyle);
-    m_customButton->setStyleSheet(buttonStyle);
-    m_fullSystemButton->setStyleSheet(buttonStyle);
+    m_downloadsButton->setMinimumSize(buttonMinSize);
     
-    // Let group boxes use their default styling
+    m_photosButton->setStyleSheet(buttonStyle);
+    m_photosButton->setMinimumSize(buttonMinSize);
+    
+    m_documentsButton->setStyleSheet(buttonStyle);
+    m_documentsButton->setMinimumSize(buttonMinSize);
+    
+    m_mediaButton->setStyleSheet(buttonStyle);
+    m_mediaButton->setMinimumSize(buttonMinSize);
+    
+    m_customButton->setStyleSheet(buttonStyle);
+    m_customButton->setMinimumSize(buttonMinSize);
+    
+    m_fullSystemButton->setStyleSheet(buttonStyle);
+    m_fullSystemButton->setMinimumSize(buttonMinSize);
+    
+    // Enforce minimum sizes for all dialog controls
+    ThemeManager::instance()->enforceMinimumSizes(this);
 }
 
 // Slot implementations

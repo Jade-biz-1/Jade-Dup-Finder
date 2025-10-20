@@ -457,8 +457,25 @@ void SettingsDialog::loadSettings()
     int langIndex = m_languageCombo->findData(language);
     if (langIndex >= 0) m_languageCombo->setCurrentIndex(langIndex);
     
-    QString theme = settings.value("general/theme", "system").toString();
-    int themeIndex = m_themeCombo->findData(theme);
+    // Load theme from ThemeManager instead of old settings
+    ThemeManager* themeManager = ThemeManager::instance();
+    QString currentThemeString;
+    switch (themeManager->currentTheme()) {
+        case ThemeManager::Light:
+            currentThemeString = "light";
+            break;
+        case ThemeManager::Dark:
+            currentThemeString = "dark";
+            break;
+        case ThemeManager::Custom:
+            currentThemeString = "custom";
+            break;
+        case ThemeManager::SystemDefault:
+        default:
+            currentThemeString = "system";
+            break;
+    }
+    int themeIndex = m_themeCombo->findData(currentThemeString);
     if (themeIndex >= 0) m_themeCombo->setCurrentIndex(themeIndex);
     
     m_startupCheck->setChecked(settings.value("general/launchOnStartup", false).toBool());
@@ -549,7 +566,25 @@ void SettingsDialog::saveSettings()
     
     // General
     settings.setValue("general/language", m_languageCombo->currentData());
-    settings.setValue("general/theme", m_themeCombo->currentData());
+    
+    // Apply theme change through ThemeManager instead of old settings
+    QString selectedTheme = m_themeCombo->currentData().toString();
+    ThemeManager* themeManager = ThemeManager::instance();
+    ThemeManager::Theme newTheme = ThemeManager::SystemDefault;
+    if (selectedTheme == "light") {
+        newTheme = ThemeManager::Light;
+    } else if (selectedTheme == "dark") {
+        newTheme = ThemeManager::Dark;
+    } else if (selectedTheme == "custom") {
+        newTheme = ThemeManager::Custom;
+    }
+    themeManager->setTheme(newTheme);
+    
+    // Remove old theme setting to avoid conflicts
+    if (settings.contains("general/theme")) {
+        settings.remove("general/theme");
+    }
+    
     settings.setValue("general/launchOnStartup", m_startupCheck->isChecked());
     settings.setValue("general/checkUpdates", m_updateCheck->isChecked());
     
