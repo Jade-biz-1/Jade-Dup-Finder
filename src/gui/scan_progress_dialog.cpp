@@ -1,7 +1,14 @@
 #include "scan_progress_dialog.h"
 #include "theme_manager.h"
+#include "operation_manager.h"
 #include <QGridLayout>
 #include <QFrame>
+#include <QGroupBox>
+#include <QListWidget>
+#include <QListWidgetItem>
+#include <QHBoxLayout>
+#include <QVBoxLayout>
+#include <QDateTime>
 #include <cmath>
 
 ScanProgressDialog::ScanProgressDialog(QWidget* parent)
@@ -21,7 +28,17 @@ ScanProgressDialog::ScanProgressDialog(QWidget* parent)
     , m_cancelButton(nullptr)
     , m_errorsLabel(nullptr)
     , m_viewErrorsButton(nullptr)
+    , m_operationTypeLabel(nullptr)
+    , m_operationStatusLabel(nullptr)
+    , m_averageFileSizeLabel(nullptr)
+    , m_bytesPerSecondLabel(nullptr)
+    , m_queueProgress(nullptr)
+    , m_queueStatusLabel(nullptr)
+
+    , m_queueGroup(nullptr)
+    , m_lastErrorLabel(nullptr)
     , m_isPaused(false)
+    , m_operationManager(nullptr)
 {
     setupUI();
     
@@ -31,28 +48,51 @@ ScanProgressDialog::ScanProgressDialog(QWidget* parent)
 }
 
 void ScanProgressDialog::setupUI() {
-    setWindowTitle(tr("Scan Progress"));
+    setWindowTitle(tr("Operation Progress"));
     setModal(true);
-    setMinimumWidth(500);
-    setMinimumHeight(300);
+    setMinimumWidth(600);
+    setMinimumHeight(450);
 
     auto* mainLayout = new QVBoxLayout(this);
     mainLayout->setSpacing(15);
     mainLayout->setContentsMargins(20, 20, 20, 20);
 
-    // Status label at the top
-    m_statusLabel = new QLabel(tr("Scanning..."), this);
+    // Enhanced status section with operation type and visual status
+    auto* statusLayout = new QHBoxLayout();
+    
+    m_statusLabel = new QLabel(tr("Initializing..."), this);
     QFont statusFont = m_statusLabel->font();
     statusFont.setPointSize(statusFont.pointSize() + 2);
     statusFont.setBold(true);
     m_statusLabel->setFont(statusFont);
+    
+    m_operationTypeLabel = new QLabel(tr("Scan Operation"), this);
+    QFont typeFont = m_operationTypeLabel->font();
+    typeFont.setPointSize(typeFont.pointSize() + 1);
+    m_operationTypeLabel->setFont(typeFont);
+    
+    m_operationStatusLabel = new QLabel(getStatusIcon(OperationStatus::Initializing) + " " + getStatusText(OperationStatus::Initializing), this);
+    m_operationStatusLabel->setStyleSheet(QString("color: %1; font-weight: bold;")
+                                         .arg(getStatusColor(OperationStatus::Initializing).name()));
+    
+    statusLayout->addWidget(m_operationTypeLabel);
+    statusLayout->addStretch();
+    statusLayout->addWidget(m_operationStatusLabel);
+    
     mainLayout->addWidget(m_statusLabel);
+    mainLayout->addLayout(statusLayout);
 
     // Progress section
     createProgressSection(mainLayout);
 
+    // Enhanced metrics section (Task 7.1)
+    createEnhancedMetricsSection(mainLayout);
+
     // Details section
     createDetailsSection(mainLayout);
+
+    // Queue section (Task 7.2)
+    createQueueSection(mainLayout);
 
     // Spacer
     mainLayout->addStretch();
@@ -185,6 +225,74 @@ void ScanProgressDialog::createDetailsSection(QVBoxLayout* mainLayout) {
     mainLayout->addWidget(detailsGroup);
 }
 
+void ScanProgressDialog::createEnhancedMetricsSection(QVBoxLayout* mainLayout) {
+    auto* metricsGroup = new QGroupBox(tr("Performance Metrics"), this);
+    auto* metricsLayout = new QGridLayout(metricsGroup);
+    metricsLayout->setColumnStretch(1, 1);
+    metricsLayout->setHorizontalSpacing(10);
+    metricsLayout->setVerticalSpacing(5);
+
+    // Enhanced data processing rate
+    auto* bytesRateLabelText = new QLabel(tr("Data Rate:"), this);
+    bytesRateLabelText->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+    m_bytesPerSecondLabel = new QLabel(tr("0 B/s"), this);
+    metricsLayout->addWidget(bytesRateLabelText, 0, 0);
+    metricsLayout->addWidget(m_bytesPerSecondLabel, 0, 1);
+
+    // Average file size
+    auto* avgSizeLabelText = new QLabel(tr("Avg File Size:"), this);
+    avgSizeLabelText->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+    m_averageFileSizeLabel = new QLabel(tr("0 B"), this);
+    metricsLayout->addWidget(avgSizeLabelText, 1, 0);
+    metricsLayout->addWidget(m_averageFileSizeLabel, 1, 1);
+
+    // Last error display
+    auto* errorLabelText = new QLabel(tr("Last Error:"), this);
+    errorLabelText->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+    m_lastErrorLabel = new QLabel(tr("None"), this);
+    m_lastErrorLabel->setWordWrap(true);
+    m_lastErrorLabel->setStyleSheet("color: #d32f2f;"); // Error color - will be themed
+    metricsLayout->addWidget(errorLabelText, 2, 0);
+    metricsLayout->addWidget(m_lastErrorLabel, 2, 1);
+
+    mainLayout->addWidget(metricsGroup);
+}
+
+void ScanProgressDialog::createQueueSection(QVBoxLayout* mainLayout) {
+    m_queueGroup = new QGroupBox(tr("Operation Queue"), this);
+    auto* queueLayout = new QVBoxLayout(m_queueGroup);
+
+    // Queue progress bar
+    auto* queueProgressLayout = new QHBoxLayout();
+    auto* queueProgressLabel = new QLabel(tr("Queue Progress:"), this);
+    m_queueProgress = new QProgressBar(this);
+    m_queueProgress->setMinimum(0);
+    m_queueProgress->setMaximum(100);
+    m_queueProgress->setValue(0);
+    m_queueProgress->setTextVisible(true);
+    m_queueProgress->setFormat("%p% - %v/%m operations");
+    m_queueProgress->setStyleSheet(ThemeManager::instance()->getProgressBarStyle(ThemeManager::ProgressType::Queue));
+    
+    queueProgressLayout->addWidget(queueProgressLabel);
+    queueProgressLayout->addWidget(m_queueProgress, 1);
+    queueLayout->addLayout(queueProgressLayout);
+
+    // Queue status
+    m_queueStatusLabel = new QLabel(tr("No operations in queue"), this);
+    queueLayout->addWidget(m_queueStatusLabel);
+
+    // Operation queue list
+    m_operationQueueList = new QListWidget(this);
+    m_operationQueueList->setMaximumHeight(100);
+    m_operationQueueList->setAlternatingRowColors(true);
+    queueLayout->addWidget(m_operationQueueList);
+
+    // Initially hide queue section if no operations
+    m_queueGroup->setVisible(false);
+    
+    mainLayout->addWidget(m_queueGroup);
+}
+
 void ScanProgressDialog::createButtonSection(QVBoxLayout* mainLayout) {
     auto* buttonLayout = new QHBoxLayout();
     buttonLayout->addStretch();
@@ -294,6 +402,222 @@ void ScanProgressDialog::updateProgress(const ProgressInfo& info) {
     
     // T12: Update visual feedback
     updateVisualFeedback(info);
+    
+    // Task 7.1: Update enhanced metrics
+    updateEnhancedMetrics(info);
+    
+    // Task 7.2: Update queue display if operations are queued
+    if (!info.operationQueue.isEmpty()) {
+        updateQueueDisplay(info.operationQueue);
+        updateOperationQueueProgress(info);
+    }
+    
+    // Task 7.1: Update operation status display
+    updateOperationStatusDisplay(info.status);
+}
+
+void ScanProgressDialog::updateEnhancedMetrics(const ProgressInfo& info) {
+    // Update bytes per second rate
+    if (info.bytesPerSecond > 0) {
+        m_bytesPerSecondLabel->setText(formatBytes(static_cast<qint64>(info.bytesPerSecond)) + "/s");
+    } else {
+        m_bytesPerSecondLabel->setText(tr("0 B/s"));
+    }
+    
+    // Update average file size
+    if (info.averageFileSize > 0) {
+        m_averageFileSizeLabel->setText(formatBytes(static_cast<qint64>(info.averageFileSize)));
+    } else {
+        m_averageFileSizeLabel->setText(tr("0 B"));
+    }
+    
+    // Update last error display
+    if (!info.lastError.isEmpty()) {
+        m_lastErrorLabel->setText(info.lastError);
+        m_lastErrorLabel->setStyleSheet("color: " + getStatusColor(OperationStatus::Error).name() + ";");
+    } else {
+        m_lastErrorLabel->setText(tr("None"));
+        m_lastErrorLabel->setStyleSheet("color: " + ThemeManager::instance()->getCurrentThemeData().colors.foreground.name() + ";");
+    }
+}
+
+void ScanProgressDialog::updateOperationStatusDisplay(OperationStatus status) {
+    QString statusText = getStatusIcon(status) + " " + getStatusText(status);
+    m_operationStatusLabel->setText(statusText);
+    m_operationStatusLabel->setStyleSheet(QString("color: %1; font-weight: bold;")
+                                         .arg(getStatusColor(status).name()));
+}
+
+void ScanProgressDialog::updateQueueDisplay(const QList<QueuedOperation>& operations) {
+    m_operationQueueList->clear();
+    
+    for (const auto& operation : operations) {
+        QString itemText = QString("%1: %2 (%3)")
+                          .arg(operation.operationType)
+                          .arg(operation.description)
+                          .arg(getStatusText(operation.status));
+        
+        auto* item = new QListWidgetItem(itemText);
+        
+        // Set item color based on status
+        QColor statusColor = getStatusColor(operation.status);
+        item->setForeground(QBrush(statusColor));
+        
+        // Add status icon
+        item->setText(getStatusIcon(operation.status) + " " + itemText);
+        
+        m_operationQueueList->addItem(item);
+    }
+    
+    // Show queue section if there are operations
+    m_queueGroup->setVisible(!operations.isEmpty());
+    
+    // Update queue status label
+    if (operations.isEmpty()) {
+        m_queueStatusLabel->setText(tr("No operations in queue"));
+    } else {
+        int completed = 0;
+        int running = 0;
+        int pending = 0;
+        
+        for (const auto& op : operations) {
+            switch (op.status) {
+                case OperationStatus::Completed:
+                    completed++;
+                    break;
+                case OperationStatus::Running:
+                    running++;
+                    break;
+                case OperationStatus::Initializing:
+                    pending++;
+                    break;
+                default:
+                    break;
+            }
+        }
+        
+        m_queueStatusLabel->setText(tr("%1 operations: %2 completed, %3 running, %4 pending")
+                                   .arg(operations.size())
+                                   .arg(completed)
+                                   .arg(running)
+                                   .arg(pending));
+    }
+}
+
+void ScanProgressDialog::updateOperationQueueProgress(const ProgressInfo& info) {
+    if (info.totalOperationsInQueue > 0) {
+        int completedOperations = 0;
+        for (const auto& operation : info.operationQueue) {
+            if (operation.status == OperationStatus::Completed) {
+                completedOperations++;
+            }
+        }
+        
+        int queuePercentage = (completedOperations * 100) / info.totalOperationsInQueue;
+        m_queueProgress->setValue(queuePercentage);
+        m_queueProgress->setMaximum(info.totalOperationsInQueue);
+        m_queueProgress->setValue(completedOperations);
+    } else {
+        m_queueProgress->setValue(0);
+        m_queueProgress->setMaximum(1);
+    }
+}
+
+QString ScanProgressDialog::getStatusIcon(OperationStatus status) const {
+    switch (status) {
+        case OperationStatus::Initializing:
+            return "⏳";
+        case OperationStatus::Running:
+            return "▶️";
+        case OperationStatus::Paused:
+            return "⏸️";
+        case OperationStatus::Completed:
+            return "✅";
+        case OperationStatus::Error:
+            return "❌";
+        case OperationStatus::Cancelled:
+            return "🚫";
+        default:
+            return "❓";
+    }
+}
+
+QString ScanProgressDialog::getStatusText(OperationStatus status) const {
+    switch (status) {
+        case OperationStatus::Initializing:
+            return tr("Initializing");
+        case OperationStatus::Running:
+            return tr("Running");
+        case OperationStatus::Paused:
+            return tr("Paused");
+        case OperationStatus::Completed:
+            return tr("Completed");
+        case OperationStatus::Error:
+            return tr("Error");
+        case OperationStatus::Cancelled:
+            return tr("Cancelled");
+        default:
+            return tr("Unknown");
+    }
+}
+
+QColor ScanProgressDialog::getStatusColor(OperationStatus status) const {
+    // Get theme-aware colors from ThemeManager
+    auto themeData = ThemeManager::instance()->getCurrentThemeData();
+    
+    switch (status) {
+        case OperationStatus::Initializing:
+            return themeData.colors.info;
+        case OperationStatus::Running:
+            return themeData.colors.accent;
+        case OperationStatus::Paused:
+            return themeData.colors.warning;
+        case OperationStatus::Completed:
+            return themeData.colors.success;
+        case OperationStatus::Error:
+            return themeData.colors.error;
+        case OperationStatus::Cancelled:
+            return themeData.colors.disabled;
+        default:
+            return themeData.colors.foreground;
+    }
+}
+
+void ScanProgressDialog::updateOperationQueue(const QList<QueuedOperation>& operations) {
+    updateQueueDisplay(operations);
+}
+
+void ScanProgressDialog::setOperationStatus(OperationStatus status) {
+    updateOperationStatusDisplay(status);
+}
+
+void ScanProgressDialog::setOperationManager(OperationManager* manager) {
+    if (m_operationManager) {
+        // Disconnect old manager
+        disconnect(m_operationManager, nullptr, this, nullptr);
+    }
+    
+    m_operationManager = manager;
+    
+    if (m_operationManager) {
+        // Connect to operation manager signals for automatic updates
+        connect(m_operationManager, &OperationManager::progressInfoUpdated,
+                this, &ScanProgressDialog::updateProgress);
+        connect(m_operationManager, &OperationManager::operationStarted,
+                this, [this](const QString& operationId) {
+                    Q_UNUSED(operationId)
+                    if (m_operationManager) {
+                        updateProgress(m_operationManager->getProgressInfo());
+                    }
+                });
+        connect(m_operationManager, &OperationManager::operationCompleted,
+                this, [this](const QString& operationId) {
+                    Q_UNUSED(operationId)
+                    if (m_operationManager) {
+                        updateProgress(m_operationManager->getProgressInfo());
+                    }
+                });
+    }
 }
 
 void ScanProgressDialog::setPaused(bool paused) {

@@ -165,6 +165,15 @@ void ResultsWindow::createMainContent()
     m_mainSplitter->addWidget(m_actionsPanel);
     m_mainSplitter->setSizes({600, 300, 200});
     
+    // Set minimum sizes for proper visibility
+    m_resultsPanel->setMinimumSize(300, 200);
+    m_detailsPanel->setMinimumSize(200, 200);
+    m_actionsPanel->setMinimumSize(150, 200);
+    
+    // Apply theme-aware styling and enforce minimum sizes
+    ThemeManager::instance()->applyToWidget(m_mainSplitter);
+    ThemeManager::instance()->enforceMinimumSizes(this);
+    
     m_mainLayout->addWidget(m_mainSplitter, 1);  // Expand to fill space
 }
 
@@ -226,6 +235,10 @@ void ResultsWindow::createResultsTree()
     
     m_selectAllCheckbox = new QCheckBox(tr("Select All"), this);
     m_selectAllCheckbox->setToolTip(tr("Select all duplicate files"));
+    
+    // Apply enhanced checkbox styling for better visibility
+    ThemeManager::instance()->registerComponent(m_selectAllCheckbox, ThemeManager::ComponentType::CheckBox);
+    m_selectAllCheckbox->setStyleSheet(ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::CheckBox));
     m_selectRecommendedButton = new QPushButton(tr("Select Recommended"), this);
     m_selectRecommendedButton->setToolTip(tr("Select files recommended for deletion (keeps newest/largest)"));
     m_selectByTypeButton = new QPushButton(tr("Select by Type"), this);
@@ -284,6 +297,13 @@ void ResultsWindow::createResultsTree()
     header->setSectionResizeMode(2, QHeaderView::ResizeToContents);
     header->setSectionResizeMode(3, QHeaderView::Interactive);
     
+    // Set minimum size and apply enhanced theme styling
+    m_resultsTree->setMinimumSize(300, 200);
+    
+    // Apply enhanced TreeView styling with improved checkbox visibility
+    ThemeManager::instance()->registerComponent(m_resultsTree, ThemeManager::ComponentType::TreeView);
+    m_resultsTree->setStyleSheet(ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::TreeView));
+    
     // Theme-aware styling will be applied by ThemeManager
     
     // Add to layout
@@ -316,13 +336,29 @@ void ResultsWindow::createDetailsPanel()
     m_previewScrollArea->setWidget(m_previewLabel);
     m_previewScrollArea->setWidgetResizable(true);
     
-    // File details
+    // File details with proper text wrapping
     m_fileNameLabel = new QLabel(tr("Name: -"), this);
+    m_fileNameLabel->setWordWrap(true);
+    m_fileNameLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    
     m_fileSizeLabel = new QLabel(tr("Size: -"), this);
+    m_fileSizeLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    
     m_filePathLabel = new QLabel(tr("Path: -"), this);
+    m_filePathLabel->setWordWrap(true);
+    m_filePathLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    m_filePathLabel->setMinimumHeight(40); // Allow for wrapped text
+    
     m_fileDateLabel = new QLabel(tr("Modified: -"), this);
+    m_fileDateLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    
     m_fileTypeLabel = new QLabel(tr("Type: -"), this);
+    m_fileTypeLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    
     m_fileHashLabel = new QLabel(tr("Hash: -"), this);
+    m_fileHashLabel->setWordWrap(true);
+    m_fileHashLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    m_fileHashLabel->setFont(QFont("monospace", 8)); // Monospace for hash display
     
     // Theme-aware styling will be applied by ThemeManager
     
@@ -342,10 +378,13 @@ void ResultsWindow::createDetailsPanel()
     m_groupInfoLayout->setSpacing(8);
     
     m_groupSummaryLabel = new QLabel(tr("No group selected"), this);
-    // Apply theme-aware bold styling
+    // Apply theme-aware bold styling with proper text handling
     QFont summaryFont = m_groupSummaryLabel->font();
     summaryFont.setBold(true);
     m_groupSummaryLabel->setFont(summaryFont);
+    m_groupSummaryLabel->setWordWrap(true);
+    m_groupSummaryLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    m_groupSummaryLabel->setMinimumHeight(30);
     
     m_groupFilesTable = new QTableWidget(0, 4, this);
     m_groupFilesTable->setHorizontalHeaderLabels({tr("File"), tr("Size"), tr("Modified"), tr("Recommended")});
@@ -414,26 +453,18 @@ void ResultsWindow::createActionsPanel()
     m_bulkIgnoreButton = new QPushButton(tr("👁️ Ignore Selected"), this);
     m_bulkIgnoreButton->setToolTip(tr("Ignore all selected files in current results"));
     
-    // Style bulk buttons with warning colors
-    QString bulkButtonStyle = 
-        "QPushButton {"
-        "    text-align: left;"
-        "    padding: 8px 12px;"
-        "    border: 1px solid palette(mid);"
-        "    border-radius: 4px;"
-        "    background: palette(button);"
-        "    font-weight: bold;"
-        "}"
-        "QPushButton:hover {"
-        "    background: orange;"
-        "    border-color: red;"
-        "    color: white;"
-        "}"
-    ;
+    // Apply theme-aware button styling with warning colors
+    QString bulkButtonStyle = ThemeManager::instance()->getStatusIndicatorStyle(ThemeManager::StatusType::Warning);
+    QSize buttonMinSize = ThemeManager::instance()->getMinimumControlSize(ThemeManager::ControlType::Button);
     
     m_bulkDeleteButton->setStyleSheet(bulkButtonStyle);
+    m_bulkDeleteButton->setMinimumSize(buttonMinSize);
+    
     m_bulkMoveButton->setStyleSheet(bulkButtonStyle);
+    m_bulkMoveButton->setMinimumSize(buttonMinSize);
+    
     m_bulkIgnoreButton->setStyleSheet(bulkButtonStyle);
+    m_bulkIgnoreButton->setMinimumSize(buttonMinSize);
     
     m_bulkActionsLayout->addWidget(m_bulkDeleteButton);
     m_bulkActionsLayout->addWidget(m_bulkMoveButton);
@@ -728,6 +759,39 @@ void ResultsWindow::applyTheme()
     // Apply theme from ThemeManager
     ThemeManager::instance()->applyToWidget(this);
     
+    // Apply enhanced styling to specific components for better checkbox visibility
+    if (m_resultsTree) {
+        m_resultsTree->setStyleSheet(ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::TreeView));
+    }
+    
+    if (m_selectAllCheckbox) {
+        m_selectAllCheckbox->setStyleSheet(ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::CheckBox));
+    }
+    
+    // Ensure all tree widget items have proper checkbox styling
+    if (m_resultsTree) {
+        QTreeWidgetItemIterator it(m_resultsTree);
+        while (*it) {
+            QTreeWidgetItem* item = *it;
+            if (item->parent() != nullptr) { // File item with checkbox
+                // Ensure checkbox flags are set
+                item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
+                
+                // Update visual styling for recommended files
+                QString filePath = item->data(0, Qt::UserRole).toString();
+                for (const auto& group : m_currentResults.duplicateGroups) {
+                    QString recommended = getRecommendedFileToKeep(group);
+                    if (filePath == recommended) {
+                        QColor recommendedColor = ThemeManager::instance()->getCurrentThemeData().colors.success;
+                        item->setForeground(0, QBrush(recommendedColor));
+                        break;
+                    }
+                }
+            }
+            ++it;
+        }
+    }
+    
     // Remove any hardcoded styles and validate theme compliance
     ThemeManager::instance()->removeHardcodedStyles(this);
     ThemeManager::instance()->validateThemeCompliance(this);
@@ -1009,8 +1073,11 @@ void ResultsWindow::updateFileItem(QTreeWidgetItem* fileItem, const DuplicateFil
     // Store file data
     fileItem->setData(0, Qt::UserRole, QVariant::fromValue(file.filePath));
     
-    // Add checkbox
+    // Add checkbox with enhanced visibility
     fileItem->setCheckState(0, file.isSelected ? Qt::Checked : Qt::Unchecked);
+    
+    // Ensure checkbox is properly styled and visible
+    fileItem->setFlags(fileItem->flags() | Qt::ItemIsUserCheckable);
     
     // Style recommended file differently
     if (!m_currentResults.duplicateGroups.isEmpty()) {
@@ -1020,7 +1087,17 @@ void ResultsWindow::updateFileItem(QTreeWidgetItem* fileItem, const DuplicateFil
             font.setItalic(true);
             fileItem->setFont(0, font);
             fileItem->setToolTip(0, tr("Recommended to keep"));
+            
+            // Add visual indicator for recommended files
+            QColor recommendedColor = ThemeManager::instance()->getCurrentThemeData().colors.success;
+            fileItem->setForeground(0, QBrush(recommendedColor));
         }
+    }
+    
+    // Ensure proper minimum height for checkbox visibility
+    if (m_resultsTree) {
+        m_resultsTree->setItemWidget(fileItem, 0, nullptr); // Clear any existing widget
+        // The checkbox is handled by Qt's built-in item checkbox system
     }
 }
 
@@ -1037,6 +1114,8 @@ QString ResultsWindow::formatFileSize(qint64 bytes) const
         return tr("%1 GB").arg(QString::number(static_cast<double>(bytes) / (1024.0 * 1024.0 * 1024.0), 'f', 2));
     }
 }
+
+
 
 QString ResultsWindow::getRecommendedFileToKeep(const DuplicateGroup& group) const
 {
@@ -1091,13 +1170,35 @@ void ResultsWindow::onFileSelectionChanged()
     QList<QTreeWidgetItem*> selectedItems = m_resultsTree->selectedItems();
     bool hasFileSelected = false;
     bool hasMultipleSelected = selectedItems.size() > 1;
+    QString selectedFilePath;
     
-    // Check if any files are selected
+    // Check if any files are selected and get the first selected file
     for (QTreeWidgetItem* item : selectedItems) {
         if (item->parent() != nullptr) { // It's a file item, not a group
             hasFileSelected = true;
-            break;
+            if (selectedFilePath.isEmpty()) {
+                selectedFilePath = item->data(0, Qt::UserRole).toString();
+            }
+            if (hasMultipleSelected) break; // No need to continue if multiple selected
         }
+    }
+    
+    // Update file info display for single selection
+    if (hasFileSelected && !hasMultipleSelected && !selectedFilePath.isEmpty()) {
+        // Basic file info update - simplified for now
+        QFileInfo fileInfo(selectedFilePath);
+        if (m_fileNameLabel) m_fileNameLabel->setText(tr("Name: %1").arg(fileInfo.fileName()));
+        if (m_fileSizeLabel) m_fileSizeLabel->setText(tr("Size: %1").arg(formatFileSize(fileInfo.size())));
+        if (m_filePathLabel) m_filePathLabel->setText(tr("Path: %1").arg(fileInfo.absolutePath()));
+    } else {
+        // Clear file info display for no selection or multiple selection
+        if (m_fileNameLabel) m_fileNameLabel->setText(tr("Name: %1").arg(
+            hasMultipleSelected ? tr("Multiple files selected") : tr("No file selected")));
+        if (m_fileSizeLabel) m_fileSizeLabel->setText(tr("Size: -"));
+        if (m_filePathLabel) m_filePathLabel->setText(tr("Path: -"));
+        if (m_fileDateLabel) m_fileDateLabel->setText(tr("Modified: -"));
+        if (m_fileTypeLabel) m_fileTypeLabel->setText(tr("Type: -"));
+        if (m_fileHashLabel) m_fileHashLabel->setText(tr("Hash: -"));
     }
     
     // Enable/disable single file actions
@@ -1916,6 +2017,8 @@ void ResultsWindow::showEvent(QShowEvent* event)
     updateStatusBar();
 }
 
+
+
 // Clear results
 void ResultsWindow::clearResults()
 {
@@ -2324,136 +2427,7 @@ bool ResultsWindow::exportToHTML(QTextStream& out, const QString& fileName)
     out << "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n";
     out << "    <title>Duplicate Files Report</title>\n";
     out << "    <style>\n";
-    out << "        body {\n";
-    out << "            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;\n";
-    out << "            margin: 0;\n";
-    out << "            padding: 20px;\n";
-    out << "            background-color: #f5f5f5;\n";
-    out << "            color: #333;\n";
-    out << "        }\n";
-    out << "        .container {\n";
-    out << "            max-width: 1200px;\n";
-    out << "            margin: 0 auto;\n";
-    out << "            background: white;\n";
-    out << "            border-radius: 8px;\n";
-    out << "            box-shadow: 0 2px 10px rgba(0,0,0,0.1);\n";
-    out << "            padding: 30px;\n";
-    out << "        }\n";
-    out << "        h1 {\n";
-    out << "            color: #2c3e50;\n";
-    out << "            text-align: center;\n";
-    out << "            margin-bottom: 30px;\n";
-    out << "            border-bottom: 3px solid #3498db;\n";
-    out << "            padding-bottom: 15px;\n";
-    out << "        }\n";
-    out << "        .summary {\n";
-    out << "            background: #ecf0f1;\n";
-    out << "            padding: 20px;\n";
-    out << "            border-radius: 6px;\n";
-    out << "            margin-bottom: 30px;\n";
-    out << "            display: grid;\n";
-    out << "            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));\n";
-    out << "            gap: 15px;\n";
-    out << "        }\n";
-    out << "        .summary-item {\n";
-    out << "            text-align: center;\n";
-    out << "        }\n";
-    out << "        .summary-value {\n";
-    out << "            font-size: 24px;\n";
-    out << "            font-weight: bold;\n";
-    out << "            color: #e74c3c;\n";
-    out << "        }\n";
-    out << "        .summary-label {\n";
-    out << "            font-size: 14px;\n";
-    out << "            color: #7f8c8d;\n";
-    out << "            margin-top: 5px;\n";
-    out << "        }\n";
-    out << "        .group {\n";
-    out << "            margin-bottom: 30px;\n";
-    out << "            border: 1px solid #ddd;\n";
-    out << "            border-radius: 6px;\n";
-    out << "            overflow: hidden;\n";
-    out << "        }\n";
-    out << "        .group-header {\n";
-    out << "            background: linear-gradient(135deg, #3498db, #2980b9);\n";
-    out << "            color: white;\n";
-    out << "            padding: 15px 20px;\n";
-    out << "            font-weight: bold;\n";
-    out << "            display: flex;\n";
-    out << "            justify-content: space-between;\n";
-    out << "            align-items: center;\n";
-    out << "        }\n";
-    out << "        .group-info {\n";
-    out << "            font-size: 14px;\n";
-    out << "            opacity: 0.9;\n";
-    out << "        }\n";
-    out << "        .files-container {\n";
-    out << "            padding: 20px;\n";
-    out << "        }\n";
-    out << "        .file-item {\n";
-    out << "            display: flex;\n";
-    out << "            align-items: center;\n";
-    out << "            padding: 15px;\n";
-    out << "            margin-bottom: 15px;\n";
-    out << "            background: #f8f9fa;\n";
-    out << "            border-radius: 6px;\n";
-    out << "            border-left: 4px solid #3498db;\n";
-    out << "            transition: all 0.3s ease;\n";
-    out << "        }\n";
-    out << "        .file-item:hover {\n";
-    out << "            background: #e3f2fd;\n";
-    out << "            transform: translateX(5px);\n";
-    out << "        }\n";
-    out << "        .file-item.recommended {\n";
-    out << "            border-left-color: #27ae60;\n";
-    out << "            background: #f0fff4;\n";
-    out << "        }\n";
-    out << "        .file-thumbnail {\n";
-    out << "            width: 64px;\n";
-    out << "            height: 64px;\n";
-    out << "            margin-right: 15px;\n";
-    out << "            border-radius: 4px;\n";
-    out << "            object-fit: cover;\n";
-    out << "            border: 2px solid #ddd;\n";
-    out << "            background: #f0f0f0;\n";
-    out << "        }\n";
-    out << "        .file-info {\n";
-    out << "            flex: 1;\n";
-    out << "        }\n";
-    out << "        .file-path {\n";
-    out << "            font-weight: bold;\n";
-    out << "            color: #2c3e50;\n";
-    out << "            margin-bottom: 5px;\n";
-    out << "            word-break: break-all;\n";
-    out << "        }\n";
-    out << "        .file-details {\n";
-    out << "            font-size: 12px;\n";
-    out << "            color: #7f8c8d;\n";
-    out << "            display: flex;\n";
-    out << "            gap: 15px;\n";
-    out << "            flex-wrap: wrap;\n";
-    out << "        }\n";
-    out << "        .file-badge {\n";
-    out << "            background: #27ae60;\n";
-    out << "            color: white;\n";
-    out << "            padding: 4px 8px;\n";
-    out << "            border-radius: 12px;\n";
-    out << "            font-size: 11px;\n";
-    out << "            font-weight: bold;\n";
-    out << "            margin-left: 10px;\n";
-    out << "        }\n";
-    out << "        .footer {\n";
-    out << "            text-align: center;\n";
-    out << "            margin-top: 40px;\n";
-    out << "            padding-top: 20px;\n";
-    out << "            border-top: 1px solid #ddd;\n";
-    out << "            color: #7f8c8d;\n";
-    out << "            font-size: 12px;\n";
-    out << "        }\n";
-    out << "        @media (max-width: 768px) {\n";
-    out << "            .container { padding: 15px; }\n";
-    out << "            .file-item { flex-direction: column; text-align: center; }\n";
-    out << "            .file-thumbnail { margin: 0 0 10px 0; }\n";
+    out << generateThemeAwareHtmlStyles();
     out << "        }\n";
     out << "    </style>\n";
     out << "</head>\n";
@@ -3726,3 +3700,4 @@ void ResultsWindow::recordSelectionState(const QString& description)
     // TODO: Implement selection state recording
     Q_UNUSED(description)
 }
+

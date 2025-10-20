@@ -91,6 +91,9 @@ set(CORE_SOURCES
     src/core/selection_history_manager.cpp
     src/core/file_operation_queue.cpp
     src/core/theme_manager.cpp
+    src/core/component_registry.cpp
+    src/core/style_validator.cpp
+    src/core/theme_persistence.cpp
 )
 
 set(GUI_SOURCES
@@ -114,6 +117,7 @@ set(GUI_SOURCES
     src/gui/file_operation_progress_dialog.cpp
     src/gui/grouping_options_dialog.cpp
     src/gui/safety_features_dialog.cpp
+    src/gui/theme_editor.cpp
     # Temporarily disabled for Settings dialog testing
     # src/gui/duplicate_relationship_widget.cpp
     # src/gui/smart_selection_dialog.cpp
@@ -134,6 +138,10 @@ set(HEADER_FILES
     include/app_config.h
     src/core/logger.h
     include/theme_manager.h
+    include/component_registry.h
+    include/style_validator.h
+    include/theme_persistence.h
+    include/theme_editor.h
     include/scan_history_manager.h
     include/selection_history_manager.h
     include/file_operation_queue.h

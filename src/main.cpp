@@ -48,8 +48,7 @@ int main(int argc, char *argv[])
     logger->info(LogCategories::SYSTEM, "Starting DupFinder application...");
     logger->debug(LogCategories::SYSTEM, "Logger initialized and configured");
     
-    // Initialize theme system
-    ThemeManager::instance()->loadFromSettings();
+    // Initialize theme system - theme preferences are loaded automatically in constructor
     ThemeManager::instance()->applyToApplication();
     
     // Create core components

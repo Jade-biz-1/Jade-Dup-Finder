@@ -27,6 +27,7 @@
 #include <QtGui/QPixmap>
 #include <QtGui/QIcon>
 
+
 // Include headers for types used in method signatures
 #include "duplicate_detector.h"
 #include "duplicate_relationship_widget.h"
@@ -170,6 +171,7 @@ protected:
     void closeEvent(QCloseEvent* event) override;
     void showEvent(QShowEvent* event) override;
 
+
 private slots:
     void initializeUI();
     void setupConnections();
@@ -245,6 +247,8 @@ private:
     QString getFileIcon(const QString& filePath) const;
     QPixmap createThumbnail(const QString& filePath, const QSize& size = QSize(64, 64));
     void selectGroupFiles(const DuplicateGroup& group, bool select);
+
+
     
     // Data management
     void loadSampleData();  // For testing purposes
