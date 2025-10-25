@@ -251,7 +251,8 @@ void ScanProgressDialog::createEnhancedMetricsSection(QVBoxLayout* mainLayout) {
     errorLabelText->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
     m_lastErrorLabel = new QLabel(tr("None"), this);
     m_lastErrorLabel->setWordWrap(true);
-    m_lastErrorLabel->setStyleSheet("color: #d32f2f;"); // Error color - will be themed
+    // Apply theme-aware error styling
+    m_lastErrorLabel->setStyleSheet(ThemeManager::instance()->getStatusIndicatorStyle(ThemeManager::StatusType::Error));
     metricsLayout->addWidget(errorLabelText, 2, 0);
     metricsLayout->addWidget(m_lastErrorLabel, 2, 1);
 
@@ -434,10 +435,10 @@ void ScanProgressDialog::updateEnhancedMetrics(const ProgressInfo& info) {
     // Update last error display
     if (!info.lastError.isEmpty()) {
         m_lastErrorLabel->setText(info.lastError);
-        m_lastErrorLabel->setStyleSheet("color: " + getStatusColor(OperationStatus::Error).name() + ";");
+        m_lastErrorLabel->setStyleSheet(ThemeManager::instance()->getStatusIndicatorStyle(ThemeManager::StatusType::Error));
     } else {
         m_lastErrorLabel->setText(tr("None"));
-        m_lastErrorLabel->setStyleSheet("color: " + ThemeManager::instance()->getCurrentThemeData().colors.foreground.name() + ";");
+        m_lastErrorLabel->setStyleSheet(ThemeManager::instance()->getStatusIndicatorStyle(ThemeManager::StatusType::Neutral));
     }
 }
 
@@ -591,34 +592,6 @@ void ScanProgressDialog::setOperationStatus(OperationStatus status) {
     updateOperationStatusDisplay(status);
 }
 
-void ScanProgressDialog::setOperationManager(OperationManager* manager) {
-    if (m_operationManager) {
-        // Disconnect old manager
-        disconnect(m_operationManager, nullptr, this, nullptr);
-    }
-    
-    m_operationManager = manager;
-    
-    if (m_operationManager) {
-        // Connect to operation manager signals for automatic updates
-        connect(m_operationManager, &OperationManager::progressInfoUpdated,
-                this, &ScanProgressDialog::updateProgress);
-        connect(m_operationManager, &OperationManager::operationStarted,
-                this, [this](const QString& operationId) {
-                    Q_UNUSED(operationId)
-                    if (m_operationManager) {
-                        updateProgress(m_operationManager->getProgressInfo());
-                    }
-                });
-        connect(m_operationManager, &OperationManager::operationCompleted,
-                this, [this](const QString& operationId) {
-                    Q_UNUSED(operationId)
-                    if (m_operationManager) {
-                        updateProgress(m_operationManager->getProgressInfo());
-                    }
-                });
-    }
-}
 
 void ScanProgressDialog::setPaused(bool paused) {
     m_isPaused = paused;

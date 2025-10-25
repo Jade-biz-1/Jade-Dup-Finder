@@ -1,4 +1,5 @@
 #include "duplicate_relationship_widget.h"
+#include "theme_manager.h"
 #include <QApplication>
 #include <QGraphicsProxyWidget>
 #include <QGraphicsEffect>
@@ -58,7 +59,12 @@ void DuplicateRelationshipWidget::setupUI()
     
     // Title
     m_titleLabel = new QLabel(tr("Duplicate Relationships"), this);
-    m_titleLabel->setStyleSheet("font-weight: bold; font-size: 12pt;");
+    // Apply theme-aware styling using ThemeManager
+    ThemeManager::instance()->applyToWidget(m_titleLabel);
+    QFont titleFont = m_titleLabel->font();
+    titleFont.setPointSize(12);
+    titleFont.setBold(true);
+    m_titleLabel->setFont(titleFont);
     
     // Control buttons
     m_fitButton = new QPushButton(tr("Fit"), this);

@@ -1,5 +1,6 @@
 #include "scan_history_dialog.h"
 #include "logger.h"
+#include "theme_manager.h"
 #include <QHeaderView>
 #include <QMessageBox>
 #include <QFileDialog>
@@ -126,8 +127,8 @@ void ScanHistoryDialog::setupUI()
     
     // Stats
     m_statsLabel = new QLabel(this);
-    // Theme-aware styling applied by ThemeManager
-    m_statsLabel->setStyleSheet("padding: 5px; border-radius: 3px;");
+    // Apply theme-aware styling using ThemeManager
+    ThemeManager::instance()->applyToWidget(m_statsLabel);
     m_mainLayout->addWidget(m_statsLabel);
     
     // Action buttons

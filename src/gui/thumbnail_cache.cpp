@@ -173,14 +173,14 @@ QPixmap ThumbnailCache::generateImageThumbnail(const QString& filePath, const QS
     QImageReader reader(filePath);
     
     if (!reader.canRead()) {
-        qWarning() << "Cannot read image:" << filePath;
+        LOG_WARNING(LogCategories::PREVIEW, QString("Cannot read image: %1").arg(filePath));
         return QPixmap();
     }
     
     // Get original size
     QSize originalSize = reader.size();
     if (!originalSize.isValid()) {
-        qWarning() << "Invalid image size:" << filePath;
+        LOG_WARNING(LogCategories::PREVIEW, QString("Invalid image size: %1").arg(filePath));
         return QPixmap();
     }
     
@@ -191,7 +191,7 @@ QPixmap ThumbnailCache::generateImageThumbnail(const QString& filePath, const QS
     // Read and convert to pixmap
     QImage image = reader.read();
     if (image.isNull()) {
-        qWarning() << "Failed to read image:" << filePath << reader.errorString();
+        LOG_WARNING(LogCategories::PREVIEW, QString("Failed to read image: %1 - %2").arg(filePath).arg(reader.errorString()));
         return QPixmap();
     }
     

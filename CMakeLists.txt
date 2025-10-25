@@ -91,21 +91,25 @@ set(CORE_SOURCES
     src/core/selection_history_manager.cpp
     src/core/file_operation_queue.cpp
     src/core/theme_manager.cpp
+    src/core/theme_error_handler.cpp
+    src/core/theme_performance_optimizer.cpp
+    src/core/final_theme_validator.cpp
     src/core/component_registry.cpp
     src/core/style_validator.cpp
     src/core/theme_persistence.cpp
+    # src/core/ui_theme_test_integration.cpp
 )
 
 set(GUI_SOURCES
     src/gui/main_window.cpp
     src/gui/main_window_widgets.cpp
     src/gui/scan_dialog.cpp
-    src/gui/results_widget.cpp
+    # src/gui/results_widget.cpp  # Obsolete stub file - removed
     src/gui/results_window.cpp
     src/gui/settings_dialog.cpp
     src/gui/scan_history_dialog.cpp
     src/gui/restore_dialog.cpp
-    src/gui/confirmation_dialog.cpp
+    # src/gui/confirmation_dialog.cpp  # Obsolete stub file - removed
     src/gui/thumbnail_cache.cpp
     src/gui/thumbnail_delegate.cpp
     src/gui/exclude_pattern_widget.cpp
@@ -117,16 +121,20 @@ set(GUI_SOURCES
     src/gui/file_operation_progress_dialog.cpp
     src/gui/grouping_options_dialog.cpp
     src/gui/safety_features_dialog.cpp
+    src/gui/about_dialog.cpp
     src/gui/theme_editor.cpp
+    src/gui/theme_recovery_dialog.cpp
+    src/gui/theme_notification_widget.cpp
     # Temporarily disabled for Settings dialog testing
     # src/gui/duplicate_relationship_widget.cpp
     # src/gui/smart_selection_dialog.cpp
 )
 
 set(PLATFORM_SOURCES
-    src/platform/${PLATFORM_NAME}/platform_file_ops.cpp
-    src/platform/${PLATFORM_NAME}/trash_manager.cpp
-    src/platform/${PLATFORM_NAME}/system_integration.cpp
+    # Obsolete stub files - removed (not yet implemented)
+    # src/platform/${PLATFORM_NAME}/platform_file_ops.cpp
+    # src/platform/${PLATFORM_NAME}/trash_manager.cpp
+    # src/platform/${PLATFORM_NAME}/system_integration.cpp
 )
 
 set(HEADER_FILES
@@ -138,21 +146,25 @@ set(HEADER_FILES
     include/app_config.h
     src/core/logger.h
     include/theme_manager.h
+    include/theme_error_handler.h
+    include/theme_performance_optimizer.h
+    include/final_theme_validator.h
     include/component_registry.h
     include/style_validator.h
     include/theme_persistence.h
     include/theme_editor.h
+    # include/ui_theme_test_integration.h
     include/scan_history_manager.h
     include/selection_history_manager.h
     include/file_operation_queue.h
     include/main_window.h
     include/scan_dialog.h
-    include/results_widget.h
+    # include/results_widget.h  # Obsolete stub file - removed
     src/gui/results_window.h
     include/settings_dialog.h
     include/scan_history_dialog.h
     include/restore_dialog.h
-    include/confirmation_dialog.h
+    # include/confirmation_dialog.h  # Obsolete stub file - removed
     include/thumbnail_cache.h
     include/thumbnail_delegate.h
     include/exclude_pattern_widget.h
@@ -167,9 +179,13 @@ set(HEADER_FILES
     # include/smart_selection_dialog.h
     include/grouping_options_dialog.h
     include/safety_features_dialog.h
-    include/platform_file_ops.h
-    include/trash_manager.h
-    include/system_integration.h
+    include/about_dialog.h
+    include/theme_recovery_dialog.h
+    include/theme_notification_widget.h
+    # Obsolete stub files - removed (not yet implemented)
+    # include/platform_file_ops.h
+    # include/trash_manager.h
+    # include/system_integration.h
 )
 
 # Main executable

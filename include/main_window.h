@@ -30,6 +30,7 @@ class FileManager;
 class ResultsWindow;
 class SettingsDialog;
 class SafetyFeaturesDialog;
+class AboutDialog;
 
 class QuickActionsWidget;
 class ScanHistoryWidget;
@@ -61,6 +62,7 @@ public slots:
     void onPresetSelected(const QString& preset);
     void onSettingsRequested();
     void onHelpRequested();
+    void onAboutRequested();
     void onRestoreRequested();
     void onSafetyFeaturesRequested();  // T17: Show safety features dialog
     void updateSystemInfo();
@@ -138,6 +140,7 @@ private:
     ScanProgressDialog* m_scanProgressDialog;
     ScanErrorDialog* m_scanErrorDialog;  // Task 10
     SafetyFeaturesDialog* m_safetyFeaturesDialog;  // T17: Safety Features UI
+    AboutDialog* m_aboutDialog;  // Section 1.5.2: About dialog
     
     // Utilities
     QTimer* m_systemUpdateTimer;

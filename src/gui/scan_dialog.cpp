@@ -5,6 +5,7 @@
 #include "file_scanner.h"
 #include "logger.h"
 #include "theme_manager.h"
+// #include "ui_enhancements.h"  // Obsolete test include - removed
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QFileDialog>
 #include <QtWidgets/QTreeWidgetItem>
@@ -282,7 +283,7 @@ void ScanSetupDialog::createLocationsPanel()
     m_directoryTree->setRootIsDecorated(true);
     
     // Apply theme-aware tree widget styling
-    m_directoryTree->setStyleSheet(ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::TreeView));
+    ThemeManager::instance()->applyToWidget(m_directoryTree);
     
     // Directory buttons
     m_directoryButtonsLayout = new QHBoxLayout();
@@ -295,13 +296,8 @@ void ScanSetupDialog::createLocationsPanel()
     m_removeFolderButton->setEnabled(false);
     
     // Apply theme-aware button styling
-    QString directoryButtonStyle = ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::Button);
-    m_addFolderButton->setStyleSheet(directoryButtonStyle);
-    m_removeFolderButton->setStyleSheet(directoryButtonStyle);
-    
-    // Set minimum sizes for better visibility
-    m_addFolderButton->setMinimumSize(ThemeManager::instance()->getMinimumControlSize(ThemeManager::ControlType::Button));
-    m_removeFolderButton->setMinimumSize(ThemeManager::instance()->getMinimumControlSize(ThemeManager::ControlType::Button));
+    ThemeManager::instance()->applyToWidget(m_addFolderButton);
+    ThemeManager::instance()->applyToWidget(m_removeFolderButton);
     
     m_directoryButtonsLayout->addWidget(m_addFolderButton);
     m_directoryButtonsLayout->addWidget(m_removeFolderButton);
@@ -309,7 +305,7 @@ void ScanSetupDialog::createLocationsPanel()
     
     // Quick presets
     QLabel* presetsLabel = new QLabel(tr("📋 Quick Presets:"), this);
-    presetsLabel->setStyleSheet(ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::Label));
+    ThemeManager::instance()->applyToWidget(presetsLabel);
     
     m_presetsWidget = new QWidget(this);
     m_presetsLayout = new QGridLayout(m_presetsWidget);
@@ -395,7 +391,7 @@ void ScanSetupDialog::createOptionsPanel()
     
     // Include options
     QLabel* includeLabel = new QLabel(tr("Include:"), this);
-    includeLabel->setStyleSheet(ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::Label));
+    ThemeManager::instance()->applyToWidget(includeLabel);
     
     m_includeHidden = new QCheckBox(tr("Hidden files"), this);
     m_includeHidden->setToolTip(tr("Include hidden files and folders in scan"));
@@ -407,22 +403,14 @@ void ScanSetupDialog::createOptionsPanel()
     m_scanArchives = new QCheckBox(tr("Archives"), this);
     
     // Apply theme-aware checkbox styling for better visibility
-    QString checkboxStyle = ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::CheckBox);
-    m_includeHidden->setStyleSheet(checkboxStyle);
-    m_includeSystem->setStyleSheet(checkboxStyle);
-    m_followSymlinks->setStyleSheet(checkboxStyle);
-    m_scanArchives->setStyleSheet(checkboxStyle);
-    
-    // Set minimum sizes for better visibility
-    QSize checkboxMinSize = ThemeManager::instance()->getMinimumControlSize(ThemeManager::ControlType::CheckBox);
-    m_includeHidden->setMinimumSize(checkboxMinSize);
-    m_includeSystem->setMinimumSize(checkboxMinSize);
-    m_followSymlinks->setMinimumSize(checkboxMinSize);
-    m_scanArchives->setMinimumSize(checkboxMinSize);
+    ThemeManager::instance()->applyToWidget(m_includeHidden);
+    ThemeManager::instance()->applyToWidget(m_includeSystem);
+    ThemeManager::instance()->applyToWidget(m_followSymlinks);
+    ThemeManager::instance()->applyToWidget(m_scanArchives);
     
     // File types
     QLabel* typesLabel = new QLabel(tr("File Types:"), this);
-    typesLabel->setStyleSheet(ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::Label));
+    ThemeManager::instance()->applyToWidget(typesLabel);
     
     m_fileTypesWidget = new QWidget(this);
     QGridLayout* typesLayout = new QGridLayout(m_fileTypesWidget);
@@ -438,20 +426,12 @@ void ScanSetupDialog::createOptionsPanel()
     m_archivesCheck = new QCheckBox(tr("Archives"), this);
     
     // Apply theme-aware checkbox styling to file type checkboxes
-    m_allTypesCheck->setStyleSheet(checkboxStyle);
-    m_imagesCheck->setStyleSheet(checkboxStyle);
-    m_documentsCheck->setStyleSheet(checkboxStyle);
-    m_videosCheck->setStyleSheet(checkboxStyle);
-    m_audioCheck->setStyleSheet(checkboxStyle);
-    m_archivesCheck->setStyleSheet(checkboxStyle);
-    
-    // Set minimum sizes for file type checkboxes
-    m_allTypesCheck->setMinimumSize(checkboxMinSize);
-    m_imagesCheck->setMinimumSize(checkboxMinSize);
-    m_documentsCheck->setMinimumSize(checkboxMinSize);
-    m_videosCheck->setMinimumSize(checkboxMinSize);
-    m_audioCheck->setMinimumSize(checkboxMinSize);
-    m_archivesCheck->setMinimumSize(checkboxMinSize);
+    ThemeManager::instance()->applyToWidget(m_allTypesCheck);
+    ThemeManager::instance()->applyToWidget(m_imagesCheck);
+    ThemeManager::instance()->applyToWidget(m_documentsCheck);
+    ThemeManager::instance()->applyToWidget(m_videosCheck);
+    ThemeManager::instance()->applyToWidget(m_audioCheck);
+    ThemeManager::instance()->applyToWidget(m_archivesCheck);
     
     typesLayout->addWidget(m_allTypesCheck, 0, 0);
     typesLayout->addWidget(m_imagesCheck, 0, 1);
@@ -470,7 +450,7 @@ void ScanSetupDialog::createOptionsPanel()
     
     // Exclude folders
     QLabel* excludeFoldersLabel = new QLabel(tr("Exclude Folders:"), this);
-    excludeFoldersLabel->setStyleSheet(ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::Label));
+    ThemeManager::instance()->applyToWidget(excludeFoldersLabel);
     
     m_excludeFoldersTree = new QTreeWidget(this);
     m_excludeFoldersTree->setHeaderLabel(tr("Folders to exclude from scan"));
@@ -478,7 +458,7 @@ void ScanSetupDialog::createOptionsPanel()
     m_excludeFoldersTree->setMinimumHeight(80);
     m_excludeFoldersTree->setAlternatingRowColors(true);
     m_excludeFoldersTree->setRootIsDecorated(false);
-    m_excludeFoldersTree->setStyleSheet(ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::TreeView));
+    ThemeManager::instance()->applyToWidget(m_excludeFoldersTree);
     
     // Exclude folder buttons
     QHBoxLayout* excludeFolderButtonsLayout = new QHBoxLayout();
@@ -488,14 +468,8 @@ void ScanSetupDialog::createOptionsPanel()
     m_removeExcludeFolderButton = new QPushButton(tr("- Remove"), this);
     m_removeExcludeFolderButton->setEnabled(false);
     
-    QString excludeButtonStyle = ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::Button);
-    m_addExcludeFolderButton->setStyleSheet(excludeButtonStyle);
-    m_removeExcludeFolderButton->setStyleSheet(excludeButtonStyle);
-    
-    // Set minimum sizes for exclude folder buttons
-    QSize buttonMinSize = ThemeManager::instance()->getMinimumControlSize(ThemeManager::ControlType::Button);
-    m_addExcludeFolderButton->setMinimumSize(buttonMinSize);
-    m_removeExcludeFolderButton->setMinimumSize(buttonMinSize);
+    ThemeManager::instance()->applyToWidget(m_addExcludeFolderButton);
+    ThemeManager::instance()->applyToWidget(m_removeExcludeFolderButton);
     
     excludeFolderButtonsLayout->addWidget(m_addExcludeFolderButton);
     excludeFolderButtonsLayout->addWidget(m_removeExcludeFolderButton);
@@ -572,18 +546,10 @@ void ScanSetupDialog::createAdvancedOptionsPanel()
     m_enablePrefiltering->setToolTip(tr("Group files by size before hash calculation (recommended)"));
     
     // Apply theme-aware checkbox styling
-    QString advancedCheckboxStyle = ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::CheckBox);
-    m_enableCaching->setStyleSheet(advancedCheckboxStyle);
-    m_skipEmptyFiles->setStyleSheet(advancedCheckboxStyle);
-    m_skipDuplicateNames->setStyleSheet(advancedCheckboxStyle);
-    m_enablePrefiltering->setStyleSheet(advancedCheckboxStyle);
-    
-    // Set minimum sizes for advanced checkboxes
-    QSize advancedCheckboxMinSize = ThemeManager::instance()->getMinimumControlSize(ThemeManager::ControlType::CheckBox);
-    m_enableCaching->setMinimumSize(advancedCheckboxMinSize);
-    m_skipEmptyFiles->setMinimumSize(advancedCheckboxMinSize);
-    m_skipDuplicateNames->setMinimumSize(advancedCheckboxMinSize);
-    m_enablePrefiltering->setMinimumSize(advancedCheckboxMinSize);
+    ThemeManager::instance()->applyToWidget(m_enableCaching);
+    ThemeManager::instance()->applyToWidget(m_skipEmptyFiles);
+    ThemeManager::instance()->applyToWidget(m_skipDuplicateNames);
+    ThemeManager::instance()->applyToWidget(m_enablePrefiltering);
     
     // Layout
     QGridLayout* advancedGrid = new QGridLayout();
@@ -631,14 +597,8 @@ void ScanSetupDialog::createPerformanceOptionsPanel()
     m_enableParallelHashing->setToolTip(tr("Calculate hashes in parallel (faster on multi-core systems)"));
     
     // Apply theme-aware checkbox styling
-    QString performanceCheckboxStyle = ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::CheckBox);
-    m_useMemoryMapping->setStyleSheet(performanceCheckboxStyle);
-    m_enableParallelHashing->setStyleSheet(performanceCheckboxStyle);
-    
-    // Set minimum sizes for performance checkboxes
-    QSize performanceCheckboxMinSize = ThemeManager::instance()->getMinimumControlSize(ThemeManager::ControlType::CheckBox);
-    m_useMemoryMapping->setMinimumSize(performanceCheckboxMinSize);
-    m_enableParallelHashing->setMinimumSize(performanceCheckboxMinSize);
+    ThemeManager::instance()->applyToWidget(m_useMemoryMapping);
+    ThemeManager::instance()->applyToWidget(m_enableParallelHashing);
     
     // Layout
     QGridLayout* performanceGrid = new QGridLayout();
@@ -667,28 +627,27 @@ void ScanSetupDialog::createPreviewPanel()
     
     m_estimateLabel = new QLabel(tr("Estimated: Calculating..."), this);
     m_estimateLabel->setWordWrap(true);
-    m_estimateLabel->setStyleSheet(ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::Label));
+    ThemeManager::instance()->applyToWidget(m_estimateLabel);
     
     m_estimationProgress = new QProgressBar(this);
     m_estimationProgress->setRange(0, 0); // Indeterminate progress
     m_estimationProgress->setVisible(false);
     m_estimationProgress->setFixedHeight(20);
-    m_estimationProgress->setStyleSheet(ThemeManager::instance()->getProgressBarStyle(ThemeManager::ProgressType::Normal));
+    ThemeManager::instance()->applyToWidget(m_estimationProgress);
     
     m_validationLabel = new QLabel(this);
     m_validationLabel->setWordWrap(true);
     m_validationLabel->setVisible(false);
-    m_validationLabel->setStyleSheet(ThemeManager::instance()->getStatusIndicatorStyle(ThemeManager::StatusType::Error));
+    ThemeManager::instance()->applyToWidget(m_validationLabel);
     
     m_limitWarning = new QLabel(this);
     m_limitWarning->setWordWrap(true);
     m_limitWarning->setVisible(false);
-    m_limitWarning->setStyleSheet(ThemeManager::instance()->getStatusIndicatorStyle(ThemeManager::StatusType::Warning));
+    ThemeManager::instance()->applyToWidget(m_limitWarning);
     
     m_upgradeButton = new QPushButton(tr("🔒 Upgrade to Premium"), this);
     m_upgradeButton->setVisible(false);
-    m_upgradeButton->setStyleSheet(ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::Button));
-    m_upgradeButton->setMinimumSize(ThemeManager::instance()->getMinimumControlSize(ThemeManager::ControlType::Button));
+    ThemeManager::instance()->applyToWidget(m_upgradeButton);
     
     // Add scope preview widget
     m_scopePreviewWidget = new ScanScopePreviewWidget(this);
@@ -722,20 +681,10 @@ void ScanSetupDialog::createButtonBar()
     m_startScanButton->setToolTip(tr("Start scanning with current configuration"));
     
     // Apply theme-aware button styling with proper minimum sizes
-    QString buttonStyle = ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::Button);
-    QSize buttonMinSize = ThemeManager::instance()->getMinimumControlSize(ThemeManager::ControlType::Button);
-    
-    m_cancelButton->setStyleSheet(buttonStyle);
-    m_cancelButton->setMinimumSize(buttonMinSize);
-    
-    m_managePresetsButton->setStyleSheet(buttonStyle);
-    m_managePresetsButton->setMinimumSize(buttonMinSize);
-    
-    m_savePresetButton->setStyleSheet(buttonStyle);
-    m_savePresetButton->setMinimumSize(buttonMinSize);
-    
-    m_startScanButton->setStyleSheet(buttonStyle);
-    m_startScanButton->setMinimumSize(buttonMinSize);
+    ThemeManager::instance()->applyToWidget(m_cancelButton);
+    ThemeManager::instance()->applyToWidget(m_managePresetsButton);
+    ThemeManager::instance()->applyToWidget(m_savePresetButton);
+    ThemeManager::instance()->applyToWidget(m_startScanButton);
     m_startScanButton->setDefault(true);
     
     m_buttonBox->addButton(m_cancelButton, QDialogButtonBox::RejectRole);
@@ -961,26 +910,12 @@ void ScanSetupDialog::applyTheme()
     ThemeManager::instance()->applyToDialog(this);
     
     // Apply theme-aware styling to preset buttons
-    QString buttonStyle = ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::Button);
-    QSize buttonMinSize = ThemeManager::instance()->getMinimumControlSize(ThemeManager::ControlType::Button);
-    
-    m_downloadsButton->setStyleSheet(buttonStyle);
-    m_downloadsButton->setMinimumSize(buttonMinSize);
-    
-    m_photosButton->setStyleSheet(buttonStyle);
-    m_photosButton->setMinimumSize(buttonMinSize);
-    
-    m_documentsButton->setStyleSheet(buttonStyle);
-    m_documentsButton->setMinimumSize(buttonMinSize);
-    
-    m_mediaButton->setStyleSheet(buttonStyle);
-    m_mediaButton->setMinimumSize(buttonMinSize);
-    
-    m_customButton->setStyleSheet(buttonStyle);
-    m_customButton->setMinimumSize(buttonMinSize);
-    
-    m_fullSystemButton->setStyleSheet(buttonStyle);
-    m_fullSystemButton->setMinimumSize(buttonMinSize);
+    ThemeManager::instance()->applyToWidget(m_downloadsButton);
+    ThemeManager::instance()->applyToWidget(m_photosButton);
+    ThemeManager::instance()->applyToWidget(m_documentsButton);
+    ThemeManager::instance()->applyToWidget(m_mediaButton);
+    ThemeManager::instance()->applyToWidget(m_customButton);
+    ThemeManager::instance()->applyToWidget(m_fullSystemButton);
     
     // Enforce minimum sizes for all dialog controls
     ThemeManager::instance()->enforceMinimumSizes(this);

@@ -284,7 +284,9 @@ void SystemOverviewWidget::createStatsDisplay()
     QHBoxLayout* bottomLayout = new QHBoxLayout();
     
     // Disk space info - theme-aware styling
-    m_diskSpaceLabel->setStyleSheet("font-weight: bold;");
+    QFont boldFont = m_diskSpaceLabel->font();
+    boldFont.setBold(true);
+    m_diskSpaceLabel->setFont(boldFont);
     
     m_diskUsageBar->setMaximum(100);
     m_diskUsageBar->setTextVisible(true);
@@ -294,7 +296,9 @@ void SystemOverviewWidget::createStatsDisplay()
     m_availableSpaceLabel->setWordWrap(true);
     
     // Statistics labels - theme-aware styling
-    m_potentialSavingsLabel->setStyleSheet("font-weight: bold;");
+    QFont savingsFont = m_potentialSavingsLabel->font();
+    savingsFont.setBold(true);
+    m_potentialSavingsLabel->setFont(savingsFont);
     // Theme-aware styling applied by ThemeManager for text color
     
     // Layout
@@ -370,18 +374,17 @@ QString SystemOverviewWidget::formatBytes(qint64 bytes) const
 
 QColor SystemOverviewWidget::getUsageColor(double percentage) const
 {
-    // Use theme-aware colors that adapt to current theme
+    // Use theme-aware colors from ThemeManager
+    ThemeData themeData = ThemeManager::instance()->getCurrentThemeData();
+    
     if (percentage < 60.0) {
         // Success color - green
-        return ThemeManager::instance()->currentTheme() == ThemeManager::Dark ? 
-               QColor("#4CAF50") : QColor("#28a745");
+        return themeData.colors.success;
     } else if (percentage < 80.0) {
         // Warning color - orange
-        return ThemeManager::instance()->currentTheme() == ThemeManager::Dark ? 
-               QColor("#FF9800") : QColor("#ffc107");
+        return themeData.colors.warning;
     } else {
         // Error color - red
-        return ThemeManager::instance()->currentTheme() == ThemeManager::Dark ? 
-               QColor("#F44336") : QColor("#dc3545");
+        return themeData.colors.error;
     }
 }

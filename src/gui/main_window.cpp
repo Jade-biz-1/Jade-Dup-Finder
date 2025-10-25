@@ -1,3 +1,4 @@
+// Project headers
 #include "main_window.h"
 #include "scan_dialog.h"
 #include "results_window.h"
@@ -5,12 +6,14 @@
 #include "scan_history_dialog.h"
 #include "restore_dialog.h"
 #include "safety_features_dialog.h"
+#include "about_dialog.h"
 #include "file_scanner.h"
 #include "theme_manager.h"
 #include "app_config.h"
 #include "scan_history_manager.h"
-
 #include "logger.h"
+
+// Qt headers
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QMessageBox>
 #include <QtWidgets/QListWidgetItem>
@@ -18,7 +21,6 @@
 #include <QtCore/QStandardPaths>
 #include <QtCore/QStorageInfo>
 #include <QtCore/QDir>
-
 #include <QtCore/QUuid>
 #include <QtGui/QIcon>
 #include <QtGui/QCloseEvent>
@@ -58,6 +60,7 @@ MainWindow::MainWindow(QWidget *parent)
     , m_scanProgressDialog(nullptr)
     , m_scanErrorDialog(nullptr)
     , m_safetyFeaturesDialog(nullptr)  // T17
+    , m_aboutDialog(nullptr)  // Section 1.5.2
     , m_systemUpdateTimer(new QTimer(this))
 {
     setWindowTitle(tr("DupFinder - Duplicate File Finder"));
@@ -93,6 +96,16 @@ MainWindow::~MainWindow()
 // Core component integration
 void MainWindow::setFileScanner(FileScanner* scanner)
 {
+    // Avoid duplicate setup if the same scanner is set
+    if (m_fileScanner == scanner) {
+        return;
+    }
+
+    // Disconnect from previous scanner if any
+    if (m_fileScanner) {
+        disconnect(m_fileScanner, nullptr, this, nullptr);
+    }
+
     m_fileScanner = scanner;
     
     // Set up connections now that we have the scanner
@@ -113,11 +126,11 @@ void MainWindow::setFileScanner(FileScanner* scanner)
                 
                 // Connect pause/resume buttons to FileScanner
                 connect(m_scanProgressDialog, &ScanProgressDialog::pauseRequested, 
-                        m_fileScanner, &FileScanner::pauseScan);
+                        m_fileScanner, &FileScanner::pauseScan, Qt::UniqueConnection);
                 connect(m_scanProgressDialog, &ScanProgressDialog::resumeRequested, 
-                        m_fileScanner, &FileScanner::resumeScan);
+                        m_fileScanner, &FileScanner::resumeScan, Qt::UniqueConnection);
                 connect(m_scanProgressDialog, &ScanProgressDialog::cancelRequested, 
-                        m_fileScanner, &FileScanner::cancelScan);
+                        m_fileScanner, &FileScanner::cancelScan, Qt::UniqueConnection);
                 
                 // Connect View Errors button (Task 10)
                 connect(m_scanProgressDialog, &ScanProgressDialog::viewErrorsRequested,
@@ -138,7 +151,7 @@ void MainWindow::setFileScanner(FileScanner* scanner)
                             m_scanErrorDialog->show();
                             m_scanErrorDialog->raise();
                             m_scanErrorDialog->activateWindow();
-                        });
+                        }, Qt::UniqueConnection);
                 
                 // Connect FileScanner pause/resume signals to dialog
                 connect(m_fileScanner, &FileScanner::scanPaused, 
@@ -146,17 +159,17 @@ void MainWindow::setFileScanner(FileScanner* scanner)
                             if (m_scanProgressDialog) {
                                 m_scanProgressDialog->setPaused(true);
                             }
-                        });
+                        }, Qt::UniqueConnection);
                 connect(m_fileScanner, &FileScanner::scanResumed, 
                         this, [this]() {
                             if (m_scanProgressDialog) {
                                 m_scanProgressDialog->setPaused(false);
                             }
-                        });
+                        }, Qt::UniqueConnection);
             }
             
             m_scanProgressDialog->show();
-        });
+        }, Qt::UniqueConnection);
         
         connect(m_fileScanner, &FileScanner::scanProgress, this, [this](int filesProcessed, int totalFiles, const QString& currentPath) {
             Q_UNUSED(totalFiles);
@@ -167,9 +180,9 @@ void MainWindow::setFileScanner(FileScanner* scanner)
             }
             LOG_DEBUG(LogCategories::UI, QString("Scan progress: %1 files processed").arg(filesProcessed));
             LOG_DEBUG(LogCategories::SCAN, QString("File: %1 - %2").arg(currentPath).arg("Currently scanning"));
-        });
+        }, Qt::UniqueConnection);
         
-        bool connected = connect(m_fileScanner, &FileScanner::scanCompleted, this, &MainWindow::onScanCompleted);
+        bool connected = connect(m_fileScanner, &FileScanner::scanCompleted, this, &MainWindow::onScanCompleted, Qt::UniqueConnection);
         LOG_DEBUG(LogCategories::UI, QString("FileScanner::scanCompleted connection result: %1").arg(connected ? "success" : "failed"));
         
         // Connect detailed progress to scan progress dialog
@@ -186,7 +199,7 @@ void MainWindow::setFileScanner(FileScanner* scanner)
                 
                 m_scanProgressDialog->updateProgress(info);
             }
-        });
+        }, Qt::UniqueConnection);
         
         LOG_DEBUG(LogCategories::UI, "FileScanner connections complete");
     }
@@ -441,6 +454,7 @@ void MainWindow::onHelpRequested()
         "<li><b>Ctrl+Z:</b> Undo/Restore Files</li>"
         "<li><b>Ctrl+,:</b> Settings</li>"
         "<li><b>Ctrl+Shift+S:</b> Safety Features</li>"
+        "<li><b>Ctrl+Shift+A:</b> About DupFinder</li>"
         "<li><b>Ctrl+Q:</b> Quit Application</li>"
         "<li><b>F1:</b> Help</li>"
         "<li><b>F5 / Ctrl+R:</b> Refresh System Stats</li>"
@@ -458,10 +472,38 @@ void MainWindow::onHelpRequested()
         "<li>Protected system files</li>"
         "<li>Undo functionality</li>"
         "</ul>"
-        "<p>For more information, visit: <a href='https://dupfinder.org/docs'>dupfinder.org/docs</a></p>"
+        "<p>For more information and full version details, click 'About' button below.</p>"
+        "<p>Visit: <a href='https://dupfinder.org/docs'>dupfinder.org/docs</a></p>"
     );
     
-    QMessageBox::information(this, tr("DupFinder Help"), helpText);
+    QMessageBox msgBox(this);
+    msgBox.setWindowTitle(tr("DupFinder Help"));
+    msgBox.setText(helpText);
+    msgBox.setTextFormat(Qt::RichText);
+    msgBox.setIcon(QMessageBox::Information);
+    
+    QPushButton* aboutButton = msgBox.addButton(tr("About"), QMessageBox::ActionRole);
+    QPushButton* okButton = msgBox.addButton(QMessageBox::Ok);
+    msgBox.setDefaultButton(okButton);
+    
+    msgBox.exec();
+    
+    if (msgBox.clickedButton() == aboutButton) {
+        onAboutRequested();
+    }
+}
+
+void MainWindow::onAboutRequested()
+{
+    LOG_INFO(LogCategories::UI, "User requested About dialog");
+    
+    if (!m_aboutDialog) {
+        m_aboutDialog = new AboutDialog(this);
+    }
+    
+    m_aboutDialog->show();
+    m_aboutDialog->raise();
+    m_aboutDialog->activateWindow();
 }
 
 void MainWindow::onRestoreRequested()
@@ -776,6 +818,10 @@ void MainWindow::setupKeyboardShortcuts()
     QShortcut* safetyShortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_S), this);
     connect(safetyShortcut, &QShortcut::activated, this, &MainWindow::onSafetyFeaturesRequested);
     
+    // Ctrl+Shift+A - About Dialog (Section 1.5.2)
+    QShortcut* aboutShortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_A), this);
+    connect(aboutShortcut, &QShortcut::activated, this, &MainWindow::onAboutRequested);
+    
     // Escape - Cancel current operation or close active dialog
     QShortcut* escapeShortcut = new QShortcut(QKeySequence(Qt::Key_Escape), this);
     connect(escapeShortcut, &QShortcut::activated, this, [this]() {
@@ -833,11 +879,16 @@ void MainWindow::setupKeyboardShortcuts()
         }
     });
     
-    // Ctrl+Shift+H - Operation History (placeholder for when implemented)
+    // Ctrl+Shift+H - Operation History
+    // TODO(Phase3-Feature): Implement operation history dialog
+    // Track all file operations (delete, move, restore) with timestamps
+    // Allow filtering and searching operation history
+    // Priority: LOW - Nice to have for audit trail
     QShortcut* operationHistoryShortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_H), this);
     connect(operationHistoryShortcut, &QShortcut::activated, this, [this]() {
-        // TODO: Open operation history dialog when implemented
-        LOG_DEBUG(LogCategories::UI, "Operation history shortcut activated");
+        LOG_DEBUG(LogCategories::UI, "Operation history shortcut activated (not yet implemented)");
+        QMessageBox::information(this, tr("Coming Soon"),
+            tr("Operation History feature will be available in a future update."));
     });
 }
 
@@ -846,8 +897,10 @@ void MainWindow::updatePlanIndicator()
     // This will be updated based on license status
     if (m_planIndicator) {
         m_planIndicator->setText(tr("👤 Free Plan"));
-        // Theme-aware styling applied by ThemeManager
-        m_planIndicator->setStyleSheet("font-weight: bold;");
+        // Apply theme-aware styling using QFont
+        QFont planFont = m_planIndicator->font();
+        planFont.setBold(true);
+        m_planIndicator->setFont(planFont);
     }
 }
 
@@ -886,7 +939,10 @@ void MainWindow::createHeaderWidget()
     // Left side buttons
     m_newScanButton = new QPushButton(tr("📁 New Scan"), this);
     m_newScanButton->setFixedSize(120, 32);
-    m_newScanButton->setStyleSheet("QPushButton { font-weight: bold; }");
+    // Apply theme-aware styling using QFont
+    QFont boldFont = m_newScanButton->font();
+    boldFont.setBold(true);
+    m_newScanButton->setFont(boldFont);
     m_newScanButton->setToolTip(tr("Start a new scan (Ctrl+N)"));
     
     m_settingsButton = new QPushButton(tr("⚙️ Settings"), this);

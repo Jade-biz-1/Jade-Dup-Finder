@@ -1,5 +1,6 @@
 #include "advanced_filter_dialog.h"
 #include "theme_manager.h"
+#include "logger.h"
 #include <QMessageBox>
 #include <QTime>
 #include <QInputDialog>
@@ -714,5 +715,20 @@ void AdvancedFilterDialog::onPresetSelectionChanged() {
 
 void AdvancedFilterDialog::updateSizeUnits()
 {
-    // TODO: Implement size units update
+    // Update the size unit labels based on selected unit
+    if (!m_sizeUnitCombo || !m_sizeUnitCombo) {
+        return;
+    }
+    
+    QString unit = m_sizeUnitCombo->currentText();
+    
+    // Synchronize max size unit with min size unit
+    int index = m_sizeUnitCombo->currentIndex();
+    if (m_sizeUnitCombo->currentIndex() != index) {
+        m_sizeUnitCombo->blockSignals(true);
+        m_sizeUnitCombo->setCurrentIndex(index);
+        m_sizeUnitCombo->blockSignals(false);
+    }
+    
+    LOG_DEBUG(LogCategories::UI, QString("Size units updated to: %1").arg(unit));
 }

@@ -18,10 +18,20 @@
 #include <QJsonObject>
 #include <QMutex>
 
+// Forward declarations for UI types
+class QPushButton;
+class QCheckBox;
+class QLabel;
+class QTreeWidget;
+class QComboBox;
+class QLineEdit;
+
 // Forward declarations
 class ThemeEditor;
 class ComponentRegistry;
 class StyleValidator;
+class ThemeErrorHandler;
+class ThemePerformanceOptimizer;
 
 // Theme data structures
 struct ThemeData {
@@ -203,6 +213,57 @@ public:
     QSize getMinimumControlSize(ControlType control) const;
     void enforceMinimumSizes(QWidget* parent);
     
+    // Convenience methods to reduce duplicate styling code (Task 2.1.6)
+    // These methods combine common operations into single calls
+    
+    /**
+     * @brief Apply theme-aware style and minimum size to a button
+     * @param button Button to style
+     */
+    void styleButton(QPushButton* button);
+    
+    /**
+     * @brief Apply theme-aware style and minimum size to multiple buttons
+     * @param buttons List of buttons to style
+     */
+    void styleButtons(const QList<QPushButton*>& buttons);
+    
+    /**
+     * @brief Apply theme-aware style and minimum size to a checkbox
+     * @param checkbox Checkbox to style
+     */
+    void styleCheckBox(QCheckBox* checkbox);
+    
+    /**
+     * @brief Apply theme-aware style and minimum size to multiple checkboxes
+     * @param checkboxes List of checkboxes to style
+     */
+    void styleCheckBoxes(const QList<QCheckBox*>& checkboxes);
+    
+    /**
+     * @brief Apply theme-aware style to a label
+     * @param label Label to style
+     */
+    void styleLabel(QLabel* label);
+    
+    /**
+     * @brief Apply theme-aware style to a tree widget
+     * @param tree Tree widget to style
+     */
+    void styleTreeWidget(QTreeWidget* tree);
+    
+    /**
+     * @brief Apply theme-aware style to a combo box
+     * @param combo Combo box to style
+     */
+    void styleComboBox(QComboBox* combo);
+    
+    /**
+     * @brief Apply theme-aware style to a line edit
+     * @param lineEdit Line edit to style
+     */
+    void styleLineEdit(QLineEdit* lineEdit);
+    
     // Style override and validation (legacy methods)
     void removeHardcodedStyles(QWidget* widget);
     
@@ -264,6 +325,17 @@ public:
     // Error recovery
     void attemptThemeRecovery();
     QStringList getFailedThemeComponents() const;
+    
+    // Performance optimization
+    void enablePerformanceOptimization(bool enabled = true);
+    void enableStyleSheetCaching(bool enabled = true);
+    void enableBatchUpdates(bool enabled = true);
+    void setPerformanceTarget(int maxSwitchTimeMs = 100);
+    qint64 getLastThemeSwitchTime() const;
+    qint64 getAverageThemeSwitchTime() const;
+    int getCacheHitRate() const;
+    QString generatePerformanceReport() const;
+    void resetPerformanceMetrics();
 
 signals:
     void themeChanged(Theme theme, const QString& themeName);
@@ -304,6 +376,8 @@ private:
     void propagateThemeChangeWithRecovery();
     void handleSystemThemeChange();
     QString generateComponentStyleSheet(ComponentType type, const ThemeData& theme) const;
+    QString generateHighContrastThemeStyles() const;
+    QString generateFocusIndicatorStyles() const;
     
     // Theme persistence helpers
     QString getThemeStoragePath() const;
@@ -331,6 +405,9 @@ private:
     
     // Style validator
     StyleValidator* m_styleValidator;
+    
+    // Performance optimizer
+    ThemePerformanceOptimizer* m_performanceOptimizer;
     
     // Accessibility features
     bool m_highContrastModeEnabled;

@@ -114,6 +114,10 @@ add_library(ui_automation STATIC
     ${UI_AUTOMATION_HEADERS}
 )
 
+target_include_directories(ui_automation PRIVATE
+    ${Qt6Test_INCLUDE_DIRS}
+)
+
 target_link_libraries(ui_automation
     Qt6::Core
     Qt6::Widgets
@@ -601,8 +605,61 @@ set_tests_properties(FileScannerCoverageTest PROPERTIES
 add_executable(test_scan_to_delete_workflow
     integration/test_scan_to_delete_workflow.cpp
     ${TEST_COMMON_SOURCES}
-    ../src/gui/results_window.cpp
+    ${TEST_GUI_SOURCES}
+    ../src/core/selection_history_manager.cpp
+    ../src/core/scan_history_manager.cpp
+    ../src/core/theme_manager.cpp
+    ../src/core/theme_error_handler.cpp
+    ../src/core/theme_performance_optimizer.cpp
+    ../src/core/component_registry.cpp
+    ../src/core/style_validator.cpp
+    ../src/core/theme_persistence.cpp
+    ../src/gui/scan_dialog.cpp
+    ../src/gui/settings_dialog.cpp
+    ../src/gui/scan_history_dialog.cpp
+    ../src/gui/restore_dialog.cpp
+    ../src/gui/thumbnail_delegate.cpp
+    ../src/gui/exclude_pattern_widget.cpp
+    ../src/gui/preset_manager_dialog.cpp
+    ../src/gui/scan_scope_preview_widget.cpp
+    ../src/gui/scan_progress_dialog.cpp
+    ../src/gui/scan_error_dialog.cpp
+    ../src/gui/advanced_filter_dialog.cpp
+    ../src/gui/file_operation_progress_dialog.cpp
+    ../src/gui/grouping_options_dialog.cpp
+    ../src/gui/safety_features_dialog.cpp
+    ../src/gui/about_dialog.cpp
+    ../src/gui/theme_editor.cpp
+    ../src/gui/theme_recovery_dialog.cpp
+    ../src/gui/theme_notification_widget.cpp
     ${TEST_COMMON_HEADERS}
+    ../include/selection_history_manager.h
+    ../include/scan_history_manager.h
+    ../include/theme_manager.h
+    ../include/theme_error_handler.h
+    ../include/theme_performance_optimizer.h
+    ../include/component_registry.h
+    ../include/style_validator.h
+    ../include/theme_persistence.h
+    ../include/scan_dialog.h
+    ../include/settings_dialog.h
+    ../include/scan_history_dialog.h
+    ../include/restore_dialog.h
+    ../include/thumbnail_delegate.h
+    ../include/exclude_pattern_widget.h
+    ../include/preset_manager_dialog.h
+    ../include/scan_scope_preview_widget.h
+    ../include/scan_progress_dialog.h
+    ../include/scan_error_dialog.h
+    ../include/advanced_filter_dialog.h
+    ../include/file_operation_progress_dialog.h
+    ../include/grouping_options_dialog.h
+    ../include/safety_features_dialog.h
+    ../include/about_dialog.h
+    ../include/theme_editor.h
+    ../include/theme_recovery_dialog.h
+    ../include/theme_notification_widget.h
+    ../include/file_operation_queue.h
 )
 
 target_link_libraries(test_scan_to_delete_workflow
@@ -610,6 +667,7 @@ target_link_libraries(test_scan_to_delete_workflow
     Qt6::Widgets
     Qt6::Test
     Qt6::Concurrent
+    Qt6::Network
 )
 
 set_target_properties(test_scan_to_delete_workflow PROPERTIES
@@ -887,6 +945,150 @@ set_tests_properties(ScanProgressDialogTest PROPERTIES
     TIMEOUT 60
     LABELS "unit;scan;progress;dialog;task8"
 )
+# UI Theme Integration Test
+add_executable(test_ui_theme_integration
+    test_ui_theme_integration.cpp
+    ../src/core/ui_theme_test_integration.cpp
+    ../src/core/theme_manager.cpp
+    ../src/core/theme_error_handler.cpp
+    ../src/core/component_registry.cpp
+    ../src/core/style_validator.cpp
+    ../src/core/theme_persistence.cpp
+    ../src/core/app_config.cpp
+    ../src/core/logger.cpp
+    ../include/ui_theme_test_integration.h
+    ../include/theme_manager.h
+    ../include/theme_error_handler.h
+    ../include/component_registry.h
+    ../include/style_validator.h
+    ../include/theme_persistence.h
+    ../include/app_config.h
+    ../src/core/logger.h
+)
+
+target_link_libraries(test_ui_theme_integration
+    Qt6::Core
+    Qt6::Widgets
+    Qt6::Test
+    Qt6::Gui
+)
+
+set_target_properties(test_ui_theme_integration PROPERTIES
+    AUTOMOC ON
+)
+
+add_test(NAME UIThemeIntegrationTest COMMAND test_ui_theme_integration)
+
+set_tests_properties(UIThemeIntegrationTest PROPERTIES
+    TIMEOUT 300
+    LABELS "integration;theme;ui;automation"
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+)
+
+# Comprehensive Theme UI Workflow Tests (Task 11.1 & 11.2)
+add_executable(theme_ui_workflow_tests
+    theme_ui_workflow_tests.cpp
+    workflow_testing.cpp
+    user_scenario_testing.cpp
+    ui_automation.cpp
+    visual_testing.cpp
+    theme_accessibility_testing.cpp
+    ../src/core/ui_theme_test_integration.cpp
+    ../src/core/theme_manager.cpp
+    ../src/core/theme_error_handler.cpp
+    ../src/core/component_registry.cpp
+    ../src/core/style_validator.cpp
+    ../src/core/theme_persistence.cpp
+    ../src/core/app_config.cpp
+    ../src/core/logger.cpp
+    theme_ui_workflow_tests.h
+    workflow_testing.h
+    user_scenario_testing.h
+    ui_automation.h
+    visual_testing.h
+    theme_accessibility_testing.h
+    ../include/ui_theme_test_integration.h
+    ../include/theme_manager.h
+    ../include/theme_error_handler.h
+    ../include/component_registry.h
+    ../include/style_validator.h
+    ../include/theme_persistence.h
+    ../include/app_config.h
+    ../src/core/logger.h
+)
+
+target_link_libraries(theme_ui_workflow_tests
+    Qt6::Core
+    Qt6::Widgets
+    Qt6::Test
+    Qt6::Gui
+    Qt6::Concurrent
+    enhanced_test_framework
+    ui_automation
+    visual_testing
+)
+
+set_target_properties(theme_ui_workflow_tests PROPERTIES
+    AUTOMOC ON
+)
+
+add_test(NAME ThemeUIWorkflowTests COMMAND theme_ui_workflow_tests)
+
+set_tests_properties(ThemeUIWorkflowTests PROPERTIES
+    TIMEOUT 600
+    LABELS "integration;theme;ui;workflow;comprehensive;task11"
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+)
+
+# Cross-Theme Interaction Validation Tests (Task 11.2)
+add_executable(cross_theme_interaction_tests
+    cross_theme_interaction_tests.cpp
+    ui_automation.cpp
+    visual_testing.cpp
+    theme_accessibility_testing.cpp
+    ../src/core/ui_theme_test_integration.cpp
+    ../src/core/theme_manager.cpp
+    ../src/core/theme_error_handler.cpp
+    ../src/core/component_registry.cpp
+    ../src/core/style_validator.cpp
+    ../src/core/theme_persistence.cpp
+    ../src/core/app_config.cpp
+    ../src/core/logger.cpp
+    ui_automation.h
+    visual_testing.h
+    theme_accessibility_testing.h
+    ../include/ui_theme_test_integration.h
+    ../include/theme_manager.h
+    ../include/theme_error_handler.h
+    ../include/component_registry.h
+    ../include/style_validator.h
+    ../include/theme_persistence.h
+    ../include/app_config.h
+    ../src/core/logger.h
+)
+
+target_link_libraries(cross_theme_interaction_tests
+    Qt6::Core
+    Qt6::Widgets
+    Qt6::Test
+    Qt6::Gui
+    enhanced_test_framework
+    ui_automation
+    visual_testing
+)
+
+set_target_properties(cross_theme_interaction_tests PROPERTIES
+    AUTOMOC ON
+)
+
+add_test(NAME CrossThemeInteractionTests COMMAND cross_theme_interaction_tests)
+
+set_tests_properties(CrossThemeInteractionTests PROPERTIES
+    TIMEOUT 400
+    LABELS "integration;theme;ui;interaction;cross-theme;task11.2"
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+)
+
 # Add validation subdirectory
 add_subdirectory(validation)
 
@@ -910,4 +1112,86 @@ add_custom_target(deploy_testing_infrastructure
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/deployment/deploy_testing_infrastructure.sh
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     COMMENT "Deploying testing infrastructure"
+)
+
+# Comprehensive Theme Validation Test (Task 12.2)
+add_executable(comprehensive_theme_validation
+    comprehensive_theme_validation.cpp
+    ../src/core/theme_manager.cpp
+    ../src/core/theme_error_handler.cpp
+    ../src/core/theme_performance_optimizer.cpp
+    ../src/core/component_registry.cpp
+    ../src/core/style_validator.cpp
+    ../src/core/theme_persistence.cpp
+    ../src/core/app_config.cpp
+    ../src/core/logger.cpp
+    ../include/theme_manager.h
+    ../include/theme_error_handler.h
+    ../include/theme_performance_optimizer.h
+    ../include/component_registry.h
+    ../include/style_validator.h
+    ../include/theme_persistence.h
+    ../include/app_config.h
+    ../src/core/logger.h
+)
+
+target_link_libraries(comprehensive_theme_validation
+    Qt6::Core
+    Qt6::Widgets
+    Qt6::Test
+    Qt6::Gui
+)
+
+set_target_properties(comprehensive_theme_validation PROPERTIES
+    AUTOMOC ON
+)
+
+add_test(NAME ComprehensiveThemeValidation COMMAND comprehensive_theme_validation)
+
+set_tests_properties(ComprehensiveThemeValidation PROPERTIES
+    TIMEOUT 600
+    LABELS "comprehensive;theme;validation;performance;accessibility"
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+)
+
+# Final Theme Validation Test (Task 12.3)
+add_executable(final_theme_validation_test
+    final_theme_validation_test.cpp
+    ../src/core/final_theme_validator.cpp
+    ../src/core/theme_manager.cpp
+    ../src/core/theme_error_handler.cpp
+    ../src/core/theme_performance_optimizer.cpp
+    ../src/core/component_registry.cpp
+    ../src/core/style_validator.cpp
+    ../src/core/theme_persistence.cpp
+    ../src/core/app_config.cpp
+    ../src/core/logger.cpp
+    ../include/final_theme_validator.h
+    ../include/theme_manager.h
+    ../include/theme_error_handler.h
+    ../include/theme_performance_optimizer.h
+    ../include/component_registry.h
+    ../include/style_validator.h
+    ../include/theme_persistence.h
+    ../include/app_config.h
+    ../src/core/logger.h
+)
+
+target_link_libraries(final_theme_validation_test
+    Qt6::Core
+    Qt6::Widgets
+    Qt6::Test
+    Qt6::Gui
+)
+
+set_target_properties(final_theme_validation_test PROPERTIES
+    AUTOMOC ON
+)
+
+add_test(NAME FinalThemeValidationTest COMMAND final_theme_validation_test)
+
+set_tests_properties(FinalThemeValidationTest PROPERTIES
+    TIMEOUT 300
+    LABELS "final;validation;documentation;certification"
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
 )

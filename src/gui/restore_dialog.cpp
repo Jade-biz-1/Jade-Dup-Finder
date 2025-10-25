@@ -49,8 +49,9 @@ void RestoreDialog::setupUI()
     // Info label
     QLabel* infoLabel = new QLabel(tr("View and restore files from backups created before delete/move operations."), this);
     infoLabel->setWordWrap(true);
-    // Theme-aware styling applied by ThemeManager
-    infoLabel->setStyleSheet("padding: 8px; border-radius: 3px;");
+    // Apply theme-aware styling using ThemeManager
+    ThemeManager::instance()->applyToWidget(infoLabel);
+    infoLabel->setMargin(8);
     m_mainLayout->addWidget(infoLabel);
     
     // Filter controls
@@ -113,8 +114,9 @@ void RestoreDialog::setupUI()
     
     // Stats
     m_statsLabel = new QLabel(this);
-    // Theme-aware styling applied by ThemeManager
-    m_statsLabel->setStyleSheet("padding: 5px; border-radius: 3px;");
+    // Apply theme-aware styling using ThemeManager
+    ThemeManager::instance()->applyToWidget(m_statsLabel);
+    m_statsLabel->setMargin(5);
     m_mainLayout->addWidget(m_statsLabel);
     
     // Action buttons
@@ -302,8 +304,9 @@ void RestoreDialog::onRestoreClicked()
     if (reply == QMessageBox::Yes) {
         LOG_INFO(LogCategories::FILE_OPS, QString("Restoring %1 files").arg(filesToRestore.size()));
         
-        // TODO: Implement actual restore operation through FileManager
-        // For now, just emit signal
+        // NOTE: Actual restore operation is handled by SafetyManager in MainWindow
+        // This dialog emits the filesRestored signal which triggers restoration
+        // See: main_window.cpp onRestoreRequested() for implementation
         emit filesRestored(filesToRestore);
         
         QMessageBox::information(this, tr("Restore Complete"),
