@@ -134,8 +134,8 @@ void GroupingOptionsDialog::setupUI() {
     auto* previewLayout = new QVBoxLayout(previewGroup);
     m_previewLabel = new QLabel(this);
     m_previewLabel->setWordWrap(true);
-    // Theme-aware styling applied by ThemeManager
-    m_previewLabel->setStyleSheet("padding: 8px; border-radius: 4px;");
+    // Apply theme-aware styling using ThemeManager
+    ThemeManager::instance()->applyToWidget(m_previewLabel);
     previewLayout->addWidget(m_previewLabel);
     mainLayout->addWidget(previewGroup);
 

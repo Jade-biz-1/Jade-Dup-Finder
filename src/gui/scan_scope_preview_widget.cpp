@@ -256,8 +256,11 @@ void ScanScopePreviewWidget::updateDisplay()
     if (!m_currentStats.errorMessage.isEmpty()) {
         m_statusLabel->setText(m_currentStats.errorMessage);
         // Apply theme-aware error styling
-        m_statusLabel->setStyleSheet(ThemeManager::instance()->getStatusIndicatorStyle(ThemeManager::StatusType::Error) + 
-                                   " font-style: italic; padding: 4px;");
+        m_statusLabel->setStyleSheet(ThemeManager::instance()->getStatusIndicatorStyle(ThemeManager::StatusType::Error));
+        m_statusLabel->setMargin(4);
+        QFont italicFont = m_statusLabel->font();
+        italicFont.setItalic(true);
+        m_statusLabel->setFont(italicFont);
         m_statusLabel->setVisible(true);
     } else {
         m_statusLabel->setVisible(false);

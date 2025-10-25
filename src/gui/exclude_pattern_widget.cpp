@@ -1,4 +1,5 @@
 #include "exclude_pattern_widget.h"
+#include "theme_manager.h"
 #include <QtWidgets/QMessageBox>
 #include <QtWidgets/QInputDialog>
 #include <QtWidgets/QMenu>
@@ -115,59 +116,12 @@ void ExcludePatternWidget::setupConnections()
 
 void ExcludePatternWidget::applyStyles()
 {
-    // Style the pattern list
-    m_patternList->setStyleSheet(
-        "QListWidget {"
-        "    border: 1px solid palette(mid);"
-        "    border-radius: 4px;"
-        "    padding: 4px;"
-        "    background: palette(base);"
-        "}"
-        "QListWidget::item {"
-        "    padding: 4px;"
-        "    margin: 1px;"
-        "}"
-        "QListWidget::item:selected {"
-        "    background: palette(highlight);"
-        "    color: palette(highlighted-text);"
-        "}"
-    );
+    // Apply theme-aware styling using ThemeManager
+    m_patternList->setStyleSheet(ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::TableView));
+    m_patternInput->setStyleSheet(ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::LineEdit));
     
-    // Style the input field
-    m_patternInput->setStyleSheet(
-        "QLineEdit {"
-        "    padding: 6px;"
-        "    border: 1px solid palette(mid);"
-        "    border-radius: 4px;"
-        "    background: palette(base);"
-        "}"
-        "QLineEdit:focus {"
-        "    border-color: palette(highlight);"
-        "}"
-    );
-    
-    // Style buttons
-    QString buttonStyle = 
-        "QPushButton {"
-        "    padding: 6px 12px;"
-        "    border: 1px solid palette(mid);"
-        "    border-radius: 4px;"
-        "    background: palette(button);"
-        "    color: palette(button-text);"
-        "}"
-        "QPushButton:hover {"
-        "    background: palette(light);"
-        "    border-color: palette(highlight);"
-        "}"
-        "QPushButton:pressed {"
-        "    background: palette(dark);"
-        "}"
-        "QPushButton:disabled {"
-        "    color: palette(mid);"
-        "    background: palette(window);"
-        "}"
-    ;
-    
+    // Apply button styling using ThemeManager
+    QString buttonStyle = ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::Button);
     m_addButton->setStyleSheet(buttonStyle);
     m_removeButton->setStyleSheet(buttonStyle);
     m_testButton->setStyleSheet(buttonStyle);
@@ -448,28 +402,13 @@ void ExcludePatternWidget::showValidationFeedback(bool valid, const QString& mes
     m_validationLabel->setText(message);
     m_validationLabel->setVisible(true);
     
-    // Style based on validity
+    // Apply theme-aware styling based on validity
     if (valid) {
-        m_validationLabel->setStyleSheet(
-            "QLabel {"
-            "    color: green;"
-            "    padding: 4px;"
-            "    background: #e8f5e9;"
-            "    border: 1px solid #4caf50;"
-            "    border-radius: 3px;"
-            "}"
-        );
+        m_validationLabel->setStyleSheet(ThemeManager::instance()->getStatusIndicatorStyle(ThemeManager::StatusType::Success));
     } else {
-        m_validationLabel->setStyleSheet(
-            "QLabel {"
-            "    color: #d32f2f;"
-            "    padding: 4px;"
-            "    background: #ffebee;"
-            "    border: 1px solid #f44336;"
-            "    border-radius: 3px;"
-            "}"
-        );
+        m_validationLabel->setStyleSheet(ThemeManager::instance()->getStatusIndicatorStyle(ThemeManager::StatusType::Error));
     }
+    m_validationLabel->setMargin(4);
 }
 
 QStringList ExcludePatternWidget::getCommonPatterns() const

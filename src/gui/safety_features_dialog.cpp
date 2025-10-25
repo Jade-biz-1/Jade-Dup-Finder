@@ -1,5 +1,6 @@
 #include "safety_features_dialog.h"
 #include "theme_manager.h"
+#include "logger.h"
 #include <QApplication>
 #include <QMessageBox>
 #include <QFileInfo>
@@ -114,7 +115,19 @@ void SafetyFeaturesDialog::setupConnections() {
 }
 
 void SafetyFeaturesDialog::refreshData() {
-    // TODO: Implement data refresh
+    if (!m_safetyManager) {
+        LOG_WARNING(LogCategories::UI, "Cannot refresh data: SafetyManager not set");
+        return;
+    }
+    
+    LOG_INFO(LogCategories::UI, "Refreshing safety features data");
+    
+    // Update all tabs with current data from SafetyManager
+    updateProtectionDetails();
+    updateSystemPaths();
+    updateStatistics();
+    
+    LOG_DEBUG(LogCategories::UI, "Safety features data refreshed");
 }
 
 void SafetyFeaturesDialog::showProtectionForFile(const QString& filePath) {

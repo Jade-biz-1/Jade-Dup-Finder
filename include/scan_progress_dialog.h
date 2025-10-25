@@ -132,11 +132,6 @@ public:
      */
     void setOperationStatus(OperationStatus status);
 
-    /**
-     * @brief Set the operation manager for enhanced queue support
-     * @param manager The operation manager instance
-     */
-    void setOperationManager(class OperationManager* manager);
 
     /**
      * @brief Calculate ETA based on progress

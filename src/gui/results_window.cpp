@@ -49,8 +49,6 @@ ResultsWindow::ResultsWindow(QWidget* parent)
     , m_thumbnailCache(new ThumbnailCache(this))
     , m_thumbnailDelegate(nullptr)
     // Temporarily disabled for Settings dialog testing
-    // , m_relationshipWidget(nullptr)
-    // , m_smartSelectionDialog(nullptr)
     , m_selectionHistory(new SelectionHistoryManager(this))
     , m_operationQueue(new FileOperationQueue(this))  // Task 30
     , m_progressDialog(new FileOperationProgressDialog(this))  // Task 30
@@ -76,7 +74,6 @@ ResultsWindow::ResultsWindow(QWidget* parent)
     ThemeManager::instance()->registerCustomWidget(this, "ResultsWindow");
     
     // Don't load sample data - wait for real scan results
-    // loadSampleData();
 }
 
 ResultsWindow::~ResultsWindow()
@@ -658,20 +655,6 @@ void ResultsWindow::setupConnections()
             this, &ResultsWindow::applyGrouping);
     
     // Temporarily disabled for Settings dialog testing
-    // Relationship widget connections (Task 14)
-    // if (m_relationshipWidget) {
-    //     connect(m_relationshipWidget, &DuplicateRelationshipWidget::fileClicked,
-    //             this, &ResultsWindow::highlightFileInVisualization);
-    //     connect(m_relationshipWidget, &DuplicateRelationshipWidget::selectionChanged,
-    //             this, [this](const QStringList& selectedFiles) {
-    //                 // Update tree selection based on relationship widget selection
-    //                 // This creates a two-way sync between tree and visualization
-    //                 for (const QString& filePath : selectedFiles) {
-    //                     // Find and select the corresponding tree item
-    //                     // Implementation would go here
-    //                 }
-    //             });
-    // }
     
     // T19: Keyboard shortcuts for results window
     setupKeyboardShortcuts();
@@ -911,8 +894,6 @@ void ResultsWindow::displayResults(const ScanResults& results)
     updateStatusBar();
     
     // Temporarily disabled for Settings dialog testing
-    // Update relationship visualization (Task 14)
-    // updateRelationshipVisualization();
 }
 
 void ResultsWindow::displayDuplicateGroups(const QList<DuplicateDetector::DuplicateGroup>& groups)
@@ -1307,7 +1288,7 @@ void ResultsWindow::exportResults()
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QMessageBox::critical(this, tr("Export Error"), 
                             tr("Failed to open file for writing: %1").arg(fileName));
-        qWarning() << "Failed to open export file:" << fileName;
+        LOG_ERROR(LogCategories::EXPORT, QString("Failed to open export file: %1").arg(fileName));
         return;
     }
     
@@ -1336,7 +1317,7 @@ void ResultsWindow::exportResults()
     } else {
         QMessageBox::warning(this, tr("Export Warning"), 
                            tr("Export completed with warnings. Check the file."));
-        qWarning() << "Export completed with warnings:" << fileName;
+        LOG_WARNING(LogCategories::EXPORT, QString("Export completed with warnings: %1").arg(fileName));
     }
 }
 
@@ -3610,14 +3591,26 @@ QString ResultsWindow::getGroupKey(const DuplicateFile& file,
 
 void ResultsWindow::setupOperationQueue()
 {
-    LOG_INFO("Setting up operation queue");
-    // TODO: Implement operation queue setup
+    LOG_INFO(LogCategories::UI, "Setting up operation queue");
+    // TODO(Task30-Complete): Operation queue already implemented
+    // m_operationQueue is initialized in constructor
+    // Connected in setupConnections()
+    // This method can be removed or used for additional queue configuration
 }
 
 void ResultsWindow::preloadVisibleThumbnails()
 {
-    LOG_INFO("Preloading visible thumbnails");
-    // TODO: Implement thumbnail preloading
+    LOG_DEBUG(LogCategories::UI, "Preloading visible thumbnails");
+    // TODO(Performance): Implement thumbnail preloading for visible items
+    // Scan visible tree items and request thumbnails from ThumbnailCache
+    // Priority: MEDIUM - Improves perceived performance
+    
+    if (!m_resultsTree || !m_thumbnailCache) {
+        return;
+    }
+    
+    // Stub: Just log for now
+    // Future: Iterate visible items and call m_thumbnailCache->requestThumbnail()
 }
 
 bool ResultsWindow::isTextFile(const QString& filePath) const
@@ -3631,73 +3624,163 @@ bool ResultsWindow::isTextFile(const QString& filePath) const
 
 void ResultsWindow::previewTextFile(const QString& filePath)
 {
-    LOG_INFO("Previewing text file: " + filePath);
-    // TODO: Implement text file preview
+    LOG_INFO(LogCategories::UI, "Previewing text file: " + filePath);
+    // TODO(Feature): Implement text file preview dialog
+    // Create QDialog with QTextEdit showing file contents
+    // Priority: LOW - Nice to have feature
+    
+    QMessageBox::information(this, tr("Preview"),
+        tr("Text file preview not yet implemented.\n\nFile: %1").arg(filePath));
 }
 
 void ResultsWindow::previewImageFile(const QString& filePath)
 {
-    LOG_INFO("Previewing image file: " + filePath);
-    // TODO: Implement image file preview
+    LOG_INFO(LogCategories::UI, "Previewing image file: " + filePath);
+    // TODO(Feature): Implement image file preview dialog
+    // Create QDialog with QLabel showing scaled pixmap
+    // Priority: MEDIUM - Useful for verifying duplicates
+    
+    QMessageBox::information(this, tr("Preview"),
+        tr("Image file preview not yet implemented.\n\nFile: %1").arg(filePath));
 }
 
 void ResultsWindow::showFileInfo(const QString& filePath)
 {
-    LOG_INFO("Showing file info for: " + filePath);
-    // TODO: Implement file info display
+    LOG_INFO(LogCategories::UI, "Showing file info for: " + filePath);
+    // TODO(Feature): Implement detailed file info dialog
+    // Show: size, dates, permissions, hash, location
+    // Priority: LOW - Can use system file properties for now
+    
+    QMessageBox::information(this, tr("File Info"),
+        tr("Detailed file info dialog not yet implemented.\n\nFile: %1").arg(filePath));
 }
 
 void ResultsWindow::showAdvancedFilterDialog()
 {
-    LOG_INFO("Advanced filter dialog requested");
-    // TODO: Implement advanced filter dialog
+    LOG_INFO(LogCategories::UI, "Advanced filter dialog requested");
+    // TODO(Task31-Complete): AdvancedFilterDialog exists but needs integration
+    // Dialog is implemented in advanced_filter_dialog.cpp
+    // Need to: 1) Create instance, 2) Connect filterApplied signal, 3) Apply filters to tree
+    // Priority: HIGH - Key feature for Phase 3
+    
     QMessageBox::information(this, tr("Advanced Filter"), 
-                           tr("Advanced filter dialog not yet implemented."));
+                           tr("Advanced filter dialog integration in progress."));
 }
 
 void ResultsWindow::showSmartSelectionDialog()
 {
-    LOG_INFO("Smart selection dialog requested");
-    // TODO: Implement smart selection dialog
+    LOG_INFO(LogCategories::UI, "Smart selection dialog requested");
+    // TODO(Task-Partial): SmartSelectionDialog exists but integration incomplete
+    // Dialog is implemented in smart_selection_dialog.cpp
+    // Need to: 1) Create instance, 2) Pass current results, 3) Apply recommendations
+    // Priority: HIGH - Key feature for user experience
+    
     QMessageBox::information(this, tr("Smart Selection"), 
-                           tr("Smart selection dialog not yet implemented."));
+                           tr("Smart selection dialog integration in progress."));
 }
 
 void ResultsWindow::onUndoRequested()
 {
-    LOG_INFO("Undo requested");
-    // TODO: Implement undo functionality
+    LOG_INFO(LogCategories::UI, "Undo requested");
+    // TODO(Task17-Complete): SelectionHistory undo already implemented
+    // m_selectionHistory->undo() should be called here
+    // Need to: 1) Get previous state, 2) Apply to tree, 3) Update UI
+    // Priority: HIGH - Core functionality
+    
+    if (m_selectionHistory && m_selectionHistory->canUndo()) {
+        m_selectionHistory->undo();
+        // Apply the restored state to tree
+        LOG_INFO(LogCategories::UI, "Selection undo performed");
+    } else {
+        LOG_DEBUG(LogCategories::UI, "No undo available");
+    }
 }
 
 void ResultsWindow::onRedoRequested()
 {
-    LOG_INFO("Redo requested");
-    // TODO: Implement redo functionality
+    LOG_INFO(LogCategories::UI, "Redo requested");
+    // TODO(Task17-Complete): SelectionHistory redo already implemented
+    // m_selectionHistory->redo() should be called here
+    // Need to: 1) Get next state, 2) Apply to tree, 3) Update UI
+    // Priority: HIGH - Core functionality
+    
+    if (m_selectionHistory && m_selectionHistory->canRedo()) {
+        m_selectionHistory->redo();
+        // Apply the restored state to tree
+        LOG_INFO(LogCategories::UI, "Selection redo performed");
+    } else {
+        LOG_DEBUG(LogCategories::UI, "No redo available");
+    }
 }
 
 void ResultsWindow::onInvertSelection()
 {
-    LOG_INFO("Invert selection requested");
-    // TODO: Implement invert selection functionality
+    LOG_INFO(LogCategories::UI, "Invert selection requested");
+    // TODO(Feature): Implement invert selection
+    // Iterate through all files in current results and flip isSelected state
+    // Priority: MEDIUM - Useful feature
+    
+    // Placeholder implementation
+    for (auto& group : m_currentResults.duplicateGroups) {
+        for (auto& file : group.files) {
+            file.isSelected = !file.isSelected;
+        }
+    }
+    
+    // Refresh tree to show updated selection
+    populateResultsTree();
+    updateSelectionSummary();
+    
+    LOG_INFO(LogCategories::UI, "Selection inverted");
 }
 
 void ResultsWindow::showGroupingOptions()
 {
-    LOG_INFO("Grouping options requested");
-    // TODO: Implement grouping options dialog
+    LOG_INFO(LogCategories::UI, "Grouping options requested");
+    // TODO(Task13-Complete): GroupingOptionsDialog already exists
+    // m_groupingDialog is initialized in constructor
+    // Need to: Show dialog and connect to applyGrouping()
+    // Priority: HIGH - Key feature
+    
+    if (m_groupingDialog) {
+        m_groupingDialog->exec();
+    }
 }
 
 void ResultsWindow::applyGrouping(const GroupingOptionsDialog::GroupingOptions& options)
 {
-    LOG_INFO("Apply grouping requested");
-    // TODO: Implement grouping application
-    Q_UNUSED(options)
+    LOG_INFO(LogCategories::UI, QString("Apply grouping requested: Primary=%1")
+        .arg(static_cast<int>(options.primaryCriteria)));
+    // TODO(Task13-Implement): Apply grouping criteria to results
+    // Need to re-organize m_currentResults based on options
+    // Then call populateResultsTree() to refresh display
+    // Priority: HIGH - Key feature
+    
+    Q_UNUSED(options);
+    QMessageBox::information(this, tr("Grouping"),
+        tr("Grouping application logic needs implementation."));
 }
 
 void ResultsWindow::recordSelectionState(const QString& description)
 {
-    LOG_INFO("Record selection state requested");
-    // TODO: Implement selection state recording
-    Q_UNUSED(description)
+    LOG_DEBUG(LogCategories::UI, QString("Record selection state: %1").arg(description));
+    // TODO(Task17-Complete): Use SelectionHistoryManager
+    // m_selectionHistory->recordState() should be called here
+    // Priority: HIGH - Core undo/redo functionality
+    
+    if (m_selectionHistory) {
+        // Get current selection state
+        QList<QString> selectedFiles;
+        for (const auto& group : m_currentResults.duplicateGroups) {
+            for (const auto& file : group.files) {
+                if (file.isSelected) {
+                    selectedFiles.append(file.filePath);
+                }
+            }
+        }
+        
+        m_selectionHistory->pushState(selectedFiles, description);
+        LOG_DEBUG(LogCategories::UI, QString("Recorded %1 selected files").arg(selectedFiles.size()));
+    }
 }
 
