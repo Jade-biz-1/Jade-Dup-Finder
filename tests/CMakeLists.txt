@@ -322,6 +322,7 @@ add_executable(unit_tests
     unit/main_test.cpp
     ${UNIT_TEST_SOURCES}
     ${TEST_COMMON_SOURCES}
+    ${TEST_GUI_SOURCES}
     ${TEST_COMMON_HEADERS}
 )
 
@@ -709,11 +710,14 @@ set_tests_properties(RestoreFunctionalityTest PROPERTIES
 add_executable(test_error_scenarios
     integration/test_error_scenarios.cpp
     ${TEST_COMMON_SOURCES}
+    ${TEST_GUI_SOURCES}
     ${TEST_COMMON_HEADERS}
+    ../include/file_operation_queue.h
 )
 
 target_link_libraries(test_error_scenarios
     Qt6::Core
+    Qt6::Widgets
     Qt6::Test
     Qt6::Concurrent
 )

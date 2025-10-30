@@ -659,10 +659,10 @@ void ErrorScenariosTest::testRecoveryMechanisms()
     qDebug() << "  Created test files for recovery testing";
     
     // Test backup and recovery mechanism
-    QSignalSpy backupCompletedSpy(m_safetyManager, &SafetyManager::backupCompleted);
+    QSignalSpy backupCreatedSpy(m_safetyManager, &SafetyManager::backupCreated);
     
-    QString backupId1 = m_safetyManager->createBackup(testFile1, "Recovery test backup");
-    QVERIFY(backupCompletedSpy.wait(5000));
+    QString backupId1 = m_safetyManager->createBackup(testFile1, SafetyManager::BackupStrategy::CentralLocation);
+    QVERIFY(backupCreatedSpy.wait(5000));
     
     qDebug() << "  Created backup:" << backupId1;
     
@@ -676,19 +676,16 @@ void ErrorScenariosTest::testRecoveryMechanisms()
     qDebug() << "  Original file deleted";
     
     // Test recovery mechanism
-    SafetyManager::BackupInfo backupInfo = m_safetyManager->getBackupInfo(backupId1);
-    QVERIFY(!backupInfo.backupPath.isEmpty());
-    QVERIFY(QFile::exists(backupInfo.backupPath));
+    QVERIFY(!backupId1.isEmpty());
+    QVERIFY(QFile::exists(backupId1));
     
-    QString restoreOpId = m_fileManager->restoreFiles({backupInfo.backupPath}, 
-                                                     QFileInfo(testFile1).absolutePath());
-    QVERIFY(operationCompletedSpy.wait(5000));
+    // Restore from backup using SafetyManager
+    bool restored = m_safetyManager->restoreFromBackup(backupId1, testFile1);
     
-    FileManager::OperationResult restoreResult = m_fileManager->getOperationResult(restoreOpId);
-    qDebug() << "  Restore operation success:" << restoreResult.success;
+    qDebug() << "  Restore operation success:" << restored;
     
     // Verify file was recovered
-    QVERIFY(restoreResult.success);
+    QVERIFY(restored);
     QVERIFY(QFile::exists(testFile1));
     
     // Verify content integrity
@@ -701,14 +698,14 @@ void ErrorScenariosTest::testRecoveryMechanisms()
     qDebug() << "  File content verified after recovery";
     
     // Test recovery from multiple backup points
-    QString backupId2 = m_safetyManager->createBackup(testFile2, "Second recovery test backup");
-    QVERIFY(backupCompletedSpy.wait(5000));
+    QString backupId2 = m_safetyManager->createBackup(testFile2, SafetyManager::BackupStrategy::CentralLocation);
+    QVERIFY(backupCreatedSpy.wait(5000));
     
-    QStringList availableBackups = m_safetyManager->getAvailableBackups();
-    qDebug() << "  Available backups:" << availableBackups.size();
-    QVERIFY(availableBackups.size() >= 2);
-    QVERIFY(availableBackups.contains(backupId1));
-    QVERIFY(availableBackups.contains(backupId2));
+    QStringList availableBackups1 = m_safetyManager->listBackups(testFile1);
+    QStringList availableBackups2 = m_safetyManager->listBackups(testFile2);
+    int totalBackups = availableBackups1.size() + availableBackups2.size();
+    qDebug() << "  Available backups:" << totalBackups;
+    QVERIFY(totalBackups >= 2);
     
     qDebug() << "[PASS] Recovery mechanisms verified";
 }
@@ -764,9 +761,8 @@ void ErrorScenariosTest::testErrorReportingAndLogging()
     
     // 4. SafetyManager error - create backup with invalid directory
     m_safetyManager->setBackupDirectory("/invalid/backup/directory");
-    QSignalSpy backupErrorSpy(m_safetyManager, &SafetyManager::backupError);
     
-    QString badBackupId = m_safetyManager->createBackup("/fake/file.txt", "Error reporting test");
+    QString badBackupId = m_safetyManager->createBackup("/fake/file.txt", SafetyManager::BackupStrategy::CentralLocation);
     QTest::qWait(2000);
     
     qDebug() << "  Generated error conditions across components";
@@ -779,10 +775,9 @@ void ErrorScenariosTest::testErrorReportingAndLogging()
     
     qDebug() << "  Component-specific error signals:";
     qDebug() << "    Hash errors:" << hashErrorSpy.count();
-    qDebug() << "    Backup errors:" << backupErrorSpy.count();
     
     // Verify that errors were reported (at least some should be captured)
-    QVERIFY(errorMessages.size() > 0 || hashErrorSpy.count() > 0 || backupErrorSpy.count() > 0);
+    QVERIFY(errorMessages.size() > 0 || hashErrorSpy.count() > 0);
     
     // Test error message quality - should be descriptive
     for (const QString& error : errorMessages) {

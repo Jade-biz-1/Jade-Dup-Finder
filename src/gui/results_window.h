@@ -259,6 +259,9 @@ private:
     QString getGroupKey(const DuplicateFile& file, 
                        GroupingOptionsDialog::GroupingCriteria criteria,
                        const GroupingOptionsDialog::GroupingOptions& options) const;
+    QString generateGroupKeyForDuplicateFile(const DuplicateFile& file,
+                       GroupingOptionsDialog::GroupingCriteria criteria,
+                       const GroupingOptionsDialog::GroupingOptions& options) const;
 
     // UI Components
     QWidget* m_centralWidget;

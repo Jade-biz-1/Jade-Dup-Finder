@@ -47,8 +47,13 @@ void RestoreDialog::setupUI()
     m_mainLayout->setSpacing(10);
     
     // Info label
-    QLabel* infoLabel = new QLabel(tr("View and restore files from backups created before delete/move operations."), this);
+    QLabel* infoLabel = new QLabel(
+        tr("<b>View and restore files from backups</b><br>"
+           "Backups are automatically created before delete/move operations.<br>"
+           "Use the 'Operation' filter to find deleted files by selecting 'Delete'."), 
+        this);
     infoLabel->setWordWrap(true);
+    infoLabel->setTextFormat(Qt::RichText);
     // Apply theme-aware styling using ThemeManager
     ThemeManager::instance()->applyToWidget(infoLabel);
     infoLabel->setMargin(8);
@@ -190,6 +195,33 @@ void RestoreDialog::applyFilters()
         }
         
         m_filteredBackups.append(backup);
+    }
+    
+    // Show helpful message if no backups exist
+    if (m_allBackups.isEmpty()) {
+        QLabel* noBackupsLabel = new QLabel(
+            tr("<p align='center'><b>No backups found</b></p>"
+               "<p align='center'>Backups will appear here after you delete or move files.<br>"
+               "Files are automatically backed up before delete/move operations.</p>"),
+            this);
+        noBackupsLabel->setWordWrap(true);
+        noBackupsLabel->setTextFormat(Qt::RichText);
+        noBackupsLabel->setAlignment(Qt::AlignCenter);
+        
+        // FIXED: Use theme-aware styling instead of hardcoded values
+        ThemeData theme = ThemeManager::instance()->getCurrentThemeData();
+        QString style = QString("padding: %1px; color: %2;")
+            .arg(theme.spacing.padding * 2)  // Use theme spacing
+            .arg(theme.colors.disabled.name());  // Use theme color for disabled/gray text
+        noBackupsLabel->setStyleSheet(style);
+        
+        // Add as a spanning cell in the table
+        m_backupTable->setRowCount(1);
+        m_backupTable->setSpan(0, 0, 1, m_backupTable->columnCount());
+        m_backupTable->setCellWidget(0, 0, noBackupsLabel);
+        
+        updateStats();
+        return;
     }
     
     // Populate table

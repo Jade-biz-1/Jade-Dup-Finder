@@ -74,12 +74,18 @@ void ScanHistoryDialog::setupUI()
     m_dateFromEdit = new QDateEdit(this);
     m_dateFromEdit->setCalendarPopup(true);
     m_dateFromEdit->setDate(QDate::currentDate().addMonths(-1));
+    m_dateFromEdit->setMinimumWidth(140); // Increased width to prevent cutoff
+    m_dateFromEdit->setMinimumHeight(32); // Increased height to prevent cutoff
+    m_dateFromEdit->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
     connect(m_dateFromEdit, &QDateEdit::dateChanged, this, &ScanHistoryDialog::onFilterChanged);
     
     QLabel* toLabel = new QLabel(tr("to"), this);
     m_dateToEdit = new QDateEdit(this);
     m_dateToEdit->setCalendarPopup(true);
     m_dateToEdit->setDate(QDate::currentDate());
+    m_dateToEdit->setMinimumWidth(140); // Increased width to prevent cutoff
+    m_dateToEdit->setMinimumHeight(32); // Increased height to prevent cutoff
+    m_dateToEdit->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
     connect(m_dateToEdit, &QDateEdit::dateChanged, this, &ScanHistoryDialog::onFilterChanged);
     
     m_refreshButton = new QPushButton(tr("🔄 Refresh"), this);
@@ -295,8 +301,59 @@ void ScanHistoryDialog::onViewClicked()
     if (row >= 0 && row < m_filteredScans.size()) {
         QString scanId = m_filteredScans[row].scanId;
         LOG_INFO(LogCategories::UI, QString("User viewing scan: %1").arg(scanId));
-        emit scanSelected(scanId);
-        accept();
+        
+        const auto& scan = m_filteredScans[row];
+        
+        // Show loading indicator for large scans (>1000 files)
+        if (scan.filesScanned > 1000) {
+            // Show loading cursor and status message
+            QApplication::setOverrideCursor(Qt::WaitCursor);
+            
+            // Update button text to show loading state
+            m_viewButton->setText(tr("Loading..."));
+            m_viewButton->setEnabled(false);
+            
+            // Show status message
+            if (m_statsLabel) {
+                QString originalText = m_statsLabel->text();
+                m_statsLabel->setText(tr("Loading scan results with %1 files, please wait...")
+                                     .arg(scan.filesScanned));
+                
+                // Process events to show the loading state
+                QApplication::processEvents();
+                
+                // Defer the actual loading to allow UI to update
+                QTimer::singleShot(200, this, [this, scanId, originalText]() {
+                    emit scanSelected(scanId);
+                    QApplication::restoreOverrideCursor();
+                    
+                    // Restore button state
+                    m_viewButton->setText(tr("View Results"));
+                    m_viewButton->setEnabled(true);
+                    
+                    // Restore status text
+                    if (m_statsLabel) {
+                        m_statsLabel->setText(originalText);
+                    }
+                    
+                    // Keep dialog open so user can return to it
+                    hide();
+                });
+            } else {
+                // Fallback if no stats label
+                QTimer::singleShot(200, this, [this, scanId]() {
+                    emit scanSelected(scanId);
+                    QApplication::restoreOverrideCursor();
+                    m_viewButton->setText(tr("View Results"));
+                    m_viewButton->setEnabled(true);
+                    hide();
+                });
+            }
+        } else {
+            // Small scans load immediately
+            emit scanSelected(scanId);
+            hide();
+        }
     }
 }
 

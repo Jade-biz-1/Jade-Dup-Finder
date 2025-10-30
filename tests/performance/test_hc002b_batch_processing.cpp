@@ -5,6 +5,7 @@
 #include <QTemporaryDir>
 #include <QFile>
 #include <QDir>
+#include <QDirIterator>
 #include <QElapsedTimer>
 
 #include "hash_calculator.h"

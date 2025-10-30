@@ -417,8 +417,243 @@ QString EnhancedTestRunner::formatDuration(qint64 milliseconds) const {
     } else if (milliseconds < 60000) {
         return QString("%1.%2s").arg(milliseconds / 1000).arg((milliseconds % 1000) / 100);
     } else {
-        int minutes = milliseconds / 60000;
-        int seconds = (milliseconds % 60000) / 1000;
+        int minutes = static_cast<int>(milliseconds / 60000);
+        int seconds = static_cast<int>((milliseconds % 60000) / 1000);
         return QString("%1m %2s").arg(minutes).arg(seconds);
     }
+}
+
+void EnhancedTestRunner::onTestProcessFinished(int exitCode, QProcess::ExitStatus exitStatus) {
+    // Handle test process completion
+    Q_UNUSED(exitCode);
+    Q_UNUSED(exitStatus);
+    // This slot is currently unused but kept for future async execution support
+}
+
+QString EnhancedTestRunner::escapeXml(const QString& text) const {
+    QString result = text;
+    result.replace('&', "&amp;");
+    result.replace('<', "&lt;");
+    result.replace('>', "&gt;");
+    result.replace('"', "&quot;");
+    result.replace('\'', "&apos;");
+    return result;
+}
+
+QString EnhancedTestRunner::escapeHtml(const QString& text) const {
+    QString result = text;
+    result.replace('&', "&amp;");
+    result.replace('<', "&lt;");
+    result.replace('>', "&gt;");
+    result.replace('"', "&quot;");
+    return result;
+}
+
+void EnhancedTestRunner::generateJUnitReport(const QString& outputPath) {
+    // Simplified JUnit XML report generation
+    QString reportPath = outputPath;
+    if (reportPath.isEmpty()) {
+        QString reportDir = m_globalConfig.reportOutputDirectory;
+        QDir().mkpath(reportDir);
+        reportPath = QDir(reportDir).absoluteFilePath(
+            QString("junit_report_%1.xml")
+            .arg(QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss"))
+        );
+    }
+    
+    QFile file(reportPath);
+    if (!file.open(QIODevice::WriteOnly)) {
+        qWarning() << "Failed to write JUnit report:" << reportPath;
+        return;
+    }
+    
+    QXmlStreamWriter xml(&file);
+    xml.setAutoFormatting(true);
+    xml.writeStartDocument();
+    xml.writeStartElement("testsuites");
+    xml.writeAttribute("tests", QString::number(m_executionSummary.totalTests));
+    xml.writeAttribute("failures", QString::number(m_executionSummary.failedTests));
+    xml.writeAttribute("time", QString::number(m_executionSummary.totalExecutionTimeMs / 1000.0));
+    
+    xml.writeStartElement("testsuite");
+    xml.writeAttribute("name", "DupFinder Tests");
+    xml.writeAttribute("tests", QString::number(m_executionSummary.totalTests));
+    xml.writeAttribute("failures", QString::number(m_executionSummary.failedTests));
+    
+    for (const TestResult& result : m_executionSummary.results) {
+        xml.writeStartElement("testcase");
+        xml.writeAttribute("name", result.testName);
+        xml.writeAttribute("time", QString::number(result.executionTimeMs / 1000.0));
+        
+        if (!result.passed) {
+            xml.writeStartElement("failure");
+            xml.writeAttribute("message", escapeXml(result.errorMessage));
+            xml.writeEndElement();
+        }
+        
+        xml.writeEndElement();
+    }
+    
+    xml.writeEndElement();
+    xml.writeEndElement();
+    xml.writeEndDocument();
+    
+    qDebug() << "JUnit report generated:" << reportPath;
+}
+
+void EnhancedTestRunner::generateHtmlReport(const QString& outputPath) {
+    // Simplified HTML report generation
+    QString reportPath = outputPath;
+    if (reportPath.isEmpty()) {
+        QString reportDir = m_globalConfig.reportOutputDirectory;
+        QDir().mkpath(reportDir);
+        reportPath = QDir(reportDir).absoluteFilePath(
+            QString("test_report_%1.html")
+            .arg(QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss"))
+        );
+    }
+    
+    QFile file(reportPath);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        qWarning() << "Failed to write HTML report:" << reportPath;
+        return;
+    }
+    
+    QTextStream out(&file);
+    out << "<!DOCTYPE html>\n";
+    out << "<html><head><title>Test Report</title></head><body>\n";
+    out << "<h1>Test Execution Report</h1>\n";
+    out << "<p>Total: " << m_executionSummary.totalTests << ", ";
+    out << "Passed: " << m_executionSummary.passedTests << ", ";
+    out << "Failed: " << m_executionSummary.failedTests << "</p>\n";
+    out << "</body></html>\n";
+    
+    qDebug() << "HTML report generated:" << reportPath;
+}
+
+void EnhancedTestRunner::updateExecutionProgress() {
+    // Progress tracking helper
+    emit progressUpdated(m_completedTests, m_totalTests);
+}
+
+// TestExecutionTask implementation
+TestExecutionTask::TestExecutionTask(EnhancedTestRunner* runner, const EnhancedTestRunner::TestExecutable& test)
+    : m_runner(runner)
+    , m_test(test)
+{
+    setAutoDelete(true);
+}
+
+void TestExecutionTask::run() {
+    // Execute test in thread pool
+    // This is a placeholder for parallel execution support
+    // For now, we use the simplified sequential execution in EnhancedTestRunner
+}
+
+// TestRunnerCLI implementation
+int TestRunnerCLI::main(int argc, char* argv[]) {
+    QCoreApplication app(argc, argv);
+    
+    QString configFile;
+    QStringList categories, tags, tests;
+    QString reportPath;
+    bool verbose = false;
+    bool parallel = false;
+    
+    if (!parseArguments(argc, argv, configFile, categories, tags, tests, reportPath, verbose, parallel)) {
+        printUsage();
+        return 1;
+    }
+    
+    EnhancedTestRunner runner;
+    
+    if (!configFile.isEmpty()) {
+        runner.loadConfiguration(configFile);
+    }
+    
+    if (!categories.isEmpty()) {
+        runner.setEnabledCategories(categories);
+    }
+    
+    if (!tags.isEmpty()) {
+        runner.setEnabledTags(tags);
+    }
+    
+    runner.discoverTests();
+    
+    bool success;
+    if (!tests.isEmpty()) {
+        success = runner.runSpecificTests(tests);
+    } else {
+        success = runner.runAllTests();
+    }
+    
+    if (!reportPath.isEmpty()) {
+        runner.generateReport(reportPath);
+    }
+    
+    return success ? 0 : 1;
+}
+
+void TestRunnerCLI::printUsage() {
+    qDebug() << "Usage: enhanced_test_runner [options]";
+    qDebug() << "Options:";
+    qDebug() << "  --config <file>        Load configuration from file";
+    qDebug() << "  --category <name>      Run tests in category";
+    qDebug() << "  --tag <name>           Run tests with tag";
+    qDebug() << "  --test <name>          Run specific test";
+    qDebug() << "  --report <path>        Generate report at path";
+    qDebug() << "  --verbose              Enable verbose output";
+    qDebug() << "  --parallel              Enable parallel execution";
+    qDebug() << "  --list                 List available tests";
+    qDebug() << "  --help                 Show this help";
+}
+
+void TestRunnerCLI::printAvailableTests(const EnhancedTestRunner& runner) {
+    qDebug() << "Available tests:";
+    for (const QString& test : runner.getAvailableTests()) {
+        qDebug() << "  -" << test;
+    }
+}
+
+void TestRunnerCLI::printTestCategories() {
+    qDebug() << "Test categories:";
+    qDebug() << "  - Unit";
+    qDebug() << "  - Integration";
+    qDebug() << "  - Performance";
+    qDebug() << "  - System";
+    qDebug() << "  - Regression";
+}
+
+bool TestRunnerCLI::parseArguments(int argc, char* argv[], 
+                                  QString& configFile,
+                                  QStringList& categories,
+                                  QStringList& tags,
+                                  QStringList& tests,
+                                  QString& reportPath,
+                                  bool& verbose,
+                                  bool& parallel) {
+    for (int i = 1; i < argc; ++i) {
+        QString arg = QString::fromLocal8Bit(argv[i]);
+        
+        if (arg == "--help") {
+            return false;
+        } else if (arg == "--config" && i + 1 < argc) {
+            configFile = QString::fromLocal8Bit(argv[++i]);
+        } else if (arg == "--category" && i + 1 < argc) {
+            categories.append(QString::fromLocal8Bit(argv[++i]));
+        } else if (arg == "--tag" && i + 1 < argc) {
+            tags.append(QString::fromLocal8Bit(argv[++i]));
+        } else if (arg == "--test" && i + 1 < argc) {
+            tests.append(QString::fromLocal8Bit(argv[++i]));
+        } else if (arg == "--report" && i + 1 < argc) {
+            reportPath = QString::fromLocal8Bit(argv[++i]);
+        } else if (arg == "--verbose") {
+            verbose = true;
+        } else if (arg == "--parallel") {
+            parallel = true;
+        }
+    }
+    
+    return true;
 }
