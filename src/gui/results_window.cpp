@@ -290,12 +290,8 @@ void ResultsWindow::createResultsTree()
     m_resultsTree->setSortingEnabled(true);
     m_resultsTree->setItemsExpandable(true);
     
-    // Enable checkboxes to be visible - use stylesheet approach
-    m_resultsTree->setStyleSheet(
-        "QTreeWidget::indicator { width: 18px; height: 18px; }"
-        "QTreeWidget::indicator:unchecked { border: 1px solid #555; background: #2b2b2b; }"
-        "QTreeWidget::indicator:checked { border: 1px solid #0078d7; background: #0078d7; image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTMgNEw2IDExTDMgOCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=); }"
-    );
+    // Checkbox styling will be applied in applyTheme() to be theme-aware
+    // Don't set hardcoded styles here that might conflict with theme colors
     
     // Enable thumbnail delegate for column 0
     m_thumbnailDelegate = new ThumbnailDelegate(m_thumbnailCache, this);
@@ -317,9 +313,9 @@ void ResultsWindow::createResultsTree()
     // Set minimum size and apply enhanced theme styling
     m_resultsTree->setMinimumSize(300, 200);
     
-    // Apply enhanced TreeView styling with improved checkbox visibility
+    // Register with ThemeManager but don't apply its stylesheet here
+    // We'll apply comprehensive theme-aware styling in applyTheme() method
     ThemeManager::instance()->registerComponent(m_resultsTree, ThemeManager::ComponentType::TreeView);
-    m_resultsTree->setStyleSheet(ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::TreeView));
     
     // Theme-aware styling will be applied by ThemeManager
     
@@ -823,44 +819,88 @@ void ResultsWindow::applyTheme()
     ThemeData themeData = ThemeManager::instance()->getCurrentThemeData();
     bool isLightTheme = (themeData.appearance == ThemeData::Appearance::Light);
     
-    // Fix selection colors for Light theme - ensure proper contrast
+    // Apply comprehensive theme-aware styling for tree widget
     if (m_resultsTree) {
-        QString treeStyle = ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::TreeView);
+        QString treeStyle = "";
         
-        // Add selection color overrides for better visibility in Light theme
+        // Theme-aware checkbox styling
         if (isLightTheme) {
             treeStyle += ""
+                "QTreeWidget { "
+                "  background-color: #ffffff; "
+                "  color: #000000; "
+                "  alternate-background-color: #f8f8f8; "
+                "} "
+                "QTreeWidget::item { "
+                "  color: #000000; "
+                "  background-color: transparent; "
+                "} "
                 "QTreeWidget::item:selected { "
-                "  background-color: #0078d7; "
-                "  color: #ffffff; "
+                "  background-color: #0078d7 !important; "
+                "  color: #ffffff !important; "
                 "} "
                 "QTreeWidget::item:selected:!active { "
-                "  background-color: #e3f2fd; "
-                "  color: #1976d2; "
+                "  background-color: #e3f2fd !important; "
+                "  color: #1976d2 !important; "
                 "} "
                 "QTreeWidget::item:hover { "
-                "  background-color: #f5f5f5; "
+                "  background-color: #f0f0f0; "
                 "  color: #000000; "
+                "} "
+                "QTreeWidget::indicator { "
+                "  width: 18px; "
+                "  height: 18px; "
+                "} "
+                "QTreeWidget::indicator:unchecked { "
+                "  border: 1px solid #cccccc; "
+                "  background: #ffffff; "
+                "} "
+                "QTreeWidget::indicator:checked { "
+                "  border: 1px solid #0078d7; "
+                "  background: #0078d7; "
+                "  image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTMgNEw2IDExTDMgOCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=); "
                 "} ";
         } else {
-            // Dark theme selection colors
+            // Dark theme styling
             treeStyle += ""
-                "QTreeWidget::item:selected { "
-                "  background-color: #0078d7; "
+                "QTreeWidget { "
+                "  background-color: #2b2b2b; "
                 "  color: #ffffff; "
+                "  alternate-background-color: #353535; "
+                "} "
+                "QTreeWidget::item { "
+                "  color: #ffffff; "
+                "  background-color: transparent; "
+                "} "
+                "QTreeWidget::item:selected { "
+                "  background-color: #0078d7 !important; "
+                "  color: #ffffff !important; "
                 "} "
                 "QTreeWidget::item:selected:!active { "
-                "  background-color: #404040; "
-                "  color: #ffffff; "
+                "  background-color: #404040 !important; "
+                "  color: #ffffff !important; "
                 "} "
                 "QTreeWidget::item:hover { "
-                "  background-color: #2a2a2a; "
+                "  background-color: #3a3a3a; "
                 "  color: #ffffff; "
+                "} "
+                "QTreeWidget::indicator { "
+                "  width: 18px; "
+                "  height: 18px; "
+                "} "
+                "QTreeWidget::indicator:unchecked { "
+                "  border: 1px solid #555555; "
+                "  background: #2b2b2b; "
+                "} "
+                "QTreeWidget::indicator:checked { "
+                "  border: 1px solid #0078d7; "
+                "  background: #0078d7; "
+                "  image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTMgNEw2IDExTDMgOCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=); "
                 "} ";
         }
         
         m_resultsTree->setStyleSheet(treeStyle);
-        LOG_DEBUG(LogCategories::UI, QString("Applied %1 theme selection colors").arg(isLightTheme ? "light" : "dark"));
+        LOG_DEBUG(LogCategories::UI, QString("Applied comprehensive %1 theme styling with selection colors").arg(isLightTheme ? "light" : "dark"));
     }
     
     if (m_selectAllCheckbox) {
@@ -2204,6 +2244,10 @@ void ResultsWindow::showEvent(QShowEvent* event)
 {
     QMainWindow::showEvent(event);
     updateStatusBar();
+    
+    // Ensure theme is applied when window is shown
+    // This fixes any theme issues that might occur during window initialization
+    applyTheme();
 }
 
 

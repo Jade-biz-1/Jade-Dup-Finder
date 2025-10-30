@@ -351,9 +351,10 @@ target_link_libraries(integration_tests
 # Add tests to CTest
 # Performance test sources
 set(PERFORMANCE_TEST_SOURCES
-    performance/test_thread_pool_performance.cpp
-    performance/test_hc002b_batch_processing.cpp
-    performance/test_hc002c_io_optimization.cpp
+    # Individual test files with main() functions are built as separate executables
+    # performance/test_thread_pool_performance.cpp      # Has its own main()
+    # performance/test_hc002b_batch_processing.cpp      # Has its own main()
+    # performance/test_hc002c_io_optimization.cpp       # Has its own main()
     # Additional performance tests to be implemented:
     # performance/test_progress_reporting_overhead.cpp
     # performance/test_comprehensive_integration.cpp
@@ -371,6 +372,7 @@ add_executable(performance_tests
 target_link_libraries(performance_tests
     Qt6::Core
     Qt6::Test
+    Qt6::Widgets
     Qt6::Concurrent
 )
 
@@ -417,6 +419,7 @@ add_executable(test_integration_workflow
 target_link_libraries(test_integration_workflow
     Qt6::Core
     Qt6::Test
+    Qt6::Widgets
     Qt6::Concurrent
 )
 
@@ -510,6 +513,7 @@ add_executable(test_hc002b_batch_processing
 target_link_libraries(test_hc002b_batch_processing
     Qt6::Core
     Qt6::Test
+    Qt6::Widgets
     Qt6::Concurrent
 )
 
@@ -588,6 +592,7 @@ add_executable(test_file_scanner_coverage
 target_link_libraries(test_file_scanner_coverage
     Qt6::Core
     Qt6::Test
+    Qt6::Widgets
     Qt6::Concurrent
 )
 
@@ -692,6 +697,7 @@ add_executable(test_restore_functionality
 target_link_libraries(test_restore_functionality
     Qt6::Core
     Qt6::Test
+    Qt6::Widgets
     Qt6::Concurrent
 )
 

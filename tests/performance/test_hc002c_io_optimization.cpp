@@ -175,10 +175,10 @@ private:
         // Configure I/O optimization with memory mapping
         HashCalculator::HashOptions options = m_calculator->getOptions();
         options.enableIOOptimizations = true;
-        options.memoryMappingEnabled = true;
-        options.memoryMappingThreshold = 50 * 1024;  // Files > 50KB use memory mapping
-        options.readAheadEnabled = false;
-        options.asyncIOEnabled = false;
+        options.enableMemoryMapping = true;
+        options.memoryMapThreshold = 50 * 1024;  // Files > 50KB use memory mapping
+        options.enableReadAhead = false;
+        options.enableAsyncIO = false;
         options.enableCaching = false;
         m_calculator->setOptions(options);
         
@@ -194,10 +194,10 @@ private:
         // Configure with read-ahead
         HashCalculator::HashOptions options = m_calculator->getOptions();
         options.enableIOOptimizations = true;
-        options.memoryMappingEnabled = false;
-        options.readAheadEnabled = true;
-        options.readAheadBufferSize = 16384;  // 16KB buffer
-        options.asyncIOEnabled = false;
+        options.enableMemoryMapping = false;
+        options.enableReadAhead = true;
+        options.readAheadSize = 16384;  // 16KB buffer
+        options.enableAsyncIO = false;
         options.enableCaching = false;
         m_calculator->setOptions(options);
         
@@ -213,10 +213,10 @@ private:
         // Configure with async I/O
         HashCalculator::HashOptions options = m_calculator->getOptions();
         options.enableIOOptimizations = true;
-        options.memoryMappingEnabled = false;
-        options.readAheadEnabled = false;
-        options.asyncIOEnabled = true;
-        options.asyncIOThreshold = 10 * 1024;  // Files > 10KB use async I/O
+        options.enableMemoryMapping = false;
+        options.enableReadAhead = false;
+        options.enableAsyncIO = true;
+        options.maxConcurrentReads = 4;  // Use 4 concurrent reads for async I/O
         options.enableCaching = false;
         m_calculator->setOptions(options);
         
@@ -232,14 +232,14 @@ private:
         // Configure with all optimizations enabled
         HashCalculator::HashOptions options = m_calculator->getOptions();
         options.enableIOOptimizations = true;
-        options.memoryMappingEnabled = true;
-        options.memoryMappingThreshold = 100 * 1024;  // Files > 100KB use memory mapping
-        options.readAheadEnabled = true;
-        options.readAheadBufferSize = 32768;  // 32KB buffer
-        options.asyncIOEnabled = true;
-        options.asyncIOThreshold = 20 * 1024;  // Files > 20KB use async I/O
-        options.bufferPoolEnabled = true;
-        options.directIOEnabled = false;  // Usually too aggressive for testing
+        options.enableMemoryMapping = true;
+        options.memoryMapThreshold = 100 * 1024;  // Files > 100KB use memory mapping
+        options.enableReadAhead = true;
+        options.readAheadSize = 32768;  // 32KB buffer
+        options.enableAsyncIO = true;
+        options.maxConcurrentReads = 6;  // Use 6 concurrent reads for async I/O
+        options.enableBufferPooling = true;
+        options.enableIOOptimizations = true;  // Enable all I/O optimizations
         options.enableCaching = false;
         m_calculator->setOptions(options);
         
