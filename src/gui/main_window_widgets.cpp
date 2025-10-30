@@ -24,7 +24,12 @@ ScanHistoryWidget::ScanHistoryWidget(QWidget* parent)
     m_historyList->setSelectionMode(QAbstractItemView::SingleSelection);
     
     // Configure view all button
-    m_viewAllButton->setFixedHeight(24);
+    // FIXED: Use theme-aware sizing
+    ThemeData theme = ThemeManager::instance()->getCurrentThemeData();
+    int buttonHeight = theme.typography.baseFontSize * 3;  // Use theme-based sizing
+    m_viewAllButton->setFixedHeight(buttonHeight);
+    
+    // Use palette colors which are theme-aware
     m_viewAllButton->setStyleSheet(R"(
         QPushButton {
             text-align: right;
@@ -292,6 +297,7 @@ void SystemOverviewWidget::createStatsDisplay()
     m_diskUsageBar->setTextVisible(true);
     m_diskUsageBar->setFormat("%p% used");
     m_diskUsageBar->setFixedHeight(20);
+    m_diskUsageBar->setVisible(true);  // FIXED: Ensure progress bar is always visible
     
     m_availableSpaceLabel->setWordWrap(true);
     

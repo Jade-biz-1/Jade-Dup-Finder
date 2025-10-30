@@ -108,6 +108,9 @@ void ResultsWindow::createHeaderPanel()
     
     // Title and summary
     m_titleLabel = new QLabel(tr("🔍 Duplicate Files Results"), this);
+    // Ensure title is not truncated
+    m_titleLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    m_titleLabel->setWordWrap(true);
     // Apply theme-aware title styling
     QFont titleFont = m_titleLabel->font();
     titleFont.setPointSize(titleFont.pointSize() + 6);
@@ -170,6 +173,10 @@ void ResultsWindow::createMainContent()
     // Apply theme-aware styling and enforce minimum sizes
     ThemeManager::instance()->applyToWidget(m_mainSplitter);
     ThemeManager::instance()->enforceMinimumSizes(this);
+    
+    // Place filter and selection toolbars ABOVE the splitter so they remain visible and are NOT resized
+    if (m_filterPanel) m_mainLayout->addWidget(m_filterPanel);
+    if (m_selectionPanel) m_mainLayout->addWidget(m_selectionPanel);
     
     m_mainLayout->addWidget(m_mainSplitter, 1);  // Expand to fill space
 }
@@ -283,9 +290,22 @@ void ResultsWindow::createResultsTree()
     m_resultsTree->setSortingEnabled(true);
     m_resultsTree->setItemsExpandable(true);
     
-    // Set up thumbnail delegate
+    // Enable checkboxes to be visible - use stylesheet approach
+    m_resultsTree->setStyleSheet(
+        "QTreeWidget::indicator { width: 18px; height: 18px; }"
+        "QTreeWidget::indicator:unchecked { border: 1px solid #555; background: #2b2b2b; }"
+        "QTreeWidget::indicator:checked { border: 1px solid #0078d7; background: #0078d7; image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTMgNEw2IDExTDMgOCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=); }"
+    );
+    
+    // Enable thumbnail delegate for column 0
     m_thumbnailDelegate = new ThumbnailDelegate(m_thumbnailCache, this);
     m_resultsTree->setItemDelegateForColumn(0, m_thumbnailDelegate);
+    
+    // Ensure thumbnails are enabled and properly sized
+    m_thumbnailDelegate->setThumbnailsEnabled(true);
+    m_thumbnailDelegate->setThumbnailSize(THUMBNAIL_SIZE);
+    
+    LOG_DEBUG(LogCategories::UI, "Thumbnail delegate configured for results tree");
     
     // Configure tree columns
     QHeaderView* header = m_resultsTree->header();
@@ -303,9 +323,7 @@ void ResultsWindow::createResultsTree()
     
     // Theme-aware styling will be applied by ThemeManager
     
-    // Add to layout
-    m_resultsPanelLayout->addWidget(m_filterPanel);
-    m_resultsPanelLayout->addWidget(m_selectionPanel);
+    // Add only the tree to the results panel; toolbars are added above the splitter
     m_resultsPanelLayout->addWidget(m_resultsTree, 1);
 }
 
@@ -397,7 +415,7 @@ void ResultsWindow::createDetailsPanel()
     // m_relationshipWidget = new DuplicateRelationshipWidget(this);
     
     // Add tabs
-    m_detailsTabs->addTab(m_fileInfoTab, tr("� Firle Info"));
+    m_detailsTabs->addTab(m_fileInfoTab, tr("📄 File Info"));
     m_detailsTabs->addTab(m_groupInfoTab, tr("📁 Group Info"));
     // m_detailsTabs->addTab(m_relationshipWidget, tr("🔗 Relationships"));
     
@@ -423,7 +441,7 @@ void ResultsWindow::createActionsPanel()
     m_ignoreButton = new QPushButton(tr("👁️ Ignore File"), this);
     m_ignoreButton->setToolTip(tr("Ignore this file in current results"));
     m_previewButton = new QPushButton(tr("👀 Preview"), this);
-    m_previewButton->setToolTip(tr("Preview file content (images, text files)"));
+    m_previewButton->setToolTip(tr("Preview selected file (Space)"));
     m_openLocationButton = new QPushButton(tr("📂 Open Location"), this);
     m_openLocationButton->setToolTip(tr("Open file location in file manager"));
     m_copyPathButton = new QPushButton(tr("📋 Copy Path"), this);
@@ -574,33 +592,92 @@ void ResultsWindow::setupConnections()
     connect(m_resultsTree, &QTreeWidget::itemExpanded, this, &ResultsWindow::onGroupExpanded);
     connect(m_resultsTree, &QTreeWidget::itemCollapsed, this, &ResultsWindow::onGroupCollapsed);
     
-    // Handle checkbox state changes with lambda for now
+    // Handle checkbox state changes with enhanced group support
     connect(m_resultsTree, &QTreeWidget::itemChanged, this, [this](QTreeWidgetItem* item, int column) {
         // Only handle checkbox changes in the first column
-        if (column != 0 || !item || !item->parent()) {
+        if (column != 0 || !item) {
             return;
         }
         
-        // Update the file selection state in our data model
-        QString filePath = item->data(0, Qt::UserRole).toString();
         bool isChecked = (item->checkState(0) == Qt::Checked);
         
-        // Find and update the file in our data
-        for (auto& group : m_currentResults.duplicateGroups) {
-            for (auto& file : group.files) {
-                if (file.filePath == filePath) {
-                    file.isSelected = isChecked;
+        // Check if this is a group item (no parent) or file item (has parent)
+        if (item->parent() == nullptr) {
+            // This is a group item - toggle all child files
+            QString groupId = item->data(0, Qt::UserRole).toString();
+            LOG_DEBUG(QString("Group checkbox changed: %1 -> %2")
+                      .arg(groupId)
+                      .arg(isChecked ? "checked" : "unchecked"));
+            
+            // Update all child items
+            for (int i = 0; i < item->childCount(); ++i) {
+                QTreeWidgetItem* childItem = item->child(i);
+                childItem->setCheckState(0, isChecked ? Qt::Checked : Qt::Unchecked);
+            }
+            
+            // Update the group data
+            for (auto& group : m_currentResults.duplicateGroups) {
+                if (group.groupId == groupId) {
+                    for (auto& file : group.files) {
+                        file.isSelected = isChecked;
+                    }
+                    group.hasSelection = isChecked;
                     break;
                 }
             }
+        } else {
+            // This is a file item - update individual file selection
+            QString filePath = item->data(0, Qt::UserRole).toString();
+            
+            // Find and update the file in our data
+            for (auto& group : m_currentResults.duplicateGroups) {
+                for (auto& file : group.files) {
+                    if (file.filePath == filePath) {
+                        file.isSelected = isChecked;
+                        break;
+                    }
+                }
+                
+                // Update group checkbox state based on child selections
+                QTreeWidgetItem* groupItem = item->parent();
+                if (groupItem) {
+                    int checkedCount = 0;
+                    int totalCount = groupItem->childCount();
+                    
+                    for (int i = 0; i < totalCount; ++i) {
+                        if (groupItem->child(i)->checkState(0) == Qt::Checked) {
+                            checkedCount++;
+                        }
+                    }
+                    
+                    // Set group checkbox state: checked if all children checked, unchecked if none, partial if some
+                    if (checkedCount == 0) {
+                        groupItem->setCheckState(0, Qt::Unchecked);
+                        group.hasSelection = false;
+                    } else if (checkedCount == totalCount) {
+                        groupItem->setCheckState(0, Qt::Checked);
+                        group.hasSelection = true;
+                    } else {
+                        groupItem->setCheckState(0, Qt::PartiallyChecked);
+                        group.hasSelection = true;
+                    }
+                }
+                break;
+            }
+            
+            LOG_DEBUG(QString("File checkbox changed: %1 -> %2")
+                      .arg(filePath)
+                      .arg(isChecked ? "checked" : "unchecked"));
         }
         
         // Update selection summary
         updateSelectionSummary();
         
-        LOG_DEBUG(QString("File checkbox changed: %1 -> %2")
-                  .arg(filePath)
-                  .arg(isChecked ? "checked" : "unchecked"));
+        // Update Delete/Move button states based on checked files
+        QList<DuplicateFile> checkedFiles = getSelectedFiles();
+        bool hasCheckedFiles = !checkedFiles.isEmpty();
+        m_deleteButton->setEnabled(hasCheckedFiles);
+        m_moveButton->setEnabled(hasCheckedFiles);
     });
     
     // File actions
@@ -742,9 +819,48 @@ void ResultsWindow::applyTheme()
     // Apply theme from ThemeManager
     ThemeManager::instance()->applyToWidget(this);
     
-    // Apply enhanced styling to specific components for better checkbox visibility
+    // Get current theme data for better contrast handling
+    ThemeData themeData = ThemeManager::instance()->getCurrentThemeData();
+    bool isLightTheme = (themeData.appearance == ThemeData::Appearance::Light);
+    
+    // Fix selection colors for Light theme - ensure proper contrast
     if (m_resultsTree) {
-        m_resultsTree->setStyleSheet(ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::TreeView));
+        QString treeStyle = ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::TreeView);
+        
+        // Add selection color overrides for better visibility in Light theme
+        if (isLightTheme) {
+            treeStyle += ""
+                "QTreeWidget::item:selected { "
+                "  background-color: #0078d7; "
+                "  color: #ffffff; "
+                "} "
+                "QTreeWidget::item:selected:!active { "
+                "  background-color: #e3f2fd; "
+                "  color: #1976d2; "
+                "} "
+                "QTreeWidget::item:hover { "
+                "  background-color: #f5f5f5; "
+                "  color: #000000; "
+                "} ";
+        } else {
+            // Dark theme selection colors
+            treeStyle += ""
+                "QTreeWidget::item:selected { "
+                "  background-color: #0078d7; "
+                "  color: #ffffff; "
+                "} "
+                "QTreeWidget::item:selected:!active { "
+                "  background-color: #404040; "
+                "  color: #ffffff; "
+                "} "
+                "QTreeWidget::item:hover { "
+                "  background-color: #2a2a2a; "
+                "  color: #ffffff; "
+                "} ";
+        }
+        
+        m_resultsTree->setStyleSheet(treeStyle);
+        LOG_DEBUG(LogCategories::UI, QString("Applied %1 theme selection colors").arg(isLightTheme ? "light" : "dark"));
     }
     
     if (m_selectAllCheckbox) {
@@ -765,7 +881,7 @@ void ResultsWindow::applyTheme()
                 for (const auto& group : m_currentResults.duplicateGroups) {
                     QString recommended = getRecommendedFileToKeep(group);
                     if (filePath == recommended) {
-                        QColor recommendedColor = ThemeManager::instance()->getCurrentThemeData().colors.success;
+                        QColor recommendedColor = themeData.colors.success;
                         item->setForeground(0, QBrush(recommendedColor));
                         break;
                     }
@@ -1038,10 +1154,16 @@ void ResultsWindow::updateGroupItem(QTreeWidgetItem* groupItem, const DuplicateG
     // Store group data
     groupItem->setData(0, Qt::UserRole, QVariant::fromValue(group.groupId));
     
+    // Add checkbox to group for selection - this enables group-level selection
+    groupItem->setCheckState(0, Qt::Unchecked);
+    groupItem->setFlags(groupItem->flags() | Qt::ItemIsUserCheckable | Qt::ItemIsEnabled);
+    
     // Style group item
     QFont font = groupItem->font(0);
     font.setBold(true);
     groupItem->setFont(0, font);
+    
+    LOG_DEBUG(LogCategories::UI, QString("Group item updated with checkbox: %1").arg(group.groupId));
 }
 
 void ResultsWindow::updateFileItem(QTreeWidgetItem* fileItem, const DuplicateFile& file)
@@ -1058,7 +1180,7 @@ void ResultsWindow::updateFileItem(QTreeWidgetItem* fileItem, const DuplicateFil
     fileItem->setCheckState(0, file.isSelected ? Qt::Checked : Qt::Unchecked);
     
     // Ensure checkbox is properly styled and visible
-    fileItem->setFlags(fileItem->flags() | Qt::ItemIsUserCheckable);
+    fileItem->setFlags(fileItem->flags() | Qt::ItemIsUserCheckable | Qt::ItemIsEnabled);
     
     // Style recommended file differently
     if (!m_currentResults.duplicateGroups.isEmpty()) {
@@ -1096,7 +1218,87 @@ QString ResultsWindow::formatFileSize(qint64 bytes) const
     }
 }
 
-
+QString ResultsWindow::generateGroupKeyForDuplicateFile(const DuplicateFile& file,
+                                        GroupingOptionsDialog::GroupingCriteria criteria,
+                                        const GroupingOptionsDialog::GroupingOptions& options) const
+{
+    using GroupingCriteria = GroupingOptionsDialog::GroupingCriteria;
+    using DateGrouping = GroupingOptionsDialog::DateGrouping;
+    
+    switch (criteria) {
+        case GroupingCriteria::Hash:
+            return file.hash;
+            
+        case GroupingCriteria::Size:
+            return QString::number(file.fileSize);
+            
+        case GroupingCriteria::Type: {
+            QFileInfo fileInfo(file.filePath);
+            QString extension = fileInfo.suffix();
+            if (!options.caseSensitiveTypes) {
+                extension = extension.toLower();
+            }
+            return extension.isEmpty() ? "no_extension" : extension;
+        }
+        
+        case GroupingCriteria::CreationDate: {
+            QDateTime created = file.created;
+            if (!created.isValid()) {
+                created = file.lastModified;
+            }
+            
+            switch (options.dateGrouping) {
+                case DateGrouping::ExactDate:
+                    return created.toString(Qt::ISODate);
+                case DateGrouping::SameDay:
+                    return created.date().toString(Qt::ISODate);
+                case DateGrouping::SameWeek:
+                    return QString("%1_W%2").arg(created.date().year()).arg(created.date().weekNumber());
+                case DateGrouping::SameMonth:
+                    return QString("%1_%2").arg(created.date().year()).arg(created.date().month(), 2, 10, QChar('0'));
+                case DateGrouping::SameYear:
+                    return QString::number(created.date().year());
+                default:
+                    return created.date().toString(Qt::ISODate);
+            }
+        }
+        
+        case GroupingCriteria::ModificationDate: {
+            QDateTime modified = file.lastModified;
+            
+            switch (options.dateGrouping) {
+                case DateGrouping::ExactDate:
+                    return modified.toString(Qt::ISODate);
+                case DateGrouping::SameDay:
+                    return modified.date().toString(Qt::ISODate);
+                case DateGrouping::SameWeek:
+                    return QString("%1_W%2").arg(modified.date().year()).arg(modified.date().weekNumber());
+                case DateGrouping::SameMonth:
+                    return QString("%1_%2").arg(modified.date().year()).arg(modified.date().month(), 2, 10, QChar('0'));
+                case DateGrouping::SameYear:
+                    return QString::number(modified.date().year());
+                default:
+                    return modified.date().toString(Qt::ISODate);
+            }
+        }
+        
+        case GroupingCriteria::Location: {
+            QFileInfo fileInfo(file.filePath);
+            if (options.groupByParentDirectory) {
+                // Group by immediate parent directory
+                return fileInfo.absolutePath();
+            } else {
+                // Group by drive/top-level directory
+                QString path = fileInfo.absolutePath();
+                QStringList pathParts = path.split('/', Qt::SkipEmptyParts);
+                return pathParts.isEmpty() ? "/" : "/" + pathParts.first();
+            }
+        }
+        
+        default:
+            return file.hash;
+    }
+}
 
 QString ResultsWindow::getRecommendedFileToKeep(const DuplicateGroup& group) const
 {
@@ -1182,13 +1384,19 @@ void ResultsWindow::onFileSelectionChanged()
         if (m_fileHashLabel) m_fileHashLabel->setText(tr("Hash: -"));
     }
     
-    // Enable/disable single file actions
-    m_deleteButton->setEnabled(hasFileSelected && !hasMultipleSelected);
-    m_moveButton->setEnabled(hasFileSelected && !hasMultipleSelected);
-    m_ignoreButton->setEnabled(hasFileSelected && !hasMultipleSelected);
+    // Enable single file actions based on tree selection (for preview, open location, copy path)
+    // But Delete/Move should work on checked files, not just tree selection
     m_previewButton->setEnabled(hasFileSelected && !hasMultipleSelected);
     m_openLocationButton->setEnabled(hasFileSelected && !hasMultipleSelected);
     m_copyPathButton->setEnabled(hasFileSelected && !hasMultipleSelected);
+    m_ignoreButton->setEnabled(hasFileSelected);
+    
+    // Delete and Move buttons should work on checked files
+    // Update button state after checking checkbox changes
+    QList<DuplicateFile> checkedFiles = getSelectedFiles();
+    bool hasCheckedFiles = !checkedFiles.isEmpty();
+    m_deleteButton->setEnabled(hasCheckedFiles);
+    m_moveButton->setEnabled(hasCheckedFiles);
     
     // Enable/disable bulk actions
     m_bulkDeleteButton->setEnabled(hasFileSelected);
@@ -3624,35 +3832,142 @@ bool ResultsWindow::isTextFile(const QString& filePath) const
 
 void ResultsWindow::previewTextFile(const QString& filePath)
 {
-    LOG_INFO(LogCategories::UI, "Previewing text file: " + filePath);
-    // TODO(Feature): Implement text file preview dialog
-    // Create QDialog with QTextEdit showing file contents
-    // Priority: LOW - Nice to have feature
+    LOG_DEBUG(LogCategories::PREVIEW, QString("Previewing text file: %1").arg(filePath));
     
-    QMessageBox::information(this, tr("Preview"),
-        tr("Text file preview not yet implemented.\n\nFile: %1").arg(filePath));
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QMessageBox::warning(this, tr("Preview Error"), 
+                           tr("Failed to open file: %1").arg(filePath));
+        return;
+    }
+    
+    // Read first 1000 lines or 1MB, whichever comes first
+    QTextStream in(&file);
+    QString content;
+    int lineCount = 0;
+    const int maxLines = 1000;
+    const qint64 maxBytes = 1024 * 1024; // 1MB
+    
+    while (!in.atEnd() && lineCount < maxLines && content.size() < maxBytes) {
+        content += in.readLine() + "\n";
+        lineCount++;
+    }
+    
+    bool truncated = !in.atEnd();
+    file.close();
+    
+    // Create a dialog to show the text
+    QDialog* previewDialog = new QDialog(this);
+    previewDialog->setWindowTitle(tr("Text Preview - %1").arg(QFileInfo(filePath).fileName()));
+    previewDialog->resize(800, 600);
+    
+    QVBoxLayout* layout = new QVBoxLayout(previewDialog);
+    
+    // Add text edit
+    QTextEdit* textEdit = new QTextEdit();
+    textEdit->setPlainText(content);
+    textEdit->setReadOnly(true);
+    textEdit->setFont(QFont("Monospace", 10));
+    layout->addWidget(textEdit);
+    
+    // Add info label
+    QString infoText = tr("Size: %1 | Lines shown: %2")
+                      .arg(formatFileSize(QFileInfo(filePath).size()))
+                      .arg(lineCount);
+    if (truncated) {
+        infoText += tr(" (truncated)");
+    }
+    
+    QLabel* infoLabel = new QLabel(infoText);
+    infoLabel->setAlignment(Qt::AlignCenter);
+    layout->addWidget(infoLabel);
+    
+    // Add close button
+    QPushButton* closeButton = new QPushButton(tr("Close"));
+    connect(closeButton, &QPushButton::clicked, previewDialog, &QDialog::accept);
+    layout->addWidget(closeButton);
+    
+    previewDialog->exec();
+    delete previewDialog;
 }
 
 void ResultsWindow::previewImageFile(const QString& filePath)
 {
-    LOG_INFO(LogCategories::UI, "Previewing image file: " + filePath);
-    // TODO(Feature): Implement image file preview dialog
-    // Create QDialog with QLabel showing scaled pixmap
-    // Priority: MEDIUM - Useful for verifying duplicates
+    LOG_DEBUG(LogCategories::PREVIEW, QString("Previewing image file: %1").arg(filePath));
     
-    QMessageBox::information(this, tr("Preview"),
-        tr("Image file preview not yet implemented.\n\nFile: %1").arg(filePath));
+    QPixmap pixmap(filePath);
+    if (pixmap.isNull()) {
+        QMessageBox::warning(this, tr("Preview Error"), 
+                           tr("Failed to load image: %1").arg(filePath));
+        return;
+    }
+    
+    // Create a dialog to show the image
+    QDialog* previewDialog = new QDialog(this);
+    previewDialog->setWindowTitle(tr("Image Preview - %1").arg(QFileInfo(filePath).fileName()));
+    previewDialog->resize(800, 600);
+    
+    QVBoxLayout* layout = new QVBoxLayout(previewDialog);
+    
+    // Add image label with scroll area
+    QScrollArea* scrollArea = new QScrollArea(previewDialog);
+    QLabel* imageLabel = new QLabel();
+    
+    // Scale image if too large
+    QPixmap scaledPixmap = pixmap;
+    if (pixmap.width() > 1200 || pixmap.height() > 900) {
+        scaledPixmap = pixmap.scaled(1200, 900, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    }
+    
+    imageLabel->setPixmap(scaledPixmap);
+    imageLabel->setAlignment(Qt::AlignCenter);
+    scrollArea->setWidget(imageLabel);
+    scrollArea->setWidgetResizable(true);
+    
+    layout->addWidget(scrollArea);
+    
+    // Add file info
+    QLabel* infoLabel = new QLabel(tr("Size: %1 | Dimensions: %2x%3")
+                                   .arg(formatFileSize(QFileInfo(filePath).size()))
+                                   .arg(pixmap.width())
+                                   .arg(pixmap.height()));
+    infoLabel->setAlignment(Qt::AlignCenter);
+    layout->addWidget(infoLabel);
+    
+    // Add close button
+    QPushButton* closeButton = new QPushButton(tr("Close"));
+    connect(closeButton, &QPushButton::clicked, previewDialog, &QDialog::accept);
+    layout->addWidget(closeButton);
+    
+    previewDialog->exec();
+    delete previewDialog;
 }
 
 void ResultsWindow::showFileInfo(const QString& filePath)
 {
-    LOG_INFO(LogCategories::UI, "Showing file info for: " + filePath);
-    // TODO(Feature): Implement detailed file info dialog
-    // Show: size, dates, permissions, hash, location
-    // Priority: LOW - Can use system file properties for now
+    LOG_DEBUG(LogCategories::PREVIEW, QString("Showing file info: %1").arg(filePath));
     
-    QMessageBox::information(this, tr("File Info"),
-        tr("Detailed file info dialog not yet implemented.\n\nFile: %1").arg(filePath));
+    QFileInfo fileInfo(filePath);
+    
+    QString info;
+    info += tr("File Information\n");
+    info += tr("================\n\n");
+    info += tr("Name: %1\n").arg(fileInfo.fileName());
+    info += tr("Path: %1\n").arg(fileInfo.absolutePath());
+    info += tr("Size: %1 (%2 bytes)\n").arg(formatFileSize(fileInfo.size())).arg(fileInfo.size());
+    info += tr("Type: %1\n").arg(fileInfo.suffix().toUpper());
+    info += tr("Created: %1\n").arg(fileInfo.birthTime().toString("yyyy-MM-dd hh:mm:ss"));
+    info += tr("Modified: %1\n").arg(fileInfo.lastModified().toString("yyyy-MM-dd hh:mm:ss"));
+    info += tr("Accessed: %1\n").arg(fileInfo.lastRead().toString("yyyy-MM-dd hh:mm:ss"));
+    info += tr("\nPermissions: ");
+    
+    if (fileInfo.isReadable()) info += tr("Read ");
+    if (fileInfo.isWritable()) info += tr("Write ");
+    if (fileInfo.isExecutable()) info += tr("Execute");
+    
+    info += tr("\n\nPreview not available for this file type.");
+    
+    QMessageBox::information(this, tr("File Information"), info);
 }
 
 void ResultsWindow::showAdvancedFilterDialog()
@@ -3751,14 +4066,93 @@ void ResultsWindow::applyGrouping(const GroupingOptionsDialog::GroupingOptions& 
 {
     LOG_INFO(LogCategories::UI, QString("Apply grouping requested: Primary=%1")
         .arg(static_cast<int>(options.primaryCriteria)));
-    // TODO(Task13-Implement): Apply grouping criteria to results
-    // Need to re-organize m_currentResults based on options
-    // Then call populateResultsTree() to refresh display
-    // Priority: HIGH - Key feature
     
-    Q_UNUSED(options);
-    QMessageBox::information(this, tr("Grouping"),
-        tr("Grouping application logic needs implementation."));
+    if (m_currentResults.duplicateGroups.isEmpty()) {
+        LOG_WARNING(LogCategories::UI, "No duplicate groups to regroup");
+        return;
+    }
+    
+    // Store current grouping options
+    m_currentGroupingOptions = options;
+    
+    // Flatten all files from current groups (ResultsWindow::DuplicateFile)
+    QList<DuplicateFile> allFiles;
+    for (const auto& group : m_currentResults.duplicateGroups) {
+        for (const auto& file : group.files) {
+            allFiles.append(file);
+        }
+    }
+    
+    LOG_INFO(LogCategories::UI, QString("Regrouping %1 files with criteria %2")
+        .arg(allFiles.size())
+        .arg(static_cast<int>(options.primaryCriteria)));
+    
+    // Create new groups based on selected criteria
+    QMap<QString, QList<DuplicateFile>> groupMap;
+    
+    for (const auto& file : allFiles) {
+        QString groupKey = generateGroupKeyForDuplicateFile(file, options.primaryCriteria, options);
+        groupMap[groupKey].append(file);
+    }
+    
+    // If secondary criteria enabled, further subdivide groups
+    if (options.useSecondaryCriteria) {
+        QMap<QString, QList<DuplicateFile>> refinedGroupMap;
+        for (auto it = groupMap.begin(); it != groupMap.end(); ++it) {
+            for (const auto& file : it.value()) {
+                QString secondaryKey = generateGroupKeyForDuplicateFile(file, options.secondaryCriteria, options);
+                QString combinedKey = it.key() + "_" + secondaryKey;
+                refinedGroupMap[combinedKey].append(file);
+            }
+        }
+        groupMap = refinedGroupMap;
+    }
+    
+    // Convert map to ResultsWindow duplicate groups, filtering out groups with only one file
+    QList<DuplicateGroup> newGroups;
+    for (auto it = groupMap.begin(); it != groupMap.end(); ++it) {
+        if (it.value().size() > 1) {
+            DuplicateGroup group;
+            group.files = it.value();
+            group.fileCount = it.value().size();
+            
+            // Calculate group statistics
+            if (!group.files.isEmpty()) {
+                group.totalSize = group.files.first().fileSize * group.fileCount;
+                group.wastedSpace = group.files.first().fileSize * (group.fileCount - 1);
+                group.groupId = QUuid::createUuid().toString(QUuid::WithoutBraces);
+            }
+            
+            newGroups.append(group);
+        }
+    }
+    
+    // Update current results
+    m_currentResults.duplicateGroups = newGroups;
+    
+    // Recalculate totals
+    m_currentResults.totalDuplicatesFound = 0;
+    m_currentResults.potentialSavings = 0;
+    
+    for (const auto& group : newGroups) {
+        m_currentResults.totalDuplicatesFound += group.fileCount;
+        m_currentResults.potentialSavings += group.wastedSpace;
+    }
+    
+    // Refresh the display
+    populateResultsTree();
+    updateSelectionSummary();
+    
+    LOG_INFO(LogCategories::UI, QString("Regrouping complete: %1 groups created")
+        .arg(newGroups.size()));
+    
+    // Show summary
+    QString message = tr("Grouping applied successfully.\n\n")
+        + tr("Groups: %1\n").arg(newGroups.size())
+        + tr("Files: %1\n").arg(m_currentResults.totalDuplicatesFound)
+        + tr("Potential Savings: %1").arg(formatFileSize(m_currentResults.potentialSavings));
+    
+    QMessageBox::information(this, tr("Grouping Applied"), message);
 }
 
 void ResultsWindow::recordSelectionState(const QString& description)

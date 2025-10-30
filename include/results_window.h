@@ -268,6 +268,11 @@ private:
     bool exportToText(QTextStream& out);
     bool exportToHTML(QTextStream& out, const QString& fileName);
     QString generateThumbnailForExport(const QString& filePath, const QString& thumbnailDir, const QString& baseName);
+    
+    // Grouping helper methods
+    QString generateGroupKeyForDuplicateFile(const DuplicateFile& file, 
+                            GroupingOptionsDialog::GroupingCriteria criteria,
+                            const GroupingOptionsDialog::GroupingOptions& options) const;
 
     // UI Components
     QWidget* m_centralWidget;
@@ -365,11 +370,13 @@ private:
     ThumbnailDelegate* m_thumbnailDelegate;
     DuplicateRelationshipWidget* m_relationshipWidget;
     SmartSelectionDialog* m_smartSelectionDialog;
+    GroupingOptionsDialog* m_groupingDialog;
 
     
     // State
     bool m_isProcessingBulkOperation;
     QString m_lastExportPath;
+    GroupingOptionsDialog::GroupingOptions m_currentGroupingOptions;
     
     // Constants
     static const int THUMBNAIL_SIZE = 64;

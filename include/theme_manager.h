@@ -154,7 +154,7 @@ public:
     static ThemeManager* instance();
     
     // Core theme management
-    void setTheme(Theme theme, const QString& customThemeName = QString());
+    Q_INVOKABLE void setTheme(Theme theme, const QString& customThemeName = QString());
     Theme currentTheme() const { return m_currentTheme; }
     QString currentThemeName() const;
     QString currentThemeString() const;
@@ -345,6 +345,7 @@ signals:
 
 private slots:
     void onSystemThemeChanged();
+    void propagateThemeChangeWithRecovery();
 
 private:
     explicit ThemeManager(QObject* parent = nullptr);
@@ -373,7 +374,6 @@ private:
     // Internal methods
     void updateRegisteredDialogs();
     void propagateThemeChange();
-    void propagateThemeChangeWithRecovery();
     void handleSystemThemeChange();
     QString generateComponentStyleSheet(ComponentType type, const ThemeData& theme) const;
     QString generateHighContrastThemeStyles() const;

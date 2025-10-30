@@ -46,9 +46,10 @@ protected:
     // Standardized assertion macros with enhanced reporting
     #define TEST_VERIFY_WITH_MSG(condition, message) \
         do { \
+            QString msg = QString(message); \
             if (!(condition)) { \
-                logTestFailure(__FUNCTION__, __LINE__, #condition, message); \
-                QVERIFY2(condition, message.toUtf8().constData()); \
+                logTestFailure(__FUNCTION__, __LINE__, #condition, msg); \
+                QVERIFY2(condition, msg.toUtf8().constData()); \
             } else { \
                 logTestSuccess(__FUNCTION__, #condition); \
             } \
@@ -56,11 +57,12 @@ protected:
 
     #define TEST_COMPARE_WITH_MSG(actual, expected, message) \
         do { \
+            QString msg = QString(message); \
             if (!QTest::qCompare(actual, expected, #actual, #expected, __FILE__, __LINE__)) { \
                 logTestFailure(__FUNCTION__, __LINE__, \
                     QString("%1 != %2").arg(QTest::toString(actual)).arg(QTest::toString(expected)), \
-                    message); \
-                QFAIL(message.toUtf8().constData()); \
+                    msg); \
+                QFAIL(msg.toUtf8().constData()); \
             } else { \
                 logTestSuccess(__FUNCTION__, QString("%1 == %2").arg(#actual).arg(#expected)); \
             } \
@@ -90,9 +92,12 @@ protected:
     void skipIfCI(const QString& reason = "Test not suitable for CI environment");
     void skipIfNotCI(const QString& reason = "Test only runs in CI environment");
     
+public:
     // Configuration access
     TestConfig::TestSuiteConfig getTestConfig() const;
     bool shouldRunTest() const;
+
+protected:
 
 private:
     QString m_testDataDirectory;

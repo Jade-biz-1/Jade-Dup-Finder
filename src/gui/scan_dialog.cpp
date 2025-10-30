@@ -201,8 +201,8 @@ ScanSetupDialog::ScanSetupDialog(QWidget* parent)
     , m_estimationInProgress(false)
 {
     setWindowTitle(tr("New Scan Configuration"));
-    setMinimumSize(900, 600);
-    resize(950, 650);
+    setMinimumSize(800, 650);
+    resize(900, 700);
     setModal(true);
     
     // Make dialog clearly distinguishable from main window
@@ -255,16 +255,81 @@ ScanSetupDialog::~ScanSetupDialog()
 
 void ScanSetupDialog::setupUI()
 {
-    m_mainLayout = new QHBoxLayout(this);
-    m_mainLayout->setContentsMargins(20, 20, 20, 20);
-    m_mainLayout->setSpacing(20);
+    // Create main vertical layout
+    QVBoxLayout* mainVLayout = new QVBoxLayout(this);
+    mainVLayout->setContentsMargins(12, 12, 12, 12);
+    mainVLayout->setSpacing(12);
     
+    // Create tab widget for better organization
+    QTabWidget* tabWidget = new QTabWidget(this);
+    tabWidget->setMinimumHeight(500);
+    
+    // Create tabs
+    QWidget* locationsTab = new QWidget();
+    QWidget* optionsTab = new QWidget();
+    QWidget* advancedTab = new QWidget();
+    QWidget* performanceTab = new QWidget();
+    QWidget* previewTab = new QWidget();
+    
+    // Set up tab layouts
+    QHBoxLayout* locationsLayout = new QHBoxLayout(locationsTab);
+    locationsLayout->setContentsMargins(12, 12, 12, 12);
+    locationsLayout->setSpacing(16);
+    
+    QHBoxLayout* optionsLayout = new QHBoxLayout(optionsTab);
+    optionsLayout->setContentsMargins(12, 12, 12, 12);
+    optionsLayout->setSpacing(16);
+    
+    QHBoxLayout* advancedLayout = new QHBoxLayout(advancedTab);
+    advancedLayout->setContentsMargins(12, 12, 12, 12);
+    advancedLayout->setSpacing(16);
+    
+    QHBoxLayout* performanceLayout = new QHBoxLayout(performanceTab);
+    performanceLayout->setContentsMargins(12, 12, 12, 12);
+    performanceLayout->setSpacing(16);
+    
+    QHBoxLayout* previewLayout = new QHBoxLayout(previewTab);
+    previewLayout->setContentsMargins(12, 12, 12, 12);
+    previewLayout->setSpacing(16);
+    
+    // Store the current layout for panel creation
+    m_mainLayout = locationsLayout;
     createLocationsPanel();
+    locationsLayout->addStretch();
+    
+    m_mainLayout = optionsLayout;
     createOptionsPanel();
-    createAdvancedOptionsPanel();     // T11: Advanced options
-    createPerformanceOptionsPanel();  // T11: Performance options
+    optionsLayout->addStretch();
+    
+    m_mainLayout = advancedLayout;
+    createAdvancedOptionsPanel();
+    advancedLayout->addStretch();
+    
+    m_mainLayout = performanceLayout;
+    createPerformanceOptionsPanel();
+    performanceLayout->addStretch();
+    
+    m_mainLayout = previewLayout;
     createPreviewPanel();
+    previewLayout->addStretch();
+    
+    // Add tabs to tab widget
+    tabWidget->addTab(locationsTab, tr("📁 Scan Locations"));
+    tabWidget->addTab(optionsTab, tr("⚙️ Options"));
+    tabWidget->addTab(advancedTab, tr("🔧 Advanced Options"));
+    tabWidget->addTab(performanceTab, tr("⚡ Performance"));
+    tabWidget->addTab(previewTab, tr("📊 Preview & Limits"));
+    
+    // Apply theme to tab widget
+    ThemeManager::instance()->applyToWidget(tabWidget);
+    
+    // Add tab widget to main layout
+    mainVLayout->addWidget(tabWidget);
+    
+    // Create button bar
     createButtonBar();
+    
+    // The button bar creation will handle the final layout setup
 }
 
 void ScanSetupDialog::createLocationsPanel()
@@ -475,7 +540,14 @@ void ScanSetupDialog::createOptionsPanel()
     excludeFolderButtonsLayout->addWidget(m_removeExcludeFolderButton);
     excludeFolderButtonsLayout->addStretch();
     
-    // Layout
+    // FIXED: Layout - Create two-column layout for better display
+    QHBoxLayout* twoColumnLayout = new QHBoxLayout();
+    twoColumnLayout->setSpacing(16);
+    
+    // Left column
+    QVBoxLayout* leftColumn = new QVBoxLayout();
+    leftColumn->setSpacing(10);
+    
     QGridLayout* optionsGrid = new QGridLayout();
     optionsGrid->setSpacing(8);
     optionsGrid->setColumnStretch(1, 1);
@@ -489,17 +561,31 @@ void ScanSetupDialog::createOptionsPanel()
     optionsGrid->addWidget(depthLabel, 3, 0);
     optionsGrid->addWidget(m_maxDepth, 3, 1);
     
-    m_optionsLayout->addLayout(optionsGrid);
-    m_optionsLayout->addWidget(includeLabel);
-    m_optionsLayout->addWidget(m_includeHidden);
-    m_optionsLayout->addWidget(m_followSymlinks);
-    m_optionsLayout->addWidget(typesLabel);
-    m_optionsLayout->addWidget(m_fileTypesWidget);
-    m_optionsLayout->addWidget(m_excludePatternWidget);
-    m_optionsLayout->addWidget(excludeFoldersLabel);
-    m_optionsLayout->addWidget(m_excludeFoldersTree);
-    m_optionsLayout->addLayout(excludeFolderButtonsLayout);
-    m_optionsLayout->addStretch();
+    leftColumn->addLayout(optionsGrid);
+    leftColumn->addWidget(includeLabel);
+    leftColumn->addWidget(m_includeHidden);
+    leftColumn->addWidget(m_includeSystem);
+    leftColumn->addWidget(m_followSymlinks);
+    leftColumn->addWidget(m_scanArchives);
+    leftColumn->addStretch();
+    
+    // Right column
+    QVBoxLayout* rightColumn = new QVBoxLayout();
+    rightColumn->setSpacing(10);
+    
+    rightColumn->addWidget(typesLabel);
+    rightColumn->addWidget(m_fileTypesWidget);
+    rightColumn->addWidget(m_excludePatternWidget);
+    rightColumn->addWidget(excludeFoldersLabel);
+    rightColumn->addWidget(m_excludeFoldersTree);
+    rightColumn->addLayout(excludeFolderButtonsLayout);
+    rightColumn->addStretch();
+    
+    // Add columns to two-column layout
+    twoColumnLayout->addLayout(leftColumn, 1);
+    twoColumnLayout->addLayout(rightColumn, 1);
+    
+    m_optionsLayout->addLayout(twoColumnLayout);
     
     m_mainLayout->addWidget(m_optionsGroup);
 }
@@ -671,7 +757,7 @@ void ScanSetupDialog::createButtonBar()
     m_buttonBox = new QDialogButtonBox(this);
     m_buttonBox->setContentsMargins(16, 8, 16, 8);
     
-    m_cancelButton = new QPushButton(tr("Cancel"), this);
+    m_cancelButton = new QPushButton(tr("Cancel (Esc)"), this);
     m_cancelButton->setToolTip(tr("Close dialog without starting scan"));
     m_managePresetsButton = new QPushButton(tr("📋 Manage Presets"), this);
     m_managePresetsButton->setToolTip(tr("View, edit, and manage saved presets"));
@@ -692,28 +778,18 @@ void ScanSetupDialog::createButtonBar()
     m_buttonBox->addButton(m_savePresetButton, QDialogButtonBox::ActionRole);
     m_buttonBox->addButton(m_startScanButton, QDialogButtonBox::AcceptRole);
     
-    // Add button box to main layout in a separate row
-    QVBoxLayout* mainVLayout = new QVBoxLayout();
-    mainVLayout->setContentsMargins(0, 0, 0, 0);
-    mainVLayout->setSpacing(0);
-    
-    QWidget* mainWidget = new QWidget(this);
-    mainWidget->setLayout(m_mainLayout);
-    
     // Add separator line above buttons
     QFrame* separator = new QFrame(this);
     separator->setFrameShape(QFrame::HLine);
     separator->setFrameShadow(QFrame::Sunken);
-    // Apply theme-aware separator styling
     ThemeManager::instance()->applyToWidget(separator);
     
-    mainVLayout->addWidget(mainWidget);
-    mainVLayout->addWidget(separator);
-    mainVLayout->addWidget(m_buttonBox);
-    
-    // Replace the dialog's layout
-    delete layout();
-    setLayout(mainVLayout);
+    // Get the main layout (should be QVBoxLayout from setupUI)
+    QVBoxLayout* mainVLayout = qobject_cast<QVBoxLayout*>(layout());
+    if (mainVLayout) {
+        mainVLayout->addWidget(separator);
+        mainVLayout->addWidget(m_buttonBox);
+    }
 }
 
 void ScanSetupDialog::setupConnections()

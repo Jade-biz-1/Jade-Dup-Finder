@@ -131,13 +131,13 @@ private:
 /**
  * @brief Macro for registering test suites with standardized configuration
  */
-#define REGISTER_TEST_SUITE(className, category, priority, tags...) \
+#define REGISTER_TEST_SUITE(className, category, priority, ...) \
     do { \
         TestConfig::TestSuiteConfig config; \
         config.name = #className; \
         config.category = TestConfig::Category::category; \
         config.priority = TestConfig::Priority::priority; \
-        config.tags = QStringList{tags}; \
+        config.tags = QStringList{__VA_ARGS__}; \
         config.timeoutSeconds = TestConfig::instance().globalConfig().defaultTimeoutSeconds; \
         config.enabledByDefault = true; \
         config.executionMode = TestConfig::instance().globalConfig().defaultExecutionMode; \
