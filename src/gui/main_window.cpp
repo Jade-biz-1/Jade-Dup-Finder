@@ -11,6 +11,7 @@
 #include "theme_manager.h"
 #include "app_config.h"
 #include "scan_history_manager.h"
+#include "../core/window_state_manager.h"
 #include "logger.h"
 
 // Qt headers
@@ -76,6 +77,9 @@ MainWindow::MainWindow(QWidget *parent)
     setupKeyboardShortcuts();
     loadSettings();
     
+    // Register with WindowStateManager for automatic state saving/restoring
+    WindowStateManager::instance()->registerWindow(this, "MainWindow");
+    
     // Start system stats timer
     m_systemUpdateTimer->setInterval(30000); // Update every 30 seconds
     m_systemUpdateTimer->start();
@@ -129,6 +133,9 @@ void MainWindow::setFileScanner(FileScanner* scanner)
             if (!m_scanProgressDialog) {
                 m_scanProgressDialog = new ScanProgressDialog(this);
                 
+                // Register with WindowStateManager
+                WindowStateManager::instance()->registerDialog(m_scanProgressDialog, "ScanProgressDialog");
+                
                 // Register with ThemeManager for automatic theme updates
                 ThemeManager::instance()->registerDialog(m_scanProgressDialog);
                 
@@ -145,6 +152,9 @@ void MainWindow::setFileScanner(FileScanner* scanner)
                         this, [this]() {
                             if (!m_scanErrorDialog) {
                                 m_scanErrorDialog = new ScanErrorDialog(this);
+                                
+                                // Register with WindowStateManager
+                                WindowStateManager::instance()->registerDialog(m_scanErrorDialog, "ScanErrorDialog");
                                 
                                 // Register with ThemeManager for automatic theme updates
                                 ThemeManager::instance()->registerDialog(m_scanErrorDialog);
@@ -272,6 +282,9 @@ void MainWindow::showScanResults()
     if (!m_resultsWindow) {
         m_resultsWindow = new ResultsWindow(this);
         
+        // Register with WindowStateManager
+        WindowStateManager::instance()->registerWindow(m_resultsWindow, "ResultsWindow");
+        
         // Set FileManager reference
         if (m_fileManager) {
             m_resultsWindow->setFileManager(m_fileManager);
@@ -326,6 +339,9 @@ void MainWindow::onNewScanRequested()
         LOG_DEBUG(LogCategories::UI, "Creating new ScanSetupDialog");
         m_scanSetupDialog = new ScanSetupDialog(this);
         
+        // Register with WindowStateManager
+        WindowStateManager::instance()->registerDialog(m_scanSetupDialog, "ScanSetupDialog");
+        
         // Connect scan configuration signal
         connect(m_scanSetupDialog, &ScanSetupDialog::scanConfigured,
                 this, &MainWindow::handleScanConfiguration);
@@ -353,6 +369,9 @@ void MainWindow::onPresetSelected(const QString& preset)
     if (!m_scanSetupDialog) {
         LOG_DEBUG(LogCategories::UI, "Creating new ScanSetupDialog for preset");
         m_scanSetupDialog = new ScanSetupDialog(this);
+        
+        // Register with WindowStateManager
+        WindowStateManager::instance()->registerDialog(m_scanSetupDialog, "ScanSetupDialog");
         
         // Connect scan configuration signal
         connect(m_scanSetupDialog, &ScanSetupDialog::scanConfigured,
@@ -391,6 +410,10 @@ void MainWindow::onSettingsRequested()
     
     if (!m_settingsDialog) {
         m_settingsDialog = new SettingsDialog(this);
+        
+        // Register with WindowStateManager
+        WindowStateManager::instance()->registerDialog(m_settingsDialog, "SettingsDialog");
+        
         connect(m_settingsDialog, &SettingsDialog::settingsChanged,
                 this, [this]() {
                     LOG_INFO(LogCategories::UI, "Settings changed, reloading configuration");
@@ -411,6 +434,9 @@ void MainWindow::onSafetyFeaturesRequested()
     
     if (!m_safetyFeaturesDialog) {
         m_safetyFeaturesDialog = new SafetyFeaturesDialog(m_safetyManager, this);
+        
+        // Register with WindowStateManager
+        WindowStateManager::instance()->registerDialog(m_safetyFeaturesDialog, "SafetyFeaturesDialog");
         
         // Connect signals
         connect(m_safetyFeaturesDialog, &SafetyFeaturesDialog::protectionRulesChanged,
@@ -507,6 +533,9 @@ void MainWindow::onAboutRequested()
     
     if (!m_aboutDialog) {
         m_aboutDialog = new AboutDialog(this);
+        
+        // Register with WindowStateManager
+        WindowStateManager::instance()->registerDialog(m_aboutDialog, "AboutDialog");
     }
     
     m_aboutDialog->show();
@@ -526,6 +555,9 @@ void MainWindow::onRestoreRequested()
     
     // Create and show restore dialog
     RestoreDialog* restoreDialog = new RestoreDialog(m_safetyManager, this);
+    
+    // Register with WindowStateManager
+    WindowStateManager::instance()->registerDialog(restoreDialog, "RestoreDialog");
     
     // Register with ThemeManager for automatic theme updates
     ThemeManager::instance()->registerDialog(restoreDialog);
@@ -598,6 +630,9 @@ void MainWindow::onScanHistoryItemClicked(int index)
                 if (!m_resultsWindow) {
                     m_resultsWindow = new ResultsWindow(this);
                     
+                    // Register with WindowStateManager
+                    WindowStateManager::instance()->registerWindow(m_resultsWindow, "ResultsWindow");
+                    
                     // Set FileManager reference
                     if (m_fileManager) {
                         m_resultsWindow->setFileManager(m_fileManager);
@@ -636,6 +671,9 @@ void MainWindow::onViewAllHistoryClicked()
     // Create and show scan history dialog
     ScanHistoryDialog* historyDialog = new ScanHistoryDialog(this);
     
+    // Register with WindowStateManager
+    WindowStateManager::instance()->registerDialog(historyDialog, "ScanHistoryDialog");
+    
     // Register with ThemeManager for automatic theme updates
     ThemeManager::instance()->registerDialog(historyDialog);
     
@@ -651,6 +689,10 @@ void MainWindow::onViewAllHistoryClicked()
                     // Show results in results window
                     if (!m_resultsWindow) {
                         m_resultsWindow = new ResultsWindow(this);
+                        
+                        // Register with WindowStateManager
+                        WindowStateManager::instance()->registerWindow(m_resultsWindow, "ResultsWindow");
+                        
                         if (m_fileManager) {
                             m_resultsWindow->setFileManager(m_fileManager);
                         }
@@ -1484,6 +1526,9 @@ void MainWindow::onDuplicateDetectionCompleted(int totalGroups)
         // Create results window if needed
         if (!m_resultsWindow) {
             m_resultsWindow = new ResultsWindow(this);
+            
+            // Register with WindowStateManager
+            WindowStateManager::instance()->registerWindow(m_resultsWindow, "ResultsWindow");
             
             // Set FileManager reference
             if (m_fileManager) {

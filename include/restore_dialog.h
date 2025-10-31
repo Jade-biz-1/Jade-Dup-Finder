@@ -67,6 +67,7 @@ private:
     SafetyManager* m_safetyManager;
     QList<SafetyManager::SafetyOperation> m_allBackups;
     QList<SafetyManager::SafetyOperation> m_filteredBackups;
+    QStringList m_restoringFiles; // Track files currently being restored
 };
 
 #endif // RESTORE_DIALOG_H

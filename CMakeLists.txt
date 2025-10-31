@@ -97,6 +97,7 @@ set(CORE_SOURCES
     src/core/component_registry.cpp
     src/core/style_validator.cpp
     src/core/theme_persistence.cpp
+    src/core/window_state_manager.cpp
     # src/core/ui_theme_test_integration.cpp
 )
 
@@ -153,6 +154,7 @@ set(HEADER_FILES
     include/style_validator.h
     include/theme_persistence.h
     include/theme_editor.h
+    src/core/window_state_manager.h
     # include/ui_theme_test_integration.h
     include/scan_history_manager.h
     include/selection_history_manager.h

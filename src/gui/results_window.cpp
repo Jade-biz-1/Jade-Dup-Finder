@@ -293,13 +293,17 @@ void ResultsWindow::createResultsTree()
     // Checkbox styling will be applied in applyTheme() to be theme-aware
     // Don't set hardcoded styles here that might conflict with theme colors
     
-    // Enable thumbnail delegate for column 0
+    // Enable thumbnail delegate for all columns to ensure consistent row selection appearance
     m_thumbnailDelegate = new ThumbnailDelegate(m_thumbnailCache, this);
-    m_resultsTree->setItemDelegateForColumn(0, m_thumbnailDelegate);
+    m_resultsTree->setItemDelegate(m_thumbnailDelegate); // Apply to all columns
     
     // Ensure thumbnails are enabled and properly sized
     m_thumbnailDelegate->setThumbnailsEnabled(true);
     m_thumbnailDelegate->setThumbnailSize(THUMBNAIL_SIZE);
+    
+    // Set minimum row height to accommodate thumbnails and checkboxes
+    m_resultsTree->setUniformRowHeights(false);
+    m_resultsTree->setRootIsDecorated(true);
     
     LOG_DEBUG(LogCategories::UI, "Thumbnail delegate configured for results tree");
     
@@ -595,6 +599,13 @@ void ResultsWindow::setupConnections()
             return;
         }
         
+        // Prevent recursive updates
+        static bool updating = false;
+        if (updating) {
+            return;
+        }
+        updating = true;
+        
         bool isChecked = (item->checkState(0) == Qt::Checked);
         
         // Check if this is a group item (no parent) or file item (has parent)
@@ -605,7 +616,7 @@ void ResultsWindow::setupConnections()
                       .arg(groupId)
                       .arg(isChecked ? "checked" : "unchecked"));
             
-            // Update all child items
+            // Update all child items without triggering signals
             for (int i = 0; i < item->childCount(); ++i) {
                 QTreeWidgetItem* childItem = item->child(i);
                 childItem->setCheckState(0, isChecked ? Qt::Checked : Qt::Unchecked);
@@ -626,45 +637,51 @@ void ResultsWindow::setupConnections()
             QString filePath = item->data(0, Qt::UserRole).toString();
             
             // Find and update the file in our data
+            bool fileFound = false;
             for (auto& group : m_currentResults.duplicateGroups) {
                 for (auto& file : group.files) {
                     if (file.filePath == filePath) {
                         file.isSelected = isChecked;
+                        fileFound = true;
                         break;
                     }
                 }
                 
-                // Update group checkbox state based on child selections
-                QTreeWidgetItem* groupItem = item->parent();
-                if (groupItem) {
-                    int checkedCount = 0;
-                    int totalCount = groupItem->childCount();
-                    
-                    for (int i = 0; i < totalCount; ++i) {
-                        if (groupItem->child(i)->checkState(0) == Qt::Checked) {
-                            checkedCount++;
+                if (fileFound) {
+                    // Update group checkbox state based on child selections
+                    QTreeWidgetItem* groupItem = item->parent();
+                    if (groupItem) {
+                        int checkedCount = 0;
+                        int totalCount = groupItem->childCount();
+                        
+                        for (int i = 0; i < totalCount; ++i) {
+                            if (groupItem->child(i)->checkState(0) == Qt::Checked) {
+                                checkedCount++;
+                            }
+                        }
+                        
+                        // Set group checkbox state: checked if all children checked, unchecked if none, partial if some
+                        if (checkedCount == 0) {
+                            groupItem->setCheckState(0, Qt::Unchecked);
+                            group.hasSelection = false;
+                        } else if (checkedCount == totalCount) {
+                            groupItem->setCheckState(0, Qt::Checked);
+                            group.hasSelection = true;
+                        } else {
+                            groupItem->setCheckState(0, Qt::PartiallyChecked);
+                            group.hasSelection = true;
                         }
                     }
-                    
-                    // Set group checkbox state: checked if all children checked, unchecked if none, partial if some
-                    if (checkedCount == 0) {
-                        groupItem->setCheckState(0, Qt::Unchecked);
-                        group.hasSelection = false;
-                    } else if (checkedCount == totalCount) {
-                        groupItem->setCheckState(0, Qt::Checked);
-                        group.hasSelection = true;
-                    } else {
-                        groupItem->setCheckState(0, Qt::PartiallyChecked);
-                        group.hasSelection = true;
-                    }
+                    break;
                 }
-                break;
             }
             
             LOG_DEBUG(QString("File checkbox changed: %1 -> %2")
                       .arg(filePath)
                       .arg(isChecked ? "checked" : "unchecked"));
         }
+        
+        updating = false;
         
         // Update selection summary
         updateSelectionSummary();
@@ -817,7 +834,7 @@ void ResultsWindow::applyTheme()
     
     // Get current theme data for better contrast handling
     ThemeData themeData = ThemeManager::instance()->getCurrentThemeData();
-    bool isLightTheme = (themeData.appearance == ThemeData::Appearance::Light);
+    bool isLightTheme = (themeData.colors.background.lightness() > 128);
     
     // Apply comprehensive theme-aware styling for tree widget
     if (m_resultsTree) {
@@ -841,7 +858,7 @@ void ResultsWindow::applyTheme()
                 "} "
                 "QTreeWidget::item:selected:!active { "
                 "  background-color: #e3f2fd !important; "
-                "  color: #1976d2 !important; "
+                "  color: #000000 !important; "
                 "} "
                 "QTreeWidget::item:hover { "
                 "  background-color: #f0f0f0; "
@@ -1194,14 +1211,18 @@ void ResultsWindow::updateGroupItem(QTreeWidgetItem* groupItem, const DuplicateG
     // Store group data
     groupItem->setData(0, Qt::UserRole, QVariant::fromValue(group.groupId));
     
-    // Add checkbox to group for selection - this enables group-level selection
-    groupItem->setCheckState(0, Qt::Unchecked);
-    groupItem->setFlags(groupItem->flags() | Qt::ItemIsUserCheckable | Qt::ItemIsEnabled);
+    // Enable checkbox for group selection
+    groupItem->setFlags(groupItem->flags() | Qt::ItemIsUserCheckable | Qt::ItemIsEnabled | Qt::ItemIsUserTristate);
+    groupItem->setCheckState(0, group.hasSelection ? Qt::Checked : Qt::Unchecked);
     
     // Style group item
     QFont font = groupItem->font(0);
     font.setBold(true);
     groupItem->setFont(0, font);
+    
+    // Apply theme-aware styling
+    ThemeData currentTheme = ThemeManager::instance()->getCurrentThemeData();
+    groupItem->setForeground(0, QBrush(currentTheme.colors.foreground));
     
     LOG_DEBUG(LogCategories::UI, QString("Group item updated with checkbox: %1").arg(group.groupId));
 }
@@ -1216,32 +1237,40 @@ void ResultsWindow::updateFileItem(QTreeWidgetItem* fileItem, const DuplicateFil
     // Store file data
     fileItem->setData(0, Qt::UserRole, QVariant::fromValue(file.filePath));
     
-    // Add checkbox with enhanced visibility
+    // Enable checkbox for file selection
+    fileItem->setFlags(fileItem->flags() | Qt::ItemIsUserCheckable | Qt::ItemIsEnabled);
     fileItem->setCheckState(0, file.isSelected ? Qt::Checked : Qt::Unchecked);
     
-    // Ensure checkbox is properly styled and visible
-    fileItem->setFlags(fileItem->flags() | Qt::ItemIsUserCheckable | Qt::ItemIsEnabled);
+    // Find the group this file belongs to for recommendation check
+    QString recommended;
+    for (const auto& group : m_currentResults.duplicateGroups) {
+        for (const auto& groupFile : group.files) {
+            if (groupFile.filePath == file.filePath) {
+                recommended = getRecommendedFileToKeep(group);
+                break;
+            }
+        }
+        if (!recommended.isEmpty()) break;
+    }
     
     // Style recommended file differently
-    if (!m_currentResults.duplicateGroups.isEmpty()) {
-        QString recommended = getRecommendedFileToKeep(m_currentResults.duplicateGroups.first());
-        if (file.filePath == recommended) {
-            QFont font = fileItem->font(0);
-            font.setItalic(true);
-            fileItem->setFont(0, font);
-            fileItem->setToolTip(0, tr("Recommended to keep"));
-            
-            // Add visual indicator for recommended files
-            QColor recommendedColor = ThemeManager::instance()->getCurrentThemeData().colors.success;
-            fileItem->setForeground(0, QBrush(recommendedColor));
-        }
+    if (file.filePath == recommended) {
+        QFont font = fileItem->font(0);
+        font.setItalic(true);
+        fileItem->setFont(0, font);
+        fileItem->setToolTip(0, tr("Recommended to keep"));
+        
+        // Add visual indicator for recommended files
+        ThemeData currentTheme = ThemeManager::instance()->getCurrentThemeData();
+        QColor recommendedColor = currentTheme.colors.success;
+        fileItem->setForeground(0, QBrush(recommendedColor));
+    } else {
+        // Apply normal theme colors
+        ThemeData currentTheme = ThemeManager::instance()->getCurrentThemeData();
+        fileItem->setForeground(0, QBrush(currentTheme.colors.foreground));
     }
     
-    // Ensure proper minimum height for checkbox visibility
-    if (m_resultsTree) {
-        m_resultsTree->setItemWidget(fileItem, 0, nullptr); // Clear any existing widget
-        // The checkbox is handled by Qt's built-in item checkbox system
-    }
+    LOG_DEBUG(LogCategories::UI, QString("File item updated with checkbox: %1").arg(file.filePath));
 }
 
 // Utility methods implementation
@@ -1577,12 +1606,24 @@ void ResultsWindow::selectAllDuplicates()
     recordSelectionState("Select all files");
     
     int selectedCount = 0;
+    
+    // Update data model first
+    for (auto& group : m_currentResults.duplicateGroups) {
+        for (auto& file : group.files) {
+            file.isSelected = true;
+            selectedCount++;
+        }
+        group.hasSelection = true;
+    }
+    
+    // Update tree widget items
     QTreeWidgetItemIterator it(m_resultsTree);
     while (*it) {
         QTreeWidgetItem* item = *it;
         if (item->parent() != nullptr) { // File item
             item->setCheckState(0, Qt::Checked);
-            selectedCount++;
+        } else { // Group item
+            item->setCheckState(0, Qt::Checked);
         }
         ++it;
     }
@@ -1598,10 +1639,21 @@ void ResultsWindow::selectNoneFiles()
     // Record current state before changing selection (Task 17)
     recordSelectionState("Clear all selections");
     
+    // Update data model first
+    for (auto& group : m_currentResults.duplicateGroups) {
+        for (auto& file : group.files) {
+            file.isSelected = false;
+        }
+        group.hasSelection = false;
+    }
+    
+    // Update tree widget items
     QTreeWidgetItemIterator it(m_resultsTree);
     while (*it) {
         QTreeWidgetItem* item = *it;
         if (item->parent() != nullptr) { // File item
+            item->setCheckState(0, Qt::Unchecked);
+        } else { // Group item
             item->setCheckState(0, Qt::Unchecked);
         }
         ++it;
