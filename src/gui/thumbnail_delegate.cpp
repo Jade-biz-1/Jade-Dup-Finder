@@ -5,8 +5,10 @@
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QStyle>
 #include <QtWidgets/QAbstractItemView>
+#include <QtWidgets/QStyleOptionButton>
 #include <QtGui/QPainter>
 #include <QtGui/QPixmap>
+#include <QtGui/QMouseEvent>
 #include <QtCore/QFileInfo>
 
 
@@ -37,71 +39,139 @@ void ThumbnailDelegate::paint(QPainter* painter,
         return;
     }
 
-    // Only show thumbnails in the first column and for file items
-    if (index.column() != 0 || !isFileItem(index)) {
-        QStyledItemDelegate::paint(painter, option, index);
-        return;
-    }
-
-    // If thumbnails are disabled, use default painting
-    if (!m_thumbnailsEnabled) {
-        QStyledItemDelegate::paint(painter, option, index);
-        return;
-    }
-
     painter->save();
 
-    // Draw selection background
-    if (option.state & QStyle::State_Selected) {
-        painter->fillRect(option.rect, option.palette.highlight());
-    } else if (index.row() % 2 == 0) {
-        painter->fillRect(option.rect, option.palette.alternateBase());
+    // Draw background and selection state first for ALL columns
+    QStyleOptionViewItem opt = option;
+    initStyleOption(&opt, index);
+    
+    // Enhanced selection background - make it more prominent
+    if (opt.state & QStyle::State_Selected) {
+        // Use a strong highlight color for selected rows
+        ThemeData currentTheme = ThemeManager::instance()->getCurrentThemeData();
+        QColor highlightColor = currentTheme.colors.accent;
+        highlightColor.setAlpha(200); // Make it semi-transparent but visible
+        painter->fillRect(opt.rect, highlightColor);
+    } else if (opt.state & QStyle::State_MouseOver) {
+        painter->fillRect(opt.rect, opt.palette.alternateBase());
     }
 
-    // Get file path
-    QString filePath = getFilePath(index);
-    if (filePath.isEmpty()) {
-        QStyledItemDelegate::paint(painter, option, index);
-        painter->restore();
-        return;
-    }
+    // Handle first column with checkbox and thumbnail
+    if (index.column() == 0) {
+        // For group items, use Qt default painting but with our background
+        if (!isFileItem(index)) {
+            // Draw the text for group items
+            QString text = index.data(Qt::DisplayRole).toString();
+            if (!text.isEmpty()) {
+                QColor textColor = opt.palette.text().color();
+                if (opt.state & QStyle::State_Selected) {
+                    textColor = Qt::white; // Force white text on selected rows
+                }
+                painter->setPen(textColor);
+                painter->drawText(opt.rect.adjusted(4, 0, -4, 0), Qt::AlignLeft | Qt::AlignVCenter, text);
+            }
+            painter->restore();
+            return;
+        }
 
-    // Calculate thumbnail rect
-    QRect thumbnailRect = option.rect;
-    thumbnailRect.setLeft(thumbnailRect.left() + THUMBNAIL_MARGIN);
-    thumbnailRect.setTop(thumbnailRect.top() + THUMBNAIL_MARGIN);
-    thumbnailRect.setWidth(m_thumbnailSize);
-    thumbnailRect.setHeight(m_thumbnailSize);
+        // Draw checkbox manually for file items
+        QRect checkboxRect = opt.rect;
+        checkboxRect.setWidth(20);
+        checkboxRect.setHeight(20);
+        checkboxRect.moveTop(opt.rect.top() + (opt.rect.height() - 20) / 2);
+        checkboxRect.moveLeft(opt.rect.left() + 4);
 
-    // Try to get thumbnail from cache
-    QSize thumbSize(m_thumbnailSize, m_thumbnailSize);
-    QPixmap thumbnail = m_cache->getThumbnail(filePath, thumbSize);
+        QStyleOptionButton checkboxOption;
+        checkboxOption.rect = checkboxRect;
+        checkboxOption.state = QStyle::State_Enabled;
+        
+        // Get checkbox state from the model
+        QVariant checkState = index.data(Qt::CheckStateRole);
+        if (checkState.isValid()) {
+            Qt::CheckState state = static_cast<Qt::CheckState>(checkState.toInt());
+            if (state == Qt::Checked) {
+                checkboxOption.state |= QStyle::State_On;
+            } else if (state == Qt::PartiallyChecked) {
+                checkboxOption.state |= QStyle::State_NoChange;
+            } else {
+                checkboxOption.state |= QStyle::State_Off;
+            }
+        }
 
-    if (!thumbnail.isNull()) {
-        drawThumbnail(painter, thumbnailRect, thumbnail);
+        QApplication::style()->drawControl(QStyle::CE_CheckBox, &checkboxOption, painter);
+
+        // Draw thumbnail if enabled
+        if (m_thumbnailsEnabled) {
+            QString filePath = getFilePath(index);
+            if (!filePath.isEmpty()) {
+                QSize thumbSize(m_thumbnailSize, m_thumbnailSize);
+                QPixmap thumbnail = m_cache->getThumbnail(filePath, thumbSize);
+                
+                // Position thumbnail after checkbox
+                int thumbnailX = checkboxRect.right() + THUMBNAIL_MARGIN;
+                int thumbnailY = opt.rect.top() + (opt.rect.height() - m_thumbnailSize) / 2;
+                QRect thumbnailRect(thumbnailX, thumbnailY, m_thumbnailSize, m_thumbnailSize);
+                
+                if (!thumbnail.isNull()) {
+                    drawThumbnail(painter, thumbnailRect, thumbnail);
+                } else {
+                    drawPlaceholder(painter, thumbnailRect);
+                }
+                
+                // Draw text after thumbnail
+                QString text = index.data(Qt::DisplayRole).toString();
+                if (!text.isEmpty()) {
+                    int textX = thumbnailRect.right() + TEXT_MARGIN;
+                    QRect textRect(textX, opt.rect.top(), 
+                                  opt.rect.right() - textX, opt.rect.height());
+                    
+                    // Force white text on selected rows for better visibility
+                    QColor textColor = opt.palette.text().color();
+                    if (opt.state & QStyle::State_Selected) {
+                        textColor = Qt::white;
+                    }
+                    
+                    painter->setPen(textColor);
+                    painter->drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, text);
+                }
+            }
+        } else {
+            // No thumbnails - just draw text after checkbox
+            QString text = index.data(Qt::DisplayRole).toString();
+            if (!text.isEmpty()) {
+                int textX = checkboxRect.right() + TEXT_MARGIN;
+                QRect textRect(textX, opt.rect.top(), 
+                              opt.rect.right() - textX, opt.rect.height());
+                
+                QColor textColor = opt.palette.text().color();
+                if (opt.state & QStyle::State_Selected) {
+                    textColor = Qt::white;
+                }
+                
+                painter->setPen(textColor);
+                painter->drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, text);
+            }
+        }
     } else {
-        drawPlaceholder(painter, thumbnailRect);
+        // Handle other columns (Size, Modified, Path) with consistent selection appearance
+        QString text = index.data(Qt::DisplayRole).toString();
+        if (!text.isEmpty()) {
+            QColor textColor = opt.palette.text().color();
+            if (opt.state & QStyle::State_Selected) {
+                textColor = Qt::white; // Force white text on selected rows
+            }
+            
+            painter->setPen(textColor);
+            
+            // Align text based on column
+            Qt::Alignment alignment = Qt::AlignLeft | Qt::AlignVCenter;
+            if (index.column() == 1) { // Size column - right align
+                alignment = Qt::AlignRight | Qt::AlignVCenter;
+            }
+            
+            painter->drawText(opt.rect.adjusted(4, 0, -4, 0), alignment, text);
+        }
     }
-
-    // Draw text next to thumbnail
-    QRect textRect = option.rect;
-    textRect.setLeft(thumbnailRect.right() + TEXT_MARGIN);
-    textRect.setRight(option.rect.right() - TEXT_MARGIN);
-
-    // Get display text
-    QString displayText = index.data(Qt::DisplayRole).toString();
-
-    // Set text color based on selection
-    if (option.state & QStyle::State_Selected) {
-        painter->setPen(option.palette.highlightedText().color());
-    } else {
-        painter->setPen(option.palette.text().color());
-    }
-
-    // Draw text with elision
-    QFontMetrics fm(option.font);
-    QString elidedText = fm.elidedText(displayText, Qt::ElideRight, textRect.width());
-    painter->drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, elidedText);
 
     painter->restore();
 }
@@ -218,4 +288,50 @@ void ThumbnailDelegate::drawPlaceholder(QPainter* painter, const QRect& rect) co
     }
 
     painter->restore();
+}
+
+bool ThumbnailDelegate::editorEvent(QEvent* event,
+                                    QAbstractItemModel* model,
+                                    const QStyleOptionViewItem& option,
+                                    const QModelIndex& index)
+{
+    if (!index.isValid() || index.column() != 0) {
+        return QStyledItemDelegate::editorEvent(event, model, option, index);
+    }
+
+    // Handle mouse events for checkbox clicking
+    if (event->type() == QEvent::MouseButtonPress || event->type() == QEvent::MouseButtonRelease) {
+        QMouseEvent* mouseEvent = static_cast<QMouseEvent*>(event);
+        
+        // Calculate checkbox rect (same as in paint method)
+        QRect checkboxRect = option.rect;
+        checkboxRect.setWidth(20);
+        checkboxRect.setHeight(20);
+        checkboxRect.moveTop(option.rect.top() + (option.rect.height() - 20) / 2);
+        checkboxRect.moveLeft(option.rect.left() + 4);
+        
+        // Check if click is within checkbox area
+        if (checkboxRect.contains(mouseEvent->pos())) {
+            if (event->type() == QEvent::MouseButtonRelease && mouseEvent->button() == Qt::LeftButton) {
+                // Toggle checkbox state
+                QVariant currentState = index.data(Qt::CheckStateRole);
+                Qt::CheckState newState = Qt::Unchecked;
+                
+                if (currentState.isValid()) {
+                    Qt::CheckState state = static_cast<Qt::CheckState>(currentState.toInt());
+                    newState = (state == Qt::Checked) ? Qt::Unchecked : Qt::Checked;
+                } else {
+                    newState = Qt::Checked;
+                }
+                
+                // Set the new state
+                model->setData(index, static_cast<int>(newState), Qt::CheckStateRole);
+                return true;
+            }
+            return true; // Consume the event
+        }
+    }
+
+    // For other events, use default handling
+    return QStyledItemDelegate::editorEvent(event, model, option, index);
 }

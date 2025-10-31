@@ -70,6 +70,19 @@ public:
      */
     bool thumbnailsEnabled() const { return m_thumbnailsEnabled; }
 
+    /**
+     * @brief Handle editor events (mouse clicks on checkboxes)
+     * @param event The event to handle
+     * @param model The model
+     * @param option Style options
+     * @param index Model index
+     * @return bool True if event was handled
+     */
+    bool editorEvent(QEvent* event,
+                     QAbstractItemModel* model,
+                     const QStyleOptionViewItem& option,
+                     const QModelIndex& index) override;
+
 private:
     /**
      * @brief Get file path from tree widget item

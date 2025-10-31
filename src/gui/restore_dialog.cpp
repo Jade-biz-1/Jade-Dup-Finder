@@ -5,6 +5,7 @@
 #include <QMessageBox>
 #include <QFileInfo>
 #include <QDateTime>
+#include <QTimer>
 
 RestoreDialog::RestoreDialog(SafetyManager* safetyManager, QWidget* parent)
     : QDialog(parent)
@@ -336,15 +337,20 @@ void RestoreDialog::onRestoreClicked()
     if (reply == QMessageBox::Yes) {
         LOG_INFO(LogCategories::FILE_OPS, QString("Restoring %1 files").arg(filesToRestore.size()));
         
+        // Store the files being restored so we can remove them from the list after successful restore
+        m_restoringFiles = filesToRestore;
+        
         // NOTE: Actual restore operation is handled by SafetyManager in MainWindow
         // This dialog emits the filesRestored signal which triggers restoration
         // See: main_window.cpp onRestoreRequested() for implementation
         emit filesRestored(filesToRestore);
         
-        QMessageBox::information(this, tr("Restore Complete"),
-                               tr("%1 file(s) have been restored successfully.").arg(filesToRestore.size()));
-        
-        loadBackups();
+        // Don't show success message here - let the main window handle it
+        // and refresh the dialog after the actual restore is complete
+        QTimer::singleShot(500, this, [this]() {
+            // Refresh the backup list after a short delay to allow restore to complete
+            loadBackups();
+        });
     }
 }
 
@@ -373,12 +379,17 @@ void RestoreDialog::onRestoreAllClicked()
     if (reply == QMessageBox::Yes) {
         LOG_INFO(LogCategories::FILE_OPS, QString("Restoring all %1 files").arg(filesToRestore.size()));
         
+        // Store the files being restored so we can remove them from the list after successful restore
+        m_restoringFiles = filesToRestore;
+        
         emit filesRestored(filesToRestore);
         
-        QMessageBox::information(this, tr("Restore Complete"),
-                               tr("All %1 file(s) have been restored successfully.").arg(filesToRestore.size()));
-        
-        loadBackups();
+        // Don't show success message here - let the main window handle it
+        // and refresh the dialog after the actual restore is complete
+        QTimer::singleShot(500, this, [this]() {
+            // Refresh the backup list after a short delay to allow restore to complete
+            loadBackups();
+        });
     }
 }
 
@@ -456,11 +467,18 @@ void RestoreDialog::onTableDoubleClicked(int row, int column)
             if (reply == QMessageBox::Yes) {
                 QStringList files;
                 files << backup.backupPath;
+                
+                // Store the files being restored
+                m_restoringFiles = files;
+                
                 emit filesRestored(files);
                 
-                QMessageBox::information(this, tr("Restore Complete"),
-                                       tr("File has been restored successfully."));
-                loadBackups();
+                // Don't show success message here - let the main window handle it
+                // and refresh the dialog after the actual restore is complete
+                QTimer::singleShot(500, this, [this]() {
+                    // Refresh the backup list after a short delay to allow restore to complete
+                    loadBackups();
+                });
             }
         } else {
             QMessageBox::warning(this, tr("Backup Missing"),

@@ -10,6 +10,7 @@
 #include <QDesktopServices>
 #include <QUrl>
 #include <QInputDialog>
+#include <QTimer>
 
 ScanHistoryDialog::ScanHistoryDialog(QWidget* parent)
     : QDialog(parent)
