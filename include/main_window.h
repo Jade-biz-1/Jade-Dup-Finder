@@ -98,6 +98,7 @@ private:
     // Helper methods
     void saveScanToHistory(const QList<DuplicateDetector::DuplicateGroup>& groups);
     qint64 calculatePotentialSavings(const QList<DuplicateDetector::DuplicateGroup>& groups);
+    DuplicateDetector::DetectionOptions convertScanConfigToDetectionOptions(const ScanSetupDialog::ScanConfiguration& config);
     
     // UI creation methods
     // UI Components
@@ -147,6 +148,9 @@ private:
     
     // Scan results cache
     QList<FileScanner::FileInfo> m_lastScanResults;
+    
+    // Current scan configuration for duplicate detection
+    ScanSetupDialog::ScanConfiguration m_currentScanConfig;
     
     void createHeaderWidget();
     void createContentWidgets();
