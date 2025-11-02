@@ -1,0 +1,235 @@
+# Implementation Plan
+
+- [x] 1. Implement FileScanner to DuplicateDetector integration in MainWindow
+  - Add signal/slot connections in setupConnections() to connect FileScanner::scanCompleted to new handler
+  - Create onScanCompleted() slot that retrieves scan results from FileScanner
+  - Implement FileInfo conversion from FileScanner format to DuplicateDetector format
+  - Invoke DuplicateDetector::findDuplicates() with converted file list
+  - Add logging for scan completion and detection start with file counts
+  - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
+
+- [x] 2. Implement DuplicateDetector progress and completion handlers in MainWindow
+  - Add signal/slot connections for DuplicateDetector::detectionStarted, detectionProgress, detectionCompleted, detectionError
+  - Create onDuplicateDetectionStarted() slot to log detection start
+  - Create onDuplicateDetectionProgress() slot to update UI progress indicators
+  - Create onDuplicateDetectionCompleted() slot to retrieve duplicate groups and pass to ResultsWindow
+  - Create onDuplicateDetectionError() slot to display error messages to user
+  - Add m_lastScanResults member variable to cache scan results
+  - _Requirements: 1.3, 2.1, 2.2, 2.5_
+
+- [x] 3. Implement synchronous duplicate detection in DuplicateDetector
+  - Implement findDuplicatesSync() method body using existing private methods
+  - Call groupFilesBySize() to group files by size
+  - Extract files with duplicate sizes for hash calculation
+  - Calculate hashes synchronously for potential duplicates
+  - Call groupFilesByHash() to create hash-based groups
+  - Call createDuplicateGroups() to generate final duplicate groups
+  - Call generateRecommendations() to add smart recommendations
+  - Return the duplicate groups list
+  - Add error handling with logging for failures
+  - Write unit tests for findDuplicatesSync() with various scenarios
+  - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
+
+- [x] 4. Implement ResultsWindow data binding for duplicate groups
+  - Add setFileManager() method to store FileManager reference
+  - Add displayDuplicateGroups() method to receive DuplicateDetector results
+  - Implement convertDetectorGroupToDisplayGroup() to convert data formats
+  - Update m_currentResults with converted groups
+  - Call populateResultsTree() to display groups in UI
+  - Implement updateStatisticsDisplay() to show accurate totals
+  - Add removeFilesFromDisplay() method to update UI after file operations
+  - _Requirements: 2.2, 2.3, 2.4, 2.6, 10.1, 10.2, 10.3, 10.4, 10.5, 10.6_
+
+- [x] 5. Implement file deletion operation in ResultsWindow
+  - Replace stub implementation in deleteSelectedFiles() with FileManager integration
+  - Validate file selection and show confirmation dialog
+  - Call m_fileManager->deleteFiles() with selected file paths
+  - Connect to FileManager::operationCompleted signal to handle success
+  - Connect to FileManager::operationError signal to handle failures
+  - Update display by calling removeFilesFromDisplay() for deleted files
+  - Update statistics display after deletion
+  - Add logging for delete operations with file count and results
+  - Write integration tests for delete operation
+  - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7_
+
+- [x] 6. Implement file move operation in ResultsWindow
+  - Replace stub implementation in moveSelectedFiles() with FileManager integration
+  - Add folder selection dialog to prompt user for destination
+  - Validate destination folder is writable
+  - Call m_fileManager->moveFiles() with selected paths and destination
+  - Connect to FileManager::operationCompleted signal to handle success
+  - Connect to FileManager::operationError signal to handle failures
+  - Update display by calling removeFilesFromDisplay() for moved files
+  - Update statistics display after move
+  - Add logging for move operations with file count and results
+  - Write integration tests for move operation
+  - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8_
+
+- [x] 7. Integrate FileManager with SafetyManager for delete operations
+  - Modify performDelete() to call SafetyManager::createBackup() before deletion
+  - Check backup creation success before proceeding with delete
+  - Abort delete operation if backup fails
+  - Call SafetyManager::isProtectedFile() to check for protected files
+  - Skip protected files and log warning
+  - Update SafetyManager undo history after successful delete
+  - Add error handling for backup failures
+  - Write unit tests for delete with backup integration
+  - _Requirements: 5.1, 5.3, 5.5, 5.6_
+
+- [x] 8. Integrate FileManager with SafetyManager for move operations
+  - Modify performMove() to call SafetyManager::createBackup() before moving
+  - Check backup creation success before proceeding with move
+  - Abort move operation if backup fails
+  - Call SafetyManager::isProtectedFile() to check for protected files
+  - Skip protected files and log warning
+  - Update SafetyManager undo history after successful move
+  - Add error handling for backup failures
+  - Write unit tests for move with backup integration
+  - _Requirements: 5.2, 5.3, 5.5, 5.6_
+
+- [x] 9. Implement restore operation in FileManager
+  - Implement performRestore() private method
+  - Retrieve backup information from SafetyManager for the given backup path
+  - Verify backup file exists and is valid
+  - Check if original location is available or occupied
+  - Handle conflict resolution if original location is occupied
+  - Copy backup file to original location using QFile::copy()
+  - Verify restore success by checking file exists and size matches
+  - Update SafetyManager undo history after successful restore
+  - Emit operationCompleted signal on success
+  - Emit operationFailed signal on failure with error details
+  - Add case handler in executeBatchOperation() for OperationType::Restore
+  - Write unit tests for restore operation with various scenarios
+  - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6_
+
+- [x] 10. Implement backup creation operation in FileManager
+  - Implement performBackupCreation() private method
+  - Validate source file exists using QFileInfo
+  - Call SafetyManager::createBackup() with source file path
+  - Verify backup was created successfully
+  - Log backup location and source file path
+  - Emit operationCompleted signal with backup path on success
+  - Emit operationFailed signal with error details on failure
+  - Add case handler in executeBatchOperation() for OperationType::CreateBackup
+  - Write unit tests for backup creation operation
+  - _Requirements: 8.1, 8.2, 8.3, 8.4_
+
+- [x] 11. Implement backup integrity validation in SafetyManager
+  - Implement validateBackupIntegrity() method body
+  - Iterate through all backups in undo history
+  - For each backup, check if file exists using QFileInfo
+  - Verify file size matches original size from backup metadata
+  - Calculate SHA-256 hash of backup file
+  - Compare calculated hash with original hash from backup metadata
+  - Mark backups as invalid if checks fail
+  - Log validation results for each backup
+  - Return true if all backups valid, false if any invalid
+  - Write unit tests for backup validation with valid and invalid backups
+  - _Requirements: 5.4_
+
+- [x] 12. Implement backup storage optimization in SafetyManager
+  - Implement optimizeBackupStorage() method body
+  - Find backups older than 30 days from undo history
+  - Find backups larger than 100MB from undo history
+  - Calculate total space used by old/large backups
+  - Prompt user with list of backups and space savings
+  - Remove approved backups from filesystem using QFile::remove()
+  - Update undo history to remove deleted backup entries
+  - Log optimization results with space freed
+  - Write unit tests for backup optimization
+  - _Requirements: 5.4_
+
+- [x] 13. Write integration test for complete scan-to-delete workflow
+  - Create test that sets up temporary directory with duplicate files
+  - Instantiate MainWindow, FileScanner, DuplicateDetector, FileManager, SafetyManager
+  - Connect all components as in production code
+  - Start scan via FileScanner with test directory
+  - Verify DuplicateDetector::findDuplicates() is called automatically
+  - Verify duplicate groups are found correctly
+  - Verify ResultsWindow receives and displays results
+  - Select files for deletion programmatically
+  - Trigger delete operation via ResultsWindow
+  - Verify FileManager::deleteFiles() is called
+  - Verify backups are created in SafetyManager backup directory
+  - Verify files are actually deleted from filesystem
+  - Verify ResultsWindow display is updated
+  - Clean up test files and backups
+  - _Requirements: 9.1, 9.2, 9.3_
+
+- [x] 14. Write integration test for restore functionality
+  - Create test that sets up temporary files
+  - Delete files using FileManager with backup creation
+  - Verify files are deleted and backups exist
+  - Call FileManager::restoreFiles() with backup paths
+  - Verify files are restored to original locations
+  - Verify file contents match original
+  - Verify SafetyManager undo history is updated
+  - Test restore with occupied original location
+  - Test restore with missing backup
+  - Clean up test files
+  - _Requirements: 9.4_
+
+- [x] 15. Write integration test for error scenarios
+  - Test permission denied during file deletion
+  - Test disk full during backup creation
+  - Test corrupt file during hash calculation
+  - Test network timeout for network drives
+  - Test user cancellation during operations
+  - Verify error messages are displayed correctly
+  - Verify partial results are handled gracefully
+  - Verify application doesn't crash on errors
+  - _Requirements: 9.5_
+
+- [x] 16. Implement export functionality in ResultsWindow
+  - Replace stub implementation in exportResults() with actual export
+  - Add file dialog to select export format (CSV or JSON)
+  - Implement CSV export with columns: Group ID, File Path, Size, Hash, Recommended Action
+  - Implement JSON export with full duplicate group structure
+  - Write exported data to selected file path
+  - Show success message with export location
+  - Add error handling for write failures
+  - Log export operation with format and file count
+  - _Requirements: 2.6_
+
+- [x] 17. Implement file preview in ResultsWindow
+  - Replace stub implementation in previewSelectedFile() with actual preview
+  - Check if selected file is an image using isImageFile()
+  - For images, load and display in preview panel using QPixmap
+  - For text files, load and display first 1000 lines in QTextEdit
+  - For other files, show file info (size, type, dates) instead of content
+  - Add error handling for files that can't be loaded
+  - Show "Preview not available" message for unsupported types
+  - _Requirements: 2.6_
+
+- [x] 18. Add comprehensive logging for integration points
+  - Add LOG_INFO for scan completion with file count
+  - Add LOG_INFO for detection start with file count
+  - Add LOG_INFO for detection completion with group count
+  - Add LOG_ERROR for detection failures with error details
+  - Add LOG_INFO for file operations (delete/move) with counts
+  - Add LOG_ERROR for file operation failures with details
+  - Add LOG_INFO for backup creation with paths
+  - Add LOG_INFO for restore operations with paths
+  - Verify all integration points have appropriate logging
+  - _Requirements: 1.5, 3.6, 4.7_
+
+- [x] 19. Update MainWindow to pass FileManager reference to ResultsWindow
+  - Add m_fileManager member variable to ResultsWindow if not present
+  - In MainWindow, call m_resultsWindow->setFileManager(m_fileManager) during initialization
+  - Verify ResultsWindow has access to FileManager for operations
+  - Add null checks in ResultsWindow before calling FileManager methods
+  - _Requirements: 3.1, 4.2_
+
+- [ ] 20. Perform end-to-end manual testing of complete workflow
+  - Test full workflow: New Scan → Configure → Scan → Detect → Display → Delete
+  - Verify scan finds files correctly
+  - Verify duplicate detection runs automatically after scan
+  - Verify results display shows actual duplicate groups
+  - Verify statistics are accurate
+  - Verify file deletion actually removes files
+  - Verify backups are created before deletion
+  - Verify restore functionality works
+  - Test with various file types and sizes
+  - Test error scenarios (permission denied, disk full)
+  - Document any issues found for fixing
+  - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5_
