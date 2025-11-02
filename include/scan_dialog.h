@@ -18,6 +18,7 @@
 #include <QtWidgets/QProgressBar>
 #include <QtWidgets/QDialogButtonBox>
 #include <QtWidgets/QFrame>
+#include <QtWidgets/QSlider>
 #include <QtCore/QTimer>
 #include <QtCore/QThread>  // T11: For thread count
 
@@ -32,10 +33,11 @@ class ScanSetupDialog : public QDialog
 
 public:
     enum class DetectionMode {
-        Quick,      // Size + filename matching
-        Smart,      // Adaptive based on file types (default)
-        Deep,       // Size + hash comparison  
-        Media       // Deep + metadata comparison for media files
+        ExactHash,      // SHA-256 hash-based exact matching (most accurate)
+        QuickScan,      // Size + filename matching (fastest)
+        PerceptualHash, // Image similarity detection (for photos)
+        DocumentSimilarity, // Document content similarity (for documents)
+        Smart           // Auto-select best algorithm based on file types (default)
     };
     
     enum class FileTypeFilter {
@@ -73,6 +75,11 @@ public:
         int bufferSize;                 // I/O buffer size in KB
         bool useMemoryMapping;          // Use memory-mapped files
         bool enableParallelHashing;     // Parallel hash calculation
+        
+        // Advanced Detection Algorithm Options (Phase 2)
+        double similarityThreshold;     // Similarity threshold for perceptual/document algorithms (0.0-1.0)
+        bool enableAutoAlgorithmSelection; // Auto-select best algorithm for each file type
+        QString algorithmPreset;        // Algorithm preset: "Fast", "Balanced", "Thorough"
         
         // Validation
         bool isValid() const;
@@ -136,6 +143,12 @@ private slots:
     void onAllTypesToggled(bool checked);
     void onFileTypeChanged();
     
+    // Algorithm configuration slots (Phase 2)
+    void updateAlgorithmDescription();
+    void onSimilarityThresholdChanged(int value);
+    void onAlgorithmPresetChanged(int index);
+    void showAlgorithmHelp();
+    
     // Folder exclusion slots
     void addExcludeFolder();
     void removeSelectedExcludeFolder();
@@ -147,6 +160,7 @@ private:
     void createOptionsPanel();
     void createAdvancedOptionsPanel();     // T11: Advanced options
     void createPerformanceOptionsPanel();  // T11: Performance options
+    void createAlgorithmConfigPanel();      // Phase 2: Algorithm configuration
     void createPreviewPanel();
     void createButtonBar();
     void setupConnections();
@@ -215,6 +229,16 @@ private:
     QSpinBox* m_bufferSize;
     QCheckBox* m_useMemoryMapping;
     QCheckBox* m_enableParallelHashing;
+    
+    // Algorithm Configuration Panel (Phase 2)
+    QGroupBox* m_algorithmGroup;
+    QVBoxLayout* m_algorithmLayout;
+    QLabel* m_algorithmDescription;
+    QSlider* m_similarityThreshold;
+    QLabel* m_similarityLabel;
+    QCheckBox* m_autoAlgorithmSelection;
+    QComboBox* m_algorithmPreset;
+    QPushButton* m_algorithmHelp;
     
     // Exclude folders
     QTreeWidget* m_excludeFoldersTree;

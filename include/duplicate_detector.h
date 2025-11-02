@@ -8,9 +8,12 @@
 #include <QList>
 #include <QMutex>
 #include <QUuid>
+#include <memory>
 
 #include "file_scanner.h"
 #include "hash_calculator.h"
+#include "../src/core/detection_algorithm_factory.h"
+#include "../src/core/detection_algorithm.h"
 
 /**
  * @brief DuplicateDetector - Advanced duplicate file detection engine
@@ -69,10 +72,16 @@ public:
         QString recommendedAction;   // "Keep newest", "Keep in Documents", etc.
         QDateTime detected;          // When duplicates were found
         
+        // Phase 2: Algorithm Information
+        QString algorithmUsed;       // Name of algorithm used for detection
+        double similarityScore;      // Similarity score (0.0-1.0, 1.0 for exact matches)
+        QVariantMap algorithmInfo;   // Algorithm-specific information
+        
         // Convenience constructor
-        DuplicateGroup() : fileSize(0), totalSize(0), wastedSpace(0), fileCount(0) {
+        DuplicateGroup() : fileSize(0), totalSize(0), wastedSpace(0), fileCount(0), similarityScore(1.0) {
             groupId = QUuid::createUuid().toString(QUuid::WithoutBraces);
             detected = QDateTime::currentDateTime();
+            algorithmUsed = "ExactHash"; // Default algorithm
         }
     };
     
@@ -99,6 +108,11 @@ public:
         qint64 maximumFileSize = -1;               // Skip files larger than this (-1 = no limit)
         bool skipEmptyFiles = true;                 // Skip zero-byte files
         bool skipSystemFiles = true;                // Skip system/hidden files
+        
+        // Phase 2: Advanced Detection Algorithm Options
+        DetectionAlgorithmFactory::AlgorithmType algorithmType = DetectionAlgorithmFactory::ExactHash;
+        bool enableAutoAlgorithmSelection = true;  // Auto-select best algorithm per file type
+        QVariantMap algorithmConfig;               // Algorithm-specific configuration
     };
     
     /**
@@ -184,6 +198,10 @@ public:
     };
     DetectionStatistics getStatistics() const;
     void resetStatistics();
+    
+    // Utility methods
+    static DetectionAlgorithmFactory::AlgorithmType convertDetectionLevel(DetectionLevel level);
+    static DetectionLevel convertAlgorithmType(DetectionAlgorithmFactory::AlgorithmType type);
 
 signals:
     /**
@@ -233,10 +251,12 @@ private:
     
     // Phase 2: Hash calculation coordination
     void calculateHashesForFiles(const QList<FileInfo>& files);
+    void calculateSignaturesBatch(const QList<FileInfo>& files, int startIndex);
     void processHashResults(const QList<FileInfo>& filesWithHashes);
     
     // Phase 3: Duplicate grouping
     QHash<QString, QList<FileInfo>> groupFilesByHash(const QList<FileInfo>& files);
+    QHash<QString, QList<FileInfo>> groupFilesBySignatureSimilarity(const QList<FileInfo>& files);
     QList<DuplicateGroup> createDuplicateGroups(const QHash<QString, QList<FileInfo>>& hashGroups);
     DuplicateGroup createGroup(const QList<FileInfo>& duplicateFiles);
     
@@ -264,6 +284,7 @@ private:
     // Member variables
     DetectionOptions m_options;
     HashCalculator* m_hashCalculator;
+    std::unique_ptr<DetectionAlgorithm> m_currentAlgorithm;
     
     // Detection state
     QList<FileInfo> m_inputFiles;

@@ -1332,6 +1332,9 @@ void MainWindow::handleScanConfiguration(const ScanSetupDialog::ScanConfiguratio
     LOG_INFO(LogCategories::UI, QString("  - Include hidden: %1").arg(config.includeHidden ? "Yes" : "No"));
     LOG_INFO(LogCategories::UI, QString("  - Follow symlinks: %1").arg(config.followSymlinks ? "Yes" : "No"));
     
+    // Store scan configuration for duplicate detection
+    m_currentScanConfig = config;
+    
     // Pass configuration to the FileScanner
     if (m_fileScanner) {
         // Convert ScanSetupDialog configuration to FileScanner::ScanOptions
@@ -1420,7 +1423,13 @@ void MainWindow::onScanCompleted()
               .arg(detectorFiles.size()));
     
     if (m_duplicateDetector && !detectorFiles.isEmpty()) {
-        LOG_INFO(LogCategories::DUPLICATE, QString("Starting duplicate detection with %1 files").arg(detectorFiles.size()));
+        // Configure detection options based on scan configuration
+        DuplicateDetector::DetectionOptions detectionOptions = convertScanConfigToDetectionOptions(m_currentScanConfig);
+        m_duplicateDetector->setOptions(detectionOptions);
+        
+        LOG_INFO(LogCategories::DUPLICATE, QString("Starting duplicate detection with %1 files using algorithm: %2")
+                 .arg(detectorFiles.size())
+                 .arg(static_cast<int>(detectionOptions.algorithmType)));
         m_duplicateDetector->findDuplicates(detectorFiles);
     } else {
         if (!m_duplicateDetector) {
@@ -1635,4 +1644,68 @@ qint64 MainWindow::calculatePotentialSavings(const QList<DuplicateDetector::Dupl
     }
     
     return totalSavings;
+}
+
+DuplicateDetector::DetectionOptions MainWindow::convertScanConfigToDetectionOptions(const ScanSetupDialog::ScanConfiguration& config)
+{
+    DuplicateDetector::DetectionOptions options;
+    
+    // Convert detection mode to algorithm type
+    switch (config.detectionMode) {
+        case ScanSetupDialog::DetectionMode::ExactHash:
+            options.algorithmType = DetectionAlgorithmFactory::ExactHash;
+            options.level = DuplicateDetector::DetectionLevel::Standard;
+            break;
+        case ScanSetupDialog::DetectionMode::QuickScan:
+            options.algorithmType = DetectionAlgorithmFactory::QuickScan;
+            options.level = DuplicateDetector::DetectionLevel::Quick;
+            break;
+        case ScanSetupDialog::DetectionMode::PerceptualHash:
+            options.algorithmType = DetectionAlgorithmFactory::PerceptualHash;
+            options.level = DuplicateDetector::DetectionLevel::Media;
+            break;
+        case ScanSetupDialog::DetectionMode::DocumentSimilarity:
+            options.algorithmType = DetectionAlgorithmFactory::DocumentSimilarity;
+            options.level = DuplicateDetector::DetectionLevel::Deep;
+            break;
+        case ScanSetupDialog::DetectionMode::Smart:
+        default:
+            options.algorithmType = DetectionAlgorithmFactory::ExactHash; // Default fallback
+            options.level = DuplicateDetector::DetectionLevel::Standard;
+            options.enableAutoAlgorithmSelection = true;
+            break;
+    }
+    
+    // Copy other configuration options
+    options.similarityThreshold = config.similarityThreshold;
+    options.enableAutoAlgorithmSelection = config.enableAutoAlgorithmSelection;
+    options.minimumFileSize = config.minimumFileSize;
+    options.maximumFileSize = config.maximumFileSize;
+    options.skipEmptyFiles = config.skipEmptyFiles;
+    options.skipSystemFiles = !config.includeSystem;
+    
+    // Create algorithm-specific configuration
+    QVariantMap algorithmConfig;
+    
+    // Add preset-based configuration
+    if (config.algorithmPreset == "Fast") {
+        algorithmConfig["preset"] = "fast";
+        algorithmConfig["optimization"] = "speed";
+    } else if (config.algorithmPreset == "Thorough") {
+        algorithmConfig["preset"] = "thorough";
+        algorithmConfig["optimization"] = "accuracy";
+    } else {
+        algorithmConfig["preset"] = "balanced";
+        algorithmConfig["optimization"] = "balanced";
+    }
+    
+    options.algorithmConfig = algorithmConfig;
+    
+    LOG_INFO(LogCategories::UI, QString("Converted scan config to detection options:"));
+    LOG_INFO(LogCategories::UI, QString("  - Algorithm type: %1").arg(static_cast<int>(options.algorithmType)));
+    LOG_INFO(LogCategories::UI, QString("  - Detection level: %1").arg(static_cast<int>(options.level)));
+    LOG_INFO(LogCategories::UI, QString("  - Similarity threshold: %1").arg(options.similarityThreshold));
+    LOG_INFO(LogCategories::UI, QString("  - Auto algorithm selection: %1").arg(options.enableAutoAlgorithmSelection ? "Yes" : "No"));
+    
+    return options;
 }

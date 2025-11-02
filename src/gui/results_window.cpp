@@ -68,7 +68,17 @@ ResultsWindow::ResultsWindow(QWidget* parent)
     initializeUI();
     setupConnections();
     setupOperationQueue();  // Task 30
+    
+    // Apply theme after UI is fully initialized
     applyTheme();
+    
+    // Force a final update to ensure everything is visible
+    QTimer::singleShot(100, this, [this]() {
+        if (m_resultsTree) {
+            m_resultsTree->update();
+            qDebug() << "Final update applied - column 0 width:" << m_resultsTree->columnWidth(0);
+        }
+    });
     
     // Register with ThemeManager for automatic theme updates
     ThemeManager::instance()->registerCustomWidget(this, "ResultsWindow");
@@ -313,6 +323,49 @@ void ResultsWindow::createResultsTree()
     header->setSectionResizeMode(1, QHeaderView::ResizeToContents);
     header->setSectionResizeMode(2, QHeaderView::ResizeToContents);
     header->setSectionResizeMode(3, QHeaderView::Interactive);
+    
+    // Set minimum width for first column to ensure checkboxes are visible
+    header->setMinimumSectionSize(150); // Increased minimum width to accommodate checkboxes + text
+    m_resultsTree->setColumnWidth(0, 250); // Increased initial width for first column
+    
+    // Add a test group item to verify group checkboxes work
+    QTreeWidgetItem* testGroupItem = new QTreeWidgetItem(m_resultsTree);
+    testGroupItem->setText(0, "📁 TEST GROUP - CHECKBOX SHOULD BE VISIBLE HERE");
+    testGroupItem->setText(1, "Test Size");
+    testGroupItem->setText(2, "Test Date");
+    testGroupItem->setText(3, "Test Path");
+    
+    // Set flags BEFORE setting check state
+    testGroupItem->setFlags(Qt::ItemIsEnabled | Qt::ItemIsUserCheckable | Qt::ItemIsUserTristate);
+    testGroupItem->setCheckState(0, Qt::Unchecked);
+    
+    // Make it very obvious with styling
+    testGroupItem->setBackground(0, QColor(255, 255, 0, 100)); // Yellow background
+    QFont boldFont = testGroupItem->font(0);
+    boldFont.setBold(true);
+    boldFont.setPointSize(boldFont.pointSize() + 2);
+    testGroupItem->setFont(0, boldFont);
+    
+    // Add a test file item under the group
+    QTreeWidgetItem* testFileItem = new QTreeWidgetItem(testGroupItem);
+    testFileItem->setText(0, "test_file.txt - checkbox should be here too");
+    testFileItem->setText(1, "1024 bytes");
+    testFileItem->setText(2, "2025-11-01");
+    testFileItem->setText(3, "/test/path");
+    
+    testFileItem->setFlags(Qt::ItemIsEnabled | Qt::ItemIsUserCheckable);
+    testFileItem->setCheckState(0, Qt::Unchecked);
+    testFileItem->setBackground(0, QColor(0, 255, 0, 100)); // Green background
+    
+    // Expand the test group to show the file
+    testGroupItem->setExpanded(true);
+    
+    qDebug() << "=== CHECKBOX DEBUG INFO ===";
+    qDebug() << "Test group item created with flags:" << testGroupItem->flags() << "CheckState:" << testGroupItem->checkState(0);
+    qDebug() << "Test file item created with flags:" << testFileItem->flags() << "CheckState:" << testFileItem->checkState(0);
+    qDebug() << "Tree widget column count:" << m_resultsTree->columnCount();
+    qDebug() << "Tree widget column 0 width:" << m_resultsTree->columnWidth(0);
+    qDebug() << "===========================";
     
     // Set minimum size and apply enhanced theme styling
     m_resultsTree->setMinimumSize(300, 200);
@@ -865,17 +918,24 @@ void ResultsWindow::applyTheme()
                 "  color: #000000; "
                 "} "
                 "QTreeWidget::indicator { "
-                "  width: 18px; "
-                "  height: 18px; "
+                "  width: 20px; "
+                "  height: 20px; "
+                "  margin: 2px; "
+                "  border-radius: 3px; "
                 "} "
                 "QTreeWidget::indicator:unchecked { "
-                "  border: 1px solid #cccccc; "
+                "  border: 2px solid #cccccc; "
                 "  background: #ffffff; "
                 "} "
                 "QTreeWidget::indicator:checked { "
-                "  border: 1px solid #0078d7; "
+                "  border: 2px solid #0078d7; "
                 "  background: #0078d7; "
                 "  image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTMgNEw2IDExTDMgOCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=); "
+                "} "
+                "QTreeWidget::indicator:indeterminate { "
+                "  border: 2px solid #0078d7; "
+                "  background: #e3f2fd; "
+                "  image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNNCAxMEwxMiAxMCIgc3Ryb2tlPSIjMDA3OGQ3IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjwvc3ZnPg==); "
                 "} ";
         } else {
             // Dark theme styling
@@ -902,27 +962,47 @@ void ResultsWindow::applyTheme()
                 "  color: #ffffff; "
                 "} "
                 "QTreeWidget::indicator { "
-                "  width: 18px; "
-                "  height: 18px; "
+                "  width: 20px; "
+                "  height: 20px; "
+                "  margin: 2px; "
+                "  border-radius: 3px; "
                 "} "
                 "QTreeWidget::indicator:unchecked { "
-                "  border: 1px solid #555555; "
+                "  border: 2px solid #555555; "
                 "  background: #2b2b2b; "
                 "} "
                 "QTreeWidget::indicator:checked { "
-                "  border: 1px solid #0078d7; "
+                "  border: 2px solid #0078d7; "
                 "  background: #0078d7; "
                 "  image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTMgNEw2IDExTDMgOCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=); "
+                "} "
+                "QTreeWidget::indicator:indeterminate { "
+                "  border: 2px solid #0078d7; "
+                "  background: #404040; "
+                "  image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNNCAxMEwxMiAxMCIgc3Ryb2tlPSIjMDA3OGQ3IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjwvc3ZnPg==); "
                 "} ";
         }
         
         m_resultsTree->setStyleSheet(treeStyle);
         LOG_DEBUG(LogCategories::UI, QString("Applied comprehensive %1 theme styling with selection colors").arg(isLightTheme ? "light" : "dark"));
+        
+        // Force immediate update to ensure checkboxes are visible
+        m_resultsTree->update();
+        m_resultsTree->repaint();
+        
+        qDebug() << "=== THEME APPLICATION DEBUG ===";
+        qDebug() << "Applied stylesheet length:" << treeStyle.length();
+        qDebug() << "Tree widget size:" << m_resultsTree->size();
+        qDebug() << "Column 0 width after theme:" << m_resultsTree->columnWidth(0);
+        qDebug() << "===============================";
     }
     
     if (m_selectAllCheckbox) {
         m_selectAllCheckbox->setStyleSheet(ThemeManager::instance()->getComponentStyle(ThemeManager::ComponentType::CheckBox));
     }
+    
+    // Note: Checkbox styling is already included in the main tree style above
+    // No need for additional checkbox styling that might conflict
     
     // Ensure all tree widget items have proper checkbox styling
     if (m_resultsTree) {
@@ -948,13 +1028,8 @@ void ResultsWindow::applyTheme()
         }
     }
     
-    // Remove any hardcoded styles and validate theme compliance
-    ThemeManager::instance()->removeHardcodedStyles(this);
-    ThemeManager::instance()->validateThemeCompliance(this);
-    
     // Force update of all widgets
     update();
-    updateStatusBar();
 }
 
 void ResultsWindow::loadSampleData()
@@ -1214,6 +1289,19 @@ void ResultsWindow::updateGroupItem(QTreeWidgetItem* groupItem, const DuplicateG
     // Enable checkbox for group selection
     groupItem->setFlags(groupItem->flags() | Qt::ItemIsUserCheckable | Qt::ItemIsEnabled | Qt::ItemIsUserTristate);
     groupItem->setCheckState(0, group.hasSelection ? Qt::Checked : Qt::Unchecked);
+    
+    // Debug: Force checkbox visibility and ensure proper setup
+    qDebug() << "Creating group item with flags:" << groupItem->flags() 
+             << "CheckState:" << groupItem->checkState(0)
+             << "Text:" << groupItem->text(0);
+    
+    // Force checkbox visibility by ensuring the item is properly configured
+    groupItem->setData(0, Qt::CheckStateRole, Qt::Unchecked);
+    
+    // Ensure the tree widget shows checkboxes
+    if (groupItem->treeWidget()) {
+        groupItem->treeWidget()->update();
+    }
     
     // Style group item
     QFont font = groupItem->font(0);

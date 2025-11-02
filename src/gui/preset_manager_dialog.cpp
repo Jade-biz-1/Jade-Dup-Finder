@@ -212,7 +212,7 @@ void PresetManagerDialog::loadBuiltInPresets()
     photos.description = "Scan Pictures folder for duplicate images";
     photos.isBuiltIn = true;
     photos.config.targetPaths << QStandardPaths::writableLocation(QStandardPaths::PicturesLocation);
-    photos.config.detectionMode = ScanSetupDialog::DetectionMode::Deep;
+    photos.config.detectionMode = ScanSetupDialog::DetectionMode::PerceptualHash;
     photos.config.minimumFileSize = 10 * 1024; // 10KB
     photos.config.maximumDepth = -1;
     photos.config.includeHidden = false;
@@ -245,7 +245,7 @@ void PresetManagerDialog::loadBuiltInPresets()
     media.isBuiltIn = true;
     media.config.targetPaths << QStandardPaths::writableLocation(QStandardPaths::MusicLocation)
                              << QStandardPaths::writableLocation(QStandardPaths::MoviesLocation);
-    media.config.detectionMode = ScanSetupDialog::DetectionMode::Media;
+    media.config.detectionMode = ScanSetupDialog::DetectionMode::PerceptualHash;
     media.config.minimumFileSize = 100 * 1024; // 100KB
     media.config.maximumDepth = -1;
     media.config.includeHidden = false;
@@ -630,14 +630,16 @@ QString PresetManagerDialog::formatConfiguration(const ScanSetupDialog::ScanConf
 QString PresetManagerDialog::formatDetectionMode(ScanSetupDialog::DetectionMode mode) const
 {
     switch (mode) {
-        case ScanSetupDialog::DetectionMode::Quick:
-            return "Quick (Size + Name)";
+        case ScanSetupDialog::DetectionMode::ExactHash:
+            return "Exact Hash (Most Accurate)";
+        case ScanSetupDialog::DetectionMode::QuickScan:
+            return "Quick Scan (Fastest)";
+        case ScanSetupDialog::DetectionMode::PerceptualHash:
+            return "Perceptual Hash (Images)";
+        case ScanSetupDialog::DetectionMode::DocumentSimilarity:
+            return "Document Similarity (Content)";
         case ScanSetupDialog::DetectionMode::Smart:
-            return "Smart (Recommended)";
-        case ScanSetupDialog::DetectionMode::Deep:
-            return "Deep (Hash-based)";
-        case ScanSetupDialog::DetectionMode::Media:
-            return "Media (With Metadata)";
+            return "Smart (Auto-Select)";
         default:
             return "Unknown";
     }

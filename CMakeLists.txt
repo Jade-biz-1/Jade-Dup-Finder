@@ -98,6 +98,18 @@ set(CORE_SOURCES
     src/core/style_validator.cpp
     src/core/theme_persistence.cpp
     src/core/window_state_manager.cpp
+    # Advanced Detection Algorithms (Phase 2)
+    src/core/detection_algorithm.cpp
+    src/core/detection_algorithm_factory.cpp
+    src/core/exact_hash_algorithm.cpp
+    src/core/quick_scan_algorithm.cpp
+    src/core/perceptual_hash_algorithm.cpp
+    src/core/document_similarity_algorithm.cpp
+    # File Type Enhancements (Phase 2)
+    src/core/archive_handler.cpp
+    src/core/document_handler.cpp
+    src/core/media_handler.cpp
+    src/core/file_type_manager.cpp
     # src/core/ui_theme_test_integration.cpp
 )
 
@@ -155,6 +167,18 @@ set(HEADER_FILES
     include/theme_persistence.h
     include/theme_editor.h
     src/core/window_state_manager.h
+    # Advanced Detection Algorithms (Phase 2)
+    src/core/detection_algorithm.h
+    src/core/detection_algorithm_factory.h
+    src/core/exact_hash_algorithm.h
+    src/core/quick_scan_algorithm.h
+    src/core/perceptual_hash_algorithm.h
+    src/core/document_similarity_algorithm.h
+    # File Type Enhancements (Phase 2)
+    src/core/archive_handler.h
+    src/core/document_handler.h
+    src/core/media_handler.h
+    src/core/file_type_manager.h
     # include/ui_theme_test_integration.h
     include/scan_history_manager.h
     include/selection_history_manager.h

@@ -733,8 +733,8 @@ DupFinder is a modern, cross-platform desktop application designed to help gener
 
 ---
 
-#### FR-002: Duplicate Detection Engine - ✅ COMPLETE (Basic)
-**Status:** Core functionality complete, advanced features pending
+#### FR-002: Duplicate Detection Engine - 🔄 ENHANCED (Phase 2)
+**Status:** Core functionality complete, advanced algorithms in development
 
 **Implemented Features:**
 - ✅ Deep Scan: SHA-256 hash-based content comparison
@@ -743,12 +743,24 @@ DupFinder is a modern, cross-platform desktop application designed to help gener
 - ✅ 99.9% accuracy for hash-based detection
 - ✅ Zero false positives achieved
 
-**Pending Features:**
-- ⏸️ Quick Scan: Size and filename matching
-- ⏸️ Media Scan: Specialized detection for images/videos
-- ⏸️ Adaptive detection algorithm selection
+**Phase 2 Features (In Development):**
+- 🔄 **Advanced Detection Algorithms Framework:** Pluggable algorithm architecture
+- 🔄 **Perceptual Hashing:** Image similarity detection using dHash algorithm
+- 🔄 **Quick Scan Mode:** Size and filename matching for rapid results
+- 🔄 **Algorithm Selection UI:** User-configurable detection modes
+- 🔄 **Similarity Thresholds:** Configurable matching sensitivity
 
-**Notes:** Current implementation focuses on most accurate method (hash-based). Quick scan and media scan planned for Phase 2.
+**Enhanced Capabilities:**
+- **Multiple Detection Modes:** Exact, Quick, Perceptual, and Document similarity
+- **Image Duplicate Detection:** Find visually similar images (resized, compressed, format-converted)
+- **Fast Preview Scanning:** 5-10x faster initial results with Quick Scan
+- **Configurable Accuracy:** User-adjustable similarity thresholds (85-95%)
+- **Algorithm Performance Metrics:** Built-in benchmarking and performance monitoring
+
+**Expected Improvements:**
+- 30-50% more duplicates found with perceptual hashing
+- 60-80% faster scanning with quick mode
+- Support for detecting similar (not just identical) content
 
 ---
 
@@ -777,7 +789,7 @@ DupFinder is a modern, cross-platform desktop application designed to help gener
 ---
 
 #### FR-004: File Type Handling - ✅ COMPLETE
-**Status:** Fully implemented
+**Status:** Basic file type handling fully implemented
 
 **Implemented Features:**
 - ✅ Automatic system file exclusions
@@ -786,9 +798,55 @@ DupFinder is a modern, cross-platform desktop application designed to help gener
 - ✅ System file protection
 - ✅ Hidden file handling
 
-**Pending Features:**
-- ⏸️ Archive scanning (inside ZIP, TAR files)
-- ⏸️ Advanced document content detection
+---
+
+#### FR-007: Advanced File Type Enhancements - 🔄 IN DEVELOPMENT (Phase 2)
+**Requirement ID:** FR-007  
+**Priority:** High  
+**Status:** Implementation in progress
+
+**Functionality:**
+Advanced file type support with content-based analysis and archive scanning capabilities.
+
+**Archive Scanning Capabilities:**
+- **ZIP File Support:** Scan inside ZIP archives without extraction
+- **TAR Archive Support:** Handle TAR, TAR.GZ, and TAR.BZ2 files
+- **RAR Archive Support:** Read-only scanning of RAR archives
+- **Nested Archive Handling:** Support archives within archives
+- **Archive Content Comparison:** Compare archive contents for duplicates
+
+**Document Content Detection:**
+- **PDF Content Analysis:** Extract and compare text content from PDF files
+- **Office Document Support:** Handle DOC, DOCX, XLS, XLSX, PPT, PPTX files
+- **Text Similarity Algorithms:** Cosine similarity and Jaccard index for content comparison
+- **Content Normalization:** Handle whitespace, case, and formatting differences
+- **Configurable Similarity Thresholds:** User-adjustable content matching sensitivity
+
+**Media File Enhancements:**
+- **Video Thumbnail Comparison:** Generate and compare video thumbnails
+- **Audio Fingerprinting:** Basic audio similarity detection
+- **Media Metadata Analysis:** Compare embedded metadata for duplicates
+- **Extended Format Support:** Additional image, video, and audio formats
+
+**Performance Considerations:**
+- **Lazy Loading:** Scan archive contents without full extraction
+- **Memory Efficient:** Stream processing for large archives
+- **Progress Reporting:** Detailed progress for archive and content analysis
+- **Caching:** Cache extracted content and analysis results
+
+**Acceptance Criteria:**
+- Users can enable/disable archive scanning in scan configuration
+- Archive scanning finds duplicates inside compressed files
+- Document content detection identifies duplicate PDFs with different names
+- Performance impact is acceptable (< 2x slower than regular scanning)
+- Archive scanning works with nested archives up to 3 levels deep
+- Content similarity detection has 90%+ accuracy for obvious duplicates
+
+**Expected Benefits:**
+- Find 20-40% more duplicates through archive and content analysis
+- Identify duplicate documents with different filenames
+- Handle complex backup scenarios with nested archives
+- Provide comprehensive duplicate detection for all file types
 
 ---
 
@@ -953,25 +1011,36 @@ DupFinder is a modern, cross-platform desktop application designed to help gener
 
 ---
 
-#### Phase 2: Feature Expansion - 🔄 IN PROGRESS (30%)
-**Status:** Started, key features in development
+#### Phase 2: Feature Expansion - 🔄 IN PROGRESS (60% → Target: 100%)
+**Status:** Major milestones completed, integration in progress
 
-**Completed:**
-- ✅ Advanced results dashboard
-- ✅ Smart recommendations
-- ✅ Comprehensive safety features
+**Phase 2 Focus Areas:**
+- ✅ **Advanced Detection Algorithms** (T21) - Framework and all 4 algorithms implemented
+- ✅ **Algorithm UI Integration** (T25) - Complete scan dialog integration with configuration
+- 🔄 **Core Integration** (T26) - DuplicateDetector integration in progress
+- 🔄 **File Type Enhancements** (T22) - Architecture ready, implementation pending
+- ⏸️ **Performance Optimization** (T23) - Benchmarking framework designed
 
-**In Progress:**
-- 🔄 Advanced detection algorithms
-- 🔄 Performance optimization
-- 🔄 Test suite fixes
+**Implementation Timeline:**
+- **Week 1-3:** Advanced Detection Algorithms (Perceptual hashing, Quick scan, Algorithm framework)
+- **Week 4-6:** File Type Enhancements (Archive scanning, Document content detection)
+- **Week 7-8:** Performance optimization and UI polish
 
-**Pending:**
-- ⏸️ Reporting and analytics
-- ⏸️ Automation features
-- ⏸️ Desktop integration
+**Key Deliverables:**
+- [ ] Multiple detection algorithms (Exact, Quick, Perceptual, Document similarity)
+- [ ] Archive scanning support (ZIP, TAR, RAR)
+- [ ] Document content detection (PDF, Office files)
+- [ ] Algorithm selection and configuration UI
+- [ ] Performance benchmarking framework
+- [ ] Comprehensive testing and validation
 
-**Estimated Completion:** December 2025
+**Expected Completion:** December 2025
+
+**Success Metrics:**
+- 30-50% more duplicates found with advanced algorithms
+- 60-80% faster scanning with quick mode
+- Support for 5+ archive formats
+- 95%+ algorithm accuracy maintained
 
 ---
 
