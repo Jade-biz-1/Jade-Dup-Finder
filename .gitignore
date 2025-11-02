@@ -111,8 +111,9 @@ docs/xml/
 # Temporary files
 *.tmp
 *.log
-core
-*core*
+# Core dumps (but not src/core directory)
+/core
+core.*
 
 # Platform specific build artifacts
 # Windows
