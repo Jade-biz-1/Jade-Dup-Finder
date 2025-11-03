@@ -327,6 +327,26 @@ if(WIN32)
     set(CPACK_NSIS_DISPLAY_NAME "DupFinder")
     set(CPACK_NSIS_PACKAGE_NAME "DupFinder")
     set(CPACK_NSIS_EXECUTABLE "C:/Program Files (x86)/NSIS/makensis.exe")
+
+    # Create Start menu shortcuts
+    set(CPACK_NSIS_MENU_LINKS
+        "bin/dupfinder.exe" "DupFinder"
+        "https://github.com/Jade-biz-1/Jade-Dup-Finder" "DupFinder on GitHub"
+    )
+
+    # Create desktop shortcut
+    set(CPACK_NSIS_CREATE_ICONS_EXTRA
+        "CreateShortCut '$DESKTOP\\\\DupFinder.lnk' '$INSTDIR\\\\bin\\\\dupfinder.exe'"
+    )
+    set(CPACK_NSIS_DELETE_ICONS_EXTRA
+        "Delete '$DESKTOP\\\\DupFinder.lnk'"
+    )
+
+    # Installer branding
+    set(CPACK_NSIS_CONTACT "DupFinder Team")
+    set(CPACK_NSIS_URL_INFO_ABOUT "https://github.com/Jade-biz-1/Jade-Dup-Finder")
+    set(CPACK_NSIS_HELP_LINK "https://github.com/Jade-biz-1/Jade-Dup-Finder")
+
 elseif(APPLE)
     # macOS bundle configuration
     set(CPACK_GENERATOR "DragNDrop")
