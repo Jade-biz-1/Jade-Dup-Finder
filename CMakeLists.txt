@@ -281,23 +281,43 @@ install(TARGETS dupfinder
 if(WIN32)
     find_program(WINDEPLOYQT_EXECUTABLE windeployqt HINTS "${QT6_INSTALL_PREFIX}/bin")
     if(WINDEPLOYQT_EXECUTABLE)
-        # add_custom_command(TARGET dupfinder POST_BUILD
-        #     COMMAND ${WINDEPLOYQT_EXECUTABLE}
-        #         --no-translations
-        #         --no-compiler-runtime
-        #         --no-system-d3d-compiler
-        #         $<TARGET_FILE:dupfinder>
-        #     COMMENT "Deploying Qt dependencies"
-        # )
-    endif()
+        # Deploy Qt libraries after build
+        add_custom_command(TARGET dupfinder POST_BUILD
+            COMMAND ${WINDEPLOYQT_EXECUTABLE}
+                --no-translations
+                --no-compiler-runtime
+                --no-system-d3d-compiler
+                --dir $<TARGET_FILE_DIR:dupfinder>
+                $<TARGET_FILE:dupfinder>
+            COMMENT "Deploying Qt libraries for DupFinder"
+            VERBATIM
+        )
 
-    # Install Qt deployment files
-    install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/"
-        DESTINATION bin
-        FILES_MATCHING
-        PATTERN "*.dll"
-        PATTERN "*.exe"
-    )
+        # Install Qt DLLs deployed by windeployqt
+        install(FILES
+            $<TARGET_FILE_DIR:dupfinder>/Qt6Core.dll
+            $<TARGET_FILE_DIR:dupfinder>/Qt6Gui.dll
+            $<TARGET_FILE_DIR:dupfinder>/Qt6Widgets.dll
+            $<TARGET_FILE_DIR:dupfinder>/Qt6Network.dll
+            $<TARGET_FILE_DIR:dupfinder>/Qt6Svg.dll
+            $<TARGET_FILE_DIR:dupfinder>/opengl32sw.dll
+            DESTINATION bin
+        )
+
+        # Install Qt plugin directories deployed by windeployqt
+        install(DIRECTORY $<TARGET_FILE_DIR:dupfinder>/platforms
+            DESTINATION bin
+        )
+        install(DIRECTORY $<TARGET_FILE_DIR:dupfinder>/iconengines
+            DESTINATION bin
+        )
+        install(DIRECTORY $<TARGET_FILE_DIR:dupfinder>/imageformats
+            DESTINATION bin
+        )
+        install(DIRECTORY $<TARGET_FILE_DIR:dupfinder>/styles
+            DESTINATION bin
+        )
+    endif()
 endif()
 
 # Platform-specific install configuration
@@ -306,6 +326,7 @@ if(WIN32)
     set(CPACK_GENERATOR "NSIS")
     set(CPACK_NSIS_DISPLAY_NAME "DupFinder")
     set(CPACK_NSIS_PACKAGE_NAME "DupFinder")
+    set(CPACK_NSIS_EXECUTABLE "C:/Program Files (x86)/NSIS/makensis.exe")
 elseif(APPLE)
     # macOS bundle configuration
     set(CPACK_GENERATOR "DragNDrop")

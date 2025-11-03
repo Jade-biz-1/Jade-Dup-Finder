@@ -15,20 +15,10 @@
 
 DuplicateDetector::DuplicateDetector(QObject* parent)
     : QObject(parent)
-    , m_hashCalculator(nullptr)
     , m_isDetecting(false)
     , m_cancelRequested(false)
 {
     Logger::instance()->debug(LogCategories::DUPLICATE, "DuplicateDetector created");
-    
-    // Initialize hash calculator
-    m_hashCalculator = new HashCalculator(this);
-    
-    // Connect hash calculator signals
-    connect(m_hashCalculator, &HashCalculator::hashCompleted,
-            this, &DuplicateDetector::onHashCalculated);
-    connect(m_hashCalculator, &HashCalculator::allOperationsComplete,
-            this, &DuplicateDetector::onAllHashesComplete);
     
     // Register meta types for signals
     qRegisterMetaType<DuplicateDetector::FileInfo>("DuplicateDetector::FileInfo");
@@ -338,11 +328,6 @@ void DuplicateDetector::cancelDetection()
     Logger::instance()->info(LogCategories::DUPLICATE, "Cancelling duplicate detection");
     m_cancelRequested = true;
     
-    // Cancel hash calculation
-    if (m_hashCalculator) {
-        m_hashCalculator->cancelAll();
-    }
-    
     m_isDetecting = false;
     locker.unlock();
     
@@ -523,27 +508,27 @@ void DuplicateDetector::processSizeGroups(const QHash<qint64, QList<FileInfo>>& 
 void DuplicateDetector::calculateHashesForFiles(const QList<FileInfo>& files)
 {
     if (files.isEmpty()) {
-        onAllHashesComplete();
+        onAllSignaturesComplete();
         return;
     }
-    
+
     LOG_INFO(LogCategories::DUPLICATE, QString("Starting signature calculation for %1 files using algorithm: %2")
              .arg(files.size())
              .arg(static_cast<int>(m_options.algorithmType)));
-    
+
     updateProgress(DetectionProgress::HashCalculation, 0, static_cast<int>(files.size()));
-    
+
     // Create algorithm instance
     auto algorithm = DetectionAlgorithmFactory::create(m_options.algorithmType);
     if (!algorithm) {
         LOG_ERROR(LogCategories::DUPLICATE, "Failed to create detection algorithm for async processing");
-        onAllHashesComplete();
+        onAllSignaturesComplete();
         return;
     }
-    
+
     // Configure algorithm
     algorithm->setConfiguration(m_options.algorithmConfig);
-    
+
     // Prepare pending signatures tracking
     {
         QMutexLocker locker(&m_mutex);
@@ -553,9 +538,8 @@ void DuplicateDetector::calculateHashesForFiles(const QList<FileInfo>& files)
         }
         m_currentAlgorithm = std::move(algorithm);
     }
-    
-    // For now, calculate signatures synchronously in batches to avoid blocking
-    // TODO: Implement proper async signature calculation
+
+    // Calculate signatures synchronously in batches to avoid blocking
     QTimer::singleShot(0, this, [this, files]() {
         calculateSignaturesBatch(files, 0);
     });
@@ -616,11 +600,12 @@ void DuplicateDetector::calculateSignaturesBatch(const QList<FileInfo>& files, i
         });
     } else {
         // All signatures calculated
-        onAllHashesComplete();
+        onAllSignaturesComplete();
     }
 }
 
-void DuplicateDetector::onHashCalculated(const HashCalculator::HashResult& result)
+
+void DuplicateDetector::onAllSignaturesComplete()
 {
     QMutexLocker locker(&m_mutex);
     
@@ -628,48 +613,19 @@ void DuplicateDetector::onHashCalculated(const HashCalculator::HashResult& resul
         return;
     }
     
-    // Update the file info with the calculated hash
-    auto it = m_pendingHashes.find(result.filePath);
-    if (it != m_pendingHashes.end()) {
-        if (result.success) {
-            it.value().hash = result.hash;
-            m_statistics.hashCalculationsPerformed++;
-            
-            // Update progress
-            int completed = m_statistics.hashCalculationsPerformed;
-            int total = static_cast<int>(m_pendingHashes.size());
-            
-            locker.unlock();
-            updateProgress(DetectionProgress::HashCalculation, completed, total, result.filePath);
-        } else {
-            LOG_WARNING(LogCategories::DUPLICATE, QString("Hash calculation failed for %1 - %2").arg(result.filePath, result.errorMessage));
-            // Remove failed file from processing
-            m_pendingHashes.erase(it);
-        }
-    }
-}
-
-void DuplicateDetector::onAllHashesComplete()
-{
-    QMutexLocker locker(&m_mutex);
+    Logger::instance()->info(LogCategories::DUPLICATE, "All signatures calculated, proceeding to duplicate grouping");
     
-    if (m_cancelRequested || !m_isDetecting) {
-        return;
-    }
-    
-    Logger::instance()->info(LogCategories::DUPLICATE, "All hashes calculated, proceeding to duplicate grouping");
-    
-    // Collect all files with successful hashes
-    QList<FileInfo> filesWithHashes;
+    // Collect all files with successful signatures
+    QList<FileInfo> filesWithSignatures;
     for (auto it = m_pendingHashes.begin(); it != m_pendingHashes.end(); ++it) {
         if (!it.value().hash.isEmpty()) {
-            filesWithHashes.append(it.value());
+            filesWithSignatures.append(it.value());
         }
     }
     
     locker.unlock();
     
-    processHashResults(filesWithHashes);
+    processHashResults(filesWithSignatures);
 }
 
 void DuplicateDetector::processHashResults(const QList<FileInfo>& filesWithSignatures)

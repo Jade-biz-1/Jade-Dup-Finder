@@ -11,7 +11,6 @@
 #include <memory>
 
 #include "file_scanner.h"
-#include "hash_calculator.h"
 #include "../src/core/detection_algorithm_factory.h"
 #include "../src/core/detection_algorithm.h"
 
@@ -240,8 +239,7 @@ signals:
     void detectionError(const QString& error);
 
 private slots:
-    void onHashCalculated(const HashCalculator::HashResult& result);
-    void onAllHashesComplete();
+    void onAllSignaturesComplete();
     
 private:
     // Phase 1: Size-based pre-filtering
@@ -283,7 +281,6 @@ private:
     
     // Member variables
     DetectionOptions m_options;
-    HashCalculator* m_hashCalculator;
     std::unique_ptr<DetectionAlgorithm> m_currentAlgorithm;
     
     // Detection state

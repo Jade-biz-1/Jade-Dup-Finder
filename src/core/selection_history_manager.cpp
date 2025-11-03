@@ -118,11 +118,11 @@ int SelectionHistoryManager::getMaxHistorySize() const {
 }
 
 int SelectionHistoryManager::getUndoStackSize() const {
-    return m_undoStack.size();
+    return static_cast<int>(m_undoStack.size());
 }
 
 int SelectionHistoryManager::getRedoStackSize() const {
-    return m_redoStack.size();
+    return static_cast<int>(m_redoStack.size());
 }
 
 void SelectionHistoryManager::enforceHistoryLimit() {
