@@ -14,6 +14,7 @@
 #include <QCheckBox>
 #include <QRadioButton>
 #include <cmath>
+#include <windows.h>
 
 StyleValidator::StyleValidator(QObject* parent)
     : QObject(parent)

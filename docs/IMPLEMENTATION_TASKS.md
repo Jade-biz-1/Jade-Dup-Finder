@@ -224,6 +224,97 @@
 
 ---
 
+### T27: GPU Acceleration Support
+**Priority:** P3 (Low)  
+**Status:** ⏸️ DEFERRED  
+**Estimated Effort:** 2-3 weeks  
+**Assignee:** Development Team  
+
+#### Subtasks:
+- [ ] **T27.1:** Install GPU development libraries
+  - [ ] Install OpenCL, CUDA, or Vulkan libraries
+  - [ ] Update build system for GPU detection
+  - [ ] Enable GPU-specific code compilation
+  
+- [ ] **T27.2:** GPU Performance Testing
+  - [ ] Test GPU vs CPU performance benchmarks
+  - [ ] Optimize GPU algorithms for hash calculations
+  - [ ] Add GPU memory management
+
+**Acceptance Criteria:**
+- [ ] GPU acceleration available when libraries are installed
+- [ ] Performance benchmarks show GPU speedup
+- [ ] Fallback to CPU when GPU unavailable
+
+---
+
+### T28: Test Suite Architecture Improvements
+**Priority:** P2 (Medium)  
+**Status:** ⏸️ PENDING  
+**Estimated Effort:** 1 week  
+**Assignee:** Development Team  
+
+#### Subtasks:
+- [ ] **T28.1:** Refactor Multiple Main Functions
+  - [ ] Separate tests with multiple main() into individual executables
+  - [ ] Fix GUI test dependencies or make tests core-only
+  
+- [ ] **T28.2:** Update Test Architecture
+  - [ ] Improve test maintainability
+  - [ ] Add better test organization
+  - [ ] Update build system for tests
+
+**Acceptance Criteria:**
+- [ ] All tests run without conflicts
+- [ ] Test architecture supports both GUI and core tests
+- [ ] Improved test execution and reporting
+
+---
+
+### T29: Build System Warnings Fix
+**Priority:** P2 (Medium)  
+**Status:** ⏸️ PENDING  
+**Estimated Effort:** 2-3 days  
+**Assignee:** Development Team  
+
+#### Subtasks:
+- [ ] **T29.1:** Fix Type Conversion Warnings
+  - [ ] Fix qint64 to double conversions in hash_calculator.cpp
+  - [ ] Address qsizetype to int sign comparison warnings
+  
+- [ ] **T29.2:** Update Code for Proper Casting
+  - [ ] Use proper type casting throughout codebase
+  - [ ] Ensure compiler warnings are resolved
+
+**Acceptance Criteria:**
+- [ ] Zero compiler warnings in release builds
+- [ ] Code uses proper type handling
+- [ ] Maintains performance and functionality
+
+---
+
+### T30: Code Documentation Improvements
+**Priority:** P3 (Low)  
+**Status:** ⏸️ ONGOING  
+**Estimated Effort:** Ongoing  
+**Assignee:** Development Team  
+
+#### Subtasks:
+- [ ] **T30.1:** API Documentation
+  - [ ] Add comprehensive API documentation
+  - [ ] Document public interfaces
+  
+- [ ] **T30.2:** Inline Comments
+  - [ ] Update inline comments for complex algorithms
+  - [ ] Improve code readability
+
+**Acceptance Criteria:**
+- [ ] All public APIs documented
+- [ ] Complex algorithms well-commented
+- [ ] Developer documentation available
+
+---
+
 ## Completed Tasks (Phase 1)
 
 ### ✅ Core Application Framework (T1-T8)
@@ -243,6 +334,13 @@
 - ✅ Restore dialog functionality
 - ✅ Comprehensive safety features
 - ✅ User guidance and tooltips
+
+### ✅ Bug Fixes and Maintenance
+- ✅ Checkbox Visibility Fix - Group selection checkboxes not visible in results tree
+- ✅ Segmentation Fault Fix - Crash when selecting presets in scan dialog
+- ✅ Qt6::Widgets Dependency Issues - Fixed test executable dependencies
+- ✅ HashOptions API Compatibility - Updated test code for current API
+- ✅ Light Theme Contrast Issues - Improved text visibility in light theme
 
 ---
 

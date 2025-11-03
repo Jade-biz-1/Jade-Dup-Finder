@@ -19,6 +19,7 @@
 #include <QLabel>
 #include <QGroupBox>
 #include <QProgressBar>
+#include <windows.h>
 #include <QSlider>
 #include <QTreeWidget>
 #include <QRegularExpression>

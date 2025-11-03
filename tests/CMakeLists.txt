@@ -111,7 +111,6 @@ set(UI_AUTOMATION_HEADERS
 # Create UI automation library
 add_library(ui_automation STATIC
     ${UI_AUTOMATION_SOURCES}
-    ${UI_AUTOMATION_HEADERS}
 )
 
 target_include_directories(ui_automation PRIVATE
