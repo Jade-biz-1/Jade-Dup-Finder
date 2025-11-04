@@ -334,6 +334,19 @@ public:
         }
     };
 
+    /**
+     * @brief GPU acceleration configuration
+     */
+    struct GpuConfig {
+        bool enabled = true;                    // Enable GPU acceleration
+        bool preferCuda = true;                 // Prefer CUDA over OpenCL
+        bool fallbackToCpu = true;              // Fallback to CPU if GPU fails
+        int maxGpuMemoryUsage = 80;             // Max GPU memory usage percentage
+        int gpuTaskBatchSize = 100;             // Files per GPU batch
+        bool enableGpuCaching = true;           // Cache GPU kernels/programs
+        int gpuWarmupDelay = 100;               // Delay before first GPU operation
+    };
+
     explicit HashCalculator(QObject* parent = nullptr);
     ~HashCalculator();
     
@@ -684,6 +697,11 @@ private:
     class WorkStealingThreadPool;
     class TaskBatch;
     
+    // Forward declarations for GPU acceleration
+    class GpuDetector;
+    class GpuContext;
+    class GpuHashCalculator;
+    
     // Member variables
     HashOptions m_options;
     HashCache* m_cache;
@@ -744,6 +762,17 @@ private:
     double m_lastCpuCheck = 0.0;
     qint64 m_lastMemoryCheck = 0;
     int m_resourceCheckInterval = 1000; // milliseconds
+
+    // GPU acceleration methods
+    void initializeGPU();
+    void cleanupGPU();
+    void warmupGPU();
+    bool isGPUAvailable() const;
+    bool isGPUEnabled() const;
+    QString calculateFileHashGPU(const QString& filePath);
+    void setGPUEnabled(bool enabled);
+    GpuConfig getGPUConfig() const;
+    void setGPUConfig(const GpuConfig& config);
 };
 
 // Q_DECLARE_METATYPE for use with Qt's signal/slot system

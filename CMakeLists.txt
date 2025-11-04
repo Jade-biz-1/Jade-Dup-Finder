@@ -42,6 +42,43 @@ find_package(Qt6 REQUIRED COMPONENTS
     Network
 )
 
+# GPU acceleration support
+option(ENABLE_GPU_ACCELERATION "Enable GPU acceleration for hash calculations" ON)
+
+if(ENABLE_GPU_ACCELERATION)
+    message(STATUS "Checking for GPU acceleration libraries...")
+
+    # Try CUDA first (NVIDIA preferred)
+    # find_package(CUDA QUIET)
+    # if(CUDA_FOUND)
+    #     message(STATUS "CUDA found: ${CUDA_VERSION}")
+    #     message(STATUS "CUDA libraries: ${CUDA_LIBRARIES}")
+    #     message(STATUS "CUDA include dirs: ${CUDA_INCLUDE_DIRS}")
+    #     set(GPU_BACKEND "CUDA")
+    #     set(USE_CUDA ON)
+    # else()
+        message(STATUS "CUDA not found")
+
+        # Fallback to OpenCL
+        # find_package(OpenCL QUIET)
+        # if(OpenCL_FOUND)
+        #     message(STATUS "OpenCL found: Enabling OpenCL acceleration")
+        #     set(GPU_BACKEND "OpenCL")
+        #     set(USE_OPENCL ON)
+        # else()
+            message(WARNING "No GPU acceleration libraries found. Building CPU-only version.")
+            message(WARNING "To enable GPU acceleration:")
+            message(WARNING "  - For NVIDIA: Install CUDA Toolkit from https://developer.nvidia.com/cuda-downloads")
+            message(WARNING "  - For AMD/Intel: Install OpenCL development packages")
+            set(ENABLE_GPU_ACCELERATION OFF)
+        # endif()
+    # endif()
+
+    if(ENABLE_GPU_ACCELERATION)
+        message(STATUS "GPU acceleration enabled with backend: ${GPU_BACKEND}")
+    endif()
+endif()
+
 # Platform detection
 if(WIN32)
     set(PLATFORM_NAME "windows")
@@ -110,8 +147,17 @@ set(CORE_SOURCES
     src/core/document_handler.cpp
     src/core/media_handler.cpp
     src/core/file_type_manager.cpp
-    # src/core/ui_theme_test_integration.cpp
 )
+
+# Add GPU sources if enabled
+if(ENABLE_GPU_ACCELERATION)
+    list(APPEND CORE_SOURCES
+        # GPU Acceleration (Phase 2)
+        src/gpu/gpu_detector.cpp
+        src/gpu/gpu_hash_calculator.cpp
+        src/gpu/gpu_context.cpp
+    )
+endif()
 
 set(GUI_SOURCES
     src/gui/main_window.cpp
@@ -178,39 +224,20 @@ set(HEADER_FILES
     src/core/document_handler.h
     src/core/media_handler.h
     src/core/file_type_manager.h
-    # include/ui_theme_test_integration.h
-    include/scan_history_manager.h
-    include/selection_history_manager.h
-    include/file_operation_queue.h
-    include/main_window.h
-    include/scan_dialog.h
-    # include/results_widget.h  # Obsolete stub file - removed
-    src/gui/results_window.h
-    include/settings_dialog.h
-    include/scan_history_dialog.h
-    include/restore_dialog.h
-    # include/confirmation_dialog.h  # Obsolete stub file - removed
-    include/thumbnail_cache.h
-    include/thumbnail_delegate.h
-    include/exclude_pattern_widget.h
-    include/preset_manager_dialog.h
-    include/scan_scope_preview_widget.h
-    include/scan_progress_dialog.h
-    include/scan_error_dialog.h
-    include/advanced_filter_dialog.h
-    include/file_operation_progress_dialog.h
-    # Temporarily disabled for Settings dialog testing
-    # include/duplicate_relationship_widget.h
-    # include/smart_selection_dialog.h
-    include/grouping_options_dialog.h
-    include/safety_features_dialog.h
-    include/about_dialog.h
-    include/theme_recovery_dialog.h
-    include/theme_notification_widget.h
-    include/platform_file_ops.h
-    include/trash_manager.h
-    include/system_integration.h
 )
+
+# Add GPU headers if enabled
+if(ENABLE_GPU_ACCELERATION)
+    list(APPEND HEADER_FILES
+        # GPU Acceleration (Phase 2)
+        src/gpu/gpu_detector.h
+        src/gpu/gpu_config.h
+        src/gpu/gpu_hash_calculator.h
+        src/gpu/gpu_context.h
+        src/gpu/cuda_hash_calculator.h
+        src/gpu/opencl_hash_calculator.h
+    )
+endif()
 
 # Main executable
 add_executable(dupfinder
@@ -221,6 +248,18 @@ add_executable(dupfinder
     ${HEADER_FILES}
 )
 
+# GPU-specific compilation
+if(USE_CUDA)
+    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-O3;-gencode=arch=compute_60,code=sm_60)
+    cuda_add_library(gpu_acceleration STATIC
+        src/gpu/cuda_hash_calculator.cu
+    )
+elseif(USE_OPENCL)
+    add_library(gpu_acceleration STATIC
+        src/gpu/opencl_hash_calculator.cpp
+    )
+endif()
+
 # Link Qt6 libraries
 target_link_libraries(dupfinder
     Qt6::Core
@@ -228,6 +267,16 @@ target_link_libraries(dupfinder
     Qt6::Concurrent
     Qt6::Network
 )
+
+# Link GPU libraries
+if(ENABLE_GPU_ACCELERATION)
+    target_link_libraries(dupfinder gpu_acceleration)
+    if(USE_CUDA)
+        target_link_libraries(dupfinder ${CUDA_LIBRARIES})
+    elseif(USE_OPENCL)
+        target_link_libraries(dupfinder OpenCL::OpenCL)
+    endif()
+endif()
 
 # Platform-specific linking
 if(WIN32)

@@ -24,6 +24,15 @@ SettingsDialog::SettingsDialog(QWidget* parent)
     , m_enableSmartSelectionCheck(nullptr)
     , m_enableOperationQueueCheck(nullptr)
     , m_showDetailedProgressCheck(nullptr)
+    , m_gpuTab(nullptr)
+    , m_enableGPUCheck(nullptr)
+    , m_preferCUDACheck(nullptr)
+    , m_gpuFallbackCheck(nullptr)
+    , m_gpuMemoryLimitSpin(nullptr)
+    , m_gpuBatchSizeSpin(nullptr)
+    , m_gpuCachingCheck(nullptr)
+    , m_gpuStatusLabel(nullptr)
+    , m_gpuTestButton(nullptr)
 {
     setWindowTitle(tr("Settings"));
     setMinimumSize(700, 500);
@@ -60,6 +69,7 @@ void SettingsDialog::setupUI()
     createLoggingTab();
     createAdvancedTab();
     createUIFeaturesTab();  // Task 32
+    createGPUTab();  // Task 27
     
     mainLayout->addWidget(m_tabWidget);
     
@@ -446,6 +456,77 @@ void SettingsDialog::createUIFeaturesTab()
     m_tabWidget->addTab(m_uiFeaturesTab, tr("UI Features"));
 }
 
+void SettingsDialog::createGPUTab()
+{
+    m_gpuTab = new QWidget();
+    QVBoxLayout* layout = new QVBoxLayout(m_gpuTab);
+    layout->setContentsMargins(20, 20, 20, 20);
+    layout->setSpacing(15);
+    
+    // GPU Status
+    QGroupBox* statusGroup = new QGroupBox(tr("GPU Status"), m_gpuTab);
+    QVBoxLayout* statusLayout = new QVBoxLayout(statusGroup);
+    
+    m_gpuStatusLabel = new QLabel(tr("GPU status will be detected on test..."), m_gpuTab);
+    m_gpuStatusLabel->setWordWrap(true);
+    statusLayout->addWidget(m_gpuStatusLabel);
+    
+    m_gpuTestButton = new QPushButton(tr("Test GPU Acceleration"), m_gpuTab);
+    connect(m_gpuTestButton, &QPushButton::clicked, this, &SettingsDialog::onGPUTestClicked);
+    statusLayout->addWidget(m_gpuTestButton);
+    
+    layout->addWidget(statusGroup);
+    
+    // GPU Settings
+    QGroupBox* settingsGroup = new QGroupBox(tr("GPU Acceleration Settings"), m_gpuTab);
+    QFormLayout* settingsLayout = new QFormLayout(settingsGroup);
+    
+    m_enableGPUCheck = new QCheckBox(tr("Enable GPU acceleration"), m_gpuTab);
+    m_enableGPUCheck->setToolTip(tr("Use GPU for hash calculations when available"));
+    settingsLayout->addRow(m_enableGPUCheck);
+    
+    m_preferCUDACheck = new QCheckBox(tr("Prefer CUDA over OpenCL"), m_gpuTab);
+    m_preferCUDACheck->setToolTip(tr("Use CUDA when both CUDA and OpenCL are available"));
+    settingsLayout->addRow(m_preferCUDACheck);
+    
+    m_gpuFallbackCheck = new QCheckBox(tr("Enable CPU fallback"), m_gpuTab);
+    m_gpuFallbackCheck->setToolTip(tr("Fall back to CPU if GPU acceleration fails"));
+    settingsLayout->addRow(m_gpuFallbackCheck);
+    
+    m_gpuMemoryLimitSpin = new QSpinBox(m_gpuTab);
+    m_gpuMemoryLimitSpin->setRange(100, 4096);
+    m_gpuMemoryLimitSpin->setValue(1024);
+    m_gpuMemoryLimitSpin->setSuffix(tr(" MB"));
+    m_gpuMemoryLimitSpin->setToolTip(tr("Maximum GPU memory to use for hashing"));
+    settingsLayout->addRow(tr("GPU memory limit:"), m_gpuMemoryLimitSpin);
+    
+    m_gpuBatchSizeSpin = new QSpinBox(m_gpuTab);
+    m_gpuBatchSizeSpin->setRange(1, 100);
+    m_gpuBatchSizeSpin->setValue(10);
+    m_gpuBatchSizeSpin->setToolTip(tr("Number of files to process in each GPU batch"));
+    settingsLayout->addRow(tr("Batch size:"), m_gpuBatchSizeSpin);
+    
+    m_gpuCachingCheck = new QCheckBox(tr("Enable GPU result caching"), m_gpuTab);
+    m_gpuCachingCheck->setToolTip(tr("Cache GPU hash results for better performance"));
+    settingsLayout->addRow(m_gpuCachingCheck);
+    
+    layout->addWidget(settingsGroup);
+    
+    // Performance Info
+    QGroupBox* infoGroup = new QGroupBox(tr("Performance Information"), m_gpuTab);
+    QVBoxLayout* infoLayout = new QVBoxLayout(infoGroup);
+    
+    QLabel* infoLabel = new QLabel(tr("GPU acceleration can significantly speed up hash calculations for large files. "
+                                     "Files smaller than 1MB may not benefit from GPU acceleration due to transfer overhead."), m_gpuTab);
+    infoLabel->setWordWrap(true);
+    infoLayout->addWidget(infoLabel);
+    
+    layout->addWidget(infoGroup);
+    layout->addStretch();
+    
+    m_tabWidget->addTab(m_gpuTab, tr("GPU"));
+}
+
 void SettingsDialog::loadSettings()
 {
     LOG_INFO(LogCategories::CONFIG, "Loading settings");
@@ -555,6 +636,26 @@ void SettingsDialog::loadSettings()
         m_showDetailedProgressCheck->setChecked(settings.value("ui/showDetailedProgress", true).toBool());
     }
     
+    // GPU Settings (Task 27)
+    if (m_enableGPUCheck) {
+        m_enableGPUCheck->setChecked(settings.value("gpu/enabled", true).toBool());
+    }
+    if (m_preferCUDACheck) {
+        m_preferCUDACheck->setChecked(settings.value("gpu/preferCUDA", true).toBool());
+    }
+    if (m_gpuFallbackCheck) {
+        m_gpuFallbackCheck->setChecked(settings.value("gpu/fallbackEnabled", true).toBool());
+    }
+    if (m_gpuMemoryLimitSpin) {
+        m_gpuMemoryLimitSpin->setValue(settings.value("gpu/memoryLimit", 1024).toInt());
+    }
+    if (m_gpuBatchSizeSpin) {
+        m_gpuBatchSizeSpin->setValue(settings.value("gpu/batchSize", 10).toInt());
+    }
+    if (m_gpuCachingCheck) {
+        m_gpuCachingCheck->setChecked(settings.value("gpu/cachingEnabled", true).toBool());
+    }
+    
     LOG_INFO(LogCategories::CONFIG, "Settings loaded successfully");
 }
 
@@ -649,6 +750,26 @@ void SettingsDialog::saveSettings()
     }
     if (m_showDetailedProgressCheck) {
         settings.setValue("ui/showDetailedProgress", m_showDetailedProgressCheck->isChecked());
+    }
+    
+    // GPU Settings (Task 27)
+    if (m_enableGPUCheck) {
+        settings.setValue("gpu/enabled", m_enableGPUCheck->isChecked());
+    }
+    if (m_preferCUDACheck) {
+        settings.setValue("gpu/preferCUDA", m_preferCUDACheck->isChecked());
+    }
+    if (m_gpuFallbackCheck) {
+        settings.setValue("gpu/fallbackEnabled", m_gpuFallbackCheck->isChecked());
+    }
+    if (m_gpuMemoryLimitSpin) {
+        settings.setValue("gpu/memoryLimit", m_gpuMemoryLimitSpin->value());
+    }
+    if (m_gpuBatchSizeSpin) {
+        settings.setValue("gpu/batchSize", m_gpuBatchSizeSpin->value());
+    }
+    if (m_gpuCachingCheck) {
+        settings.setValue("gpu/cachingEnabled", m_gpuCachingCheck->isChecked());
     }
     
     settings.sync();
@@ -776,4 +897,56 @@ void SettingsDialog::onThemeChanged()
     applyTheme();
     
     LOG_INFO(LogCategories::UI, QString("Theme changed to: %1").arg(themeStr));
+}
+
+void SettingsDialog::onGPUTestClicked()
+{
+    LOG_INFO(LogCategories::UI, "User clicked 'Test GPU Acceleration'");
+    
+    // Import GPU detector
+    try {
+        // Create a temporary GPU detector to test capabilities
+        // Note: This is a simplified test - in real implementation, 
+        // we'd use the actual GpuDetector from the hash calculator
+        
+        QString statusText;
+        bool gpuAvailable = false;
+        
+        // Check for CUDA availability (simplified check)
+        #ifdef HAS_CUDA
+        statusText += tr("CUDA: Available\n");
+        gpuAvailable = true;
+        #else
+        statusText += tr("CUDA: Not available\n");
+        #endif
+        
+        // Check for OpenCL availability (simplified check)
+        #ifdef HAS_OPENCL
+        statusText += tr("OpenCL: Available\n");
+        gpuAvailable = true;
+        #else
+        statusText += tr("OpenCL: Not available\n");
+        #endif
+        
+        if (gpuAvailable) {
+            statusText += tr("\nGPU acceleration is available and ready to use.");
+            m_gpuStatusLabel->setStyleSheet("color: green;");
+        } else {
+            statusText += tr("\nNo GPU acceleration available. CPU will be used for all calculations.");
+            m_gpuStatusLabel->setStyleSheet("color: orange;");
+        }
+        
+        m_gpuStatusLabel->setText(statusText);
+        
+        QMessageBox::information(this, tr("GPU Test Results"), 
+                               gpuAvailable ? tr("GPU acceleration is available!") : 
+                                            tr("GPU acceleration is not available on this system."));
+        
+    } catch (const std::exception& e) {
+        LOG_ERROR(LogCategories::UI, QString("GPU test failed: %1").arg(e.what()));
+        m_gpuStatusLabel->setText(tr("GPU test failed. Check logs for details."));
+        m_gpuStatusLabel->setStyleSheet("color: red;");
+        QMessageBox::warning(this, tr("GPU Test Failed"), 
+                           tr("Failed to test GPU acceleration. See logs for details."));
+    }
 }

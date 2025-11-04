@@ -43,6 +43,7 @@ private slots:
     void onRemoveProtectedPath();
     void onOpenLogDirectory();
     void onThemeChanged();
+    void onGPUTestClicked();  // Task 27: GPU test functionality
 
 private:
     void setupUI();
@@ -52,6 +53,7 @@ private:
     void createLoggingTab();
     void createAdvancedTab();
     void createUIFeaturesTab();  // Task 32: New UI features settings
+    void createGPUTab();  // Task 27: GPU acceleration settings
     void applyTheme();
     
     // UI Components
@@ -115,6 +117,17 @@ private:
     QLineEdit* m_cacheDirectoryEdit;
     QComboBox* m_exportFormatCombo;
     QCheckBox* m_enablePerformanceCheck;
+    
+    // GPU Tab (Task 27)
+    QWidget* m_gpuTab;
+    QCheckBox* m_enableGPUCheck;
+    QCheckBox* m_preferCUDACheck;
+    QCheckBox* m_gpuFallbackCheck;
+    QSpinBox* m_gpuMemoryLimitSpin;
+    QSpinBox* m_gpuBatchSizeSpin;
+    QCheckBox* m_gpuCachingCheck;
+    QLabel* m_gpuStatusLabel;
+    QPushButton* m_gpuTestButton;
 };
 
 #endif // SETTINGS_DIALOG_H
