@@ -53,37 +53,37 @@ void ThemeErrorHandler::handleError(ErrorType type, const QString& details, QWid
     switch (type) {
         case ErrorType::ThemeLoadFailure:
             errorTypeStr = "Theme Load Failure";
-            LOG_ERROR("UI", QString("Theme Load Failure: %1").arg(details));
+            LOG_ERROR(LogCategories::UI, QString("Theme Load Failure: %1").arg(details));
             break;
         case ErrorType::StyleApplicationFailure:
             errorTypeStr = "Style Application Failure";
-            LOG_ERROR("UI", QString("Style Application Failure on %1: %2")
+            LOG_ERROR(LogCategories::UI, QString("Style Application Failure on %1: %2")
                      .arg(context.componentName).arg(details));
             break;
         case ErrorType::ComponentRegistrationFailure:
             errorTypeStr = "Component Registration Failure";
-            LOG_WARNING("UI", QString("Component Registration Failure for %1: %2")
+            LOG_WARNING(LogCategories::UI, QString("Component Registration Failure for %1: %2")
                        .arg(context.componentName).arg(details));
             break;
         case ErrorType::ValidationFailure:
             errorTypeStr = "Validation Failure";
-            LOG_WARNING("UI", QString("Theme Validation Failure: %1").arg(details));
+            LOG_WARNING(LogCategories::UI, QString("Theme Validation Failure: %1").arg(details));
             break;
         case ErrorType::PersistenceFailure:
             errorTypeStr = "Persistence Failure";
-            LOG_ERROR("UI", QString("Theme Persistence Failure: %1").arg(details));
+            LOG_ERROR(LogCategories::UI, QString("Theme Persistence Failure: %1").arg(details));
             break;
         case ErrorType::CustomThemeCorruption:
             errorTypeStr = "Custom Theme Corruption";
-            LOG_ERROR("UI", QString("Custom Theme Corruption: %1").arg(details));
+            LOG_ERROR(LogCategories::UI, QString("Custom Theme Corruption: %1").arg(details));
             break;
         case ErrorType::SystemThemeDetectionFailure:
             errorTypeStr = "System Theme Detection Failure";
-            LOG_WARNING("UI", QString("System Theme Detection Failure: %1").arg(details));
+            LOG_WARNING(LogCategories::UI, QString("System Theme Detection Failure: %1").arg(details));
             break;
         case ErrorType::DialogRegistrationFailure:
             errorTypeStr = "Dialog Registration Failure";
-            LOG_WARNING("UI", QString("Dialog Registration Failure for %1: %2")
+            LOG_WARNING(LogCategories::UI, QString("Dialog Registration Failure for %1: %2")
                        .arg(context.componentName).arg(details));
             break;
     }
@@ -96,7 +96,7 @@ void ThemeErrorHandler::handleError(ErrorType type, const QString& details, QWid
     
     // Attempt automatic recovery if enabled
     if (s_autoRecoveryEnabled && canRecover(type)) {
-        LOG_INFO("UI", QString("Attempting automatic recovery for %1").arg(errorTypeStr));
+        LOG_INFO(LogCategories::UI, QString("Attempting automatic recovery for %1").arg(errorTypeStr));
         
         bool recoverySuccess = attemptRecovery(type, component, details);
         
@@ -111,7 +111,7 @@ void ThemeErrorHandler::handleError(ErrorType type, const QString& details, QWid
             if (s_userNotificationEnabled && (type == ErrorType::ThemeLoadFailure || 
                                             type == ErrorType::CustomThemeCorruption ||
                                             type == ErrorType::StyleApplicationFailure)) {
-                LOG_INFO("UI", "Showing recovery dialog for critical theme error");
+                LOG_INFO(LogCategories::UI, "Showing recovery dialog for critical theme error");
                 
                 // Use QTimer to ensure we're in the main thread and UI is ready
                 QTimer::singleShot(100, [type, details]() {

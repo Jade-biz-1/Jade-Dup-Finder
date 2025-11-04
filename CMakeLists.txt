@@ -33,46 +33,65 @@ if(NOT CMAKE_BUILD_TYPE)
         FORCE)
 endif()
 
-# Find required Qt6 components
-find_package(Qt6 REQUIRED COMPONENTS
-    Core
-    Widgets
-    Concurrent
-    Test
-    Network
-)
+# Find required Qt6 components (with Qt5 fallback for development)
+find_package(Qt6 QUIET COMPONENTS Core Widgets Concurrent Test Network)
+if(Qt6_FOUND)
+    message(STATUS "Found Qt6: ${Qt6_VERSION}")
+    set(QT_VERSION 6)
+else()
+    message(WARNING "Qt6 not found, trying Qt5...")
+    find_package(Qt5 REQUIRED COMPONENTS Core Widgets Concurrent Test Network)
+    if(Qt5_FOUND)
+        message(STATUS "Found Qt5: ${Qt5_VERSION}")
+        set(QT_VERSION 5)
+    else()
+        message(FATAL_ERROR "Neither Qt6 nor Qt5 found. Please install Qt from https://www.qt.io/download")
+    endif()
+endif()
 
 # GPU acceleration support
 option(ENABLE_GPU_ACCELERATION "Enable GPU acceleration for hash calculations" ON)
 
+set(DUPFINDER_BUILD_VARIANT "auto" CACHE STRING "Select build variant: auto, cpu, or gpu")
+set_property(CACHE DUPFINDER_BUILD_VARIANT PROPERTY STRINGS auto cpu gpu)
+
+if(DUPFINDER_BUILD_VARIANT STREQUAL "cpu")
+    set(ENABLE_GPU_ACCELERATION OFF CACHE BOOL "Enable GPU acceleration for hash calculations" FORCE)
+elseif(DUPFINDER_BUILD_VARIANT STREQUAL "gpu")
+    set(ENABLE_GPU_ACCELERATION ON CACHE BOOL "Enable GPU acceleration for hash calculations" FORCE)
+endif()
+
 if(ENABLE_GPU_ACCELERATION)
     message(STATUS "Checking for GPU acceleration libraries...")
 
-    # Try CUDA first (NVIDIA preferred)
-    # find_package(CUDA QUIET)
-    # if(CUDA_FOUND)
-    #     message(STATUS "CUDA found: ${CUDA_VERSION}")
-    #     message(STATUS "CUDA libraries: ${CUDA_LIBRARIES}")
-    #     message(STATUS "CUDA include dirs: ${CUDA_INCLUDE_DIRS}")
-    #     set(GPU_BACKEND "CUDA")
-    #     set(USE_CUDA ON)
-    # else()
-        message(STATUS "CUDA not found")
+    # Try CUDA first (preferred for NVIDIA GPUs)
+    find_package(CUDA QUIET)
+    if(CUDA_FOUND)
+        message(STATUS "CUDA found: ${CUDA_VERSION}")
+        message(STATUS "CUDA libraries: ${CUDA_LIBRARIES}")
+        message(STATUS "CUDA include dirs: ${CUDA_INCLUDE_DIRS}")
+        set(GPU_BACKEND "CUDA")
+        set(USE_CUDA ON)
+        set(HAS_CUDA ON)
+    else()
+        message(STATUS "CUDA not found, trying OpenCL...")
 
-        # Fallback to OpenCL
-        # find_package(OpenCL QUIET)
-        # if(OpenCL_FOUND)
-        #     message(STATUS "OpenCL found: Enabling OpenCL acceleration")
-        #     set(GPU_BACKEND "OpenCL")
-        #     set(USE_OPENCL ON)
-        # else()
+        # Fallback to OpenCL (works with AMD/Intel GPUs and MinGW)
+        find_package(OpenCL QUIET)
+        if(OpenCL_FOUND)
+            message(STATUS "OpenCL found: Enabling OpenCL acceleration")
+            set(GPU_BACKEND "OpenCL")
+            set(USE_OPENCL ON)
+            set(HAS_OPENCL ON)
+        else()
             message(WARNING "No GPU acceleration libraries found. Building CPU-only version.")
             message(WARNING "To enable GPU acceleration:")
             message(WARNING "  - For NVIDIA: Install CUDA Toolkit from https://developer.nvidia.com/cuda-downloads")
+            message(WARNING "    Then use: cmake .. -G \"Visual Studio 16 2019\" (or appropriate VS version)")
             message(WARNING "  - For AMD/Intel: Install OpenCL development packages")
             set(ENABLE_GPU_ACCELERATION OFF)
-        # endif()
-    # endif()
+        endif()
+    endif()
 
     if(ENABLE_GPU_ACCELERATION)
         message(STATUS "GPU acceleration enabled with backend: ${GPU_BACKEND}")
@@ -89,9 +108,14 @@ elseif(UNIX)
 endif()
 
 # Compiler-specific flags
+option(DUPFINDER_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" ON)
+
 if(MSVC)
-    # Enable all warnings and treat warnings as errors for MSVC
-    add_compile_options(/W4 /WX)
+    # Enable all warnings for MSVC
+    add_compile_options(/W4)
+    if(DUPFINDER_WARNINGS_AS_ERRORS)
+        add_compile_options(/WX)
+    endif()
     # Enable parallel compilation
     add_compile_options(/MP)
     # Security features
@@ -101,6 +125,9 @@ else()
     add_compile_options(-Wall -Wextra -pedantic)
     # Additional useful warnings
     add_compile_options(-Wconversion -Wsign-conversion -Wunused -Wcast-align)
+    if(DUPFINDER_WARNINGS_AS_ERRORS)
+        add_compile_options(-Werror)
+    endif()
     # Security features
     add_compile_options(-fstack-protector-strong -D_FORTIFY_SOURCE=2)
     # Debug info in release builds for profiling
@@ -114,6 +141,15 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
+
+# Add GPU include directories if enabled
+if(ENABLE_GPU_ACCELERATION)
+    if(USE_CUDA)
+        include_directories(${CUDA_INCLUDE_DIRS})
+    elseif(USE_OPENCL)
+        include_directories(${OpenCL_INCLUDE_DIRS})
+    endif()
+endif()
 
 # Source files
 set(CORE_SOURCES
@@ -224,6 +260,27 @@ set(HEADER_FILES
     src/core/document_handler.h
     src/core/media_handler.h
     src/core/file_type_manager.h
+    # GUI headers required for Qt's MOC
+    include/main_window.h
+    include/scan_dialog.h
+    include/results_window.h
+    include/settings_dialog.h
+    include/scan_history_dialog.h
+    include/restore_dialog.h
+    include/thumbnail_cache.h
+    include/thumbnail_delegate.h
+    include/exclude_pattern_widget.h
+    include/preset_manager_dialog.h
+    include/scan_scope_preview_widget.h
+    include/scan_progress_dialog.h
+    include/scan_error_dialog.h
+    include/advanced_filter_dialog.h
+    include/file_operation_progress_dialog.h
+    include/grouping_options_dialog.h
+    include/safety_features_dialog.h
+    include/about_dialog.h
+    include/theme_notification_widget.h
+    include/theme_recovery_dialog.h
 )
 
 # Add GPU headers if enabled
@@ -248,25 +305,68 @@ add_executable(dupfinder
     ${HEADER_FILES}
 )
 
-# GPU-specific compilation
-if(USE_CUDA)
-    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-O3;-gencode=arch=compute_60,code=sm_60)
-    cuda_add_library(gpu_acceleration STATIC
-        src/gpu/cuda_hash_calculator.cu
-    )
-elseif(USE_OPENCL)
-    add_library(gpu_acceleration STATIC
-        src/gpu/opencl_hash_calculator.cpp
-    )
+# Ensure Visual Studio compiles the aggregated MOC translation unit
+if(CMAKE_GENERATOR MATCHES "Visual Studio")
+    set(_dupfinder_autogen_dir "${CMAKE_CURRENT_BINARY_DIR}/dupfinder_autogen")
+    foreach(_cfg Debug Release MinSizeRel RelWithDebInfo)
+        target_sources(dupfinder PRIVATE
+            "$<$<CONFIG:${_cfg}>:${_dupfinder_autogen_dir}/mocs_compilation_${_cfg}.cpp>"
+        )
+    endforeach()
 endif()
 
-# Link Qt6 libraries
-target_link_libraries(dupfinder
-    Qt6::Core
-    Qt6::Widgets
-    Qt6::Concurrent
-    Qt6::Network
-)
+# Add preprocessor definitions for GPU backends
+if(ENABLE_GPU_ACCELERATION)
+    if(USE_CUDA)
+        target_compile_definitions(dupfinder PRIVATE HAS_CUDA)
+    elseif(USE_OPENCL)
+        target_compile_definitions(dupfinder PRIVATE HAS_OPENCL)
+    endif()
+endif()
+
+# GPU-specific compilation
+if(ENABLE_GPU_ACCELERATION)
+    if(USE_CUDA)
+        # CUDA requires MSVC on Windows - check if we're using the right compiler
+        if(WIN32 AND NOT MSVC)
+            message(FATAL_ERROR "CUDA acceleration requires MSVC compiler on Windows.\n"
+                              "Current compiler: ${CMAKE_CXX_COMPILER_ID}\n"
+                              "To enable CUDA acceleration:\n"
+                              "1. Open 'Visual Studio 2022 Developer Command Prompt' or 'x86 Native Tools Command Prompt for VS 2022'\n"
+                              "2. Run: cmake .. -G \"Visual Studio 17 2022\" (or appropriate VS version)\n"
+                              "3. Build with: cmake --build . --config Release\n"
+                              "Alternatively, you can disable GPU acceleration: cmake .. -DENABLE_GPU_ACCELERATION=OFF")
+        else()
+            message(STATUS "CUDA compilation enabled with MSVC")
+            set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-O3;-gencode=arch=compute_60,code=sm_60)
+            cuda_add_library(gpu_acceleration STATIC
+                src/gpu/cuda_hash_calculator.cu
+            )
+        endif()
+    elseif(USE_OPENCL)
+        message(STATUS "OpenCL compilation enabled")
+        add_library(gpu_acceleration STATIC
+            src/gpu/opencl_hash_calculator.cpp
+        )
+    endif()
+endif()
+
+# Link Qt libraries
+if(QT_VERSION EQUAL 6)
+    target_link_libraries(dupfinder
+        Qt6::Core
+        Qt6::Widgets
+        Qt6::Concurrent
+        Qt6::Network
+    )
+else()
+    target_link_libraries(dupfinder
+        Qt5::Core
+        Qt5::Widgets
+        Qt5::Concurrent
+        Qt5::Network
+    )
+endif()
 
 # Link GPU libraries
 if(ENABLE_GPU_ACCELERATION)
@@ -328,8 +428,15 @@ install(TARGETS dupfinder
 
 # Qt deployment for Windows
 if(WIN32)
-    find_program(WINDEPLOYQT_EXECUTABLE windeployqt HINTS "${QT6_INSTALL_PREFIX}/bin")
+    if(QT_VERSION EQUAL 6)
+        find_program(WINDEPLOYQT_EXECUTABLE windeployqt HINTS "${Qt6_DIR}/../../../bin" "${Qt6_DIR}/../../bin")
+    else()
+        find_program(WINDEPLOYQT_EXECUTABLE windeployqt HINTS "${Qt5_DIR}/../../../bin" "${Qt5_DIR}/../../bin")
+    endif()
+
     if(WINDEPLOYQT_EXECUTABLE)
+        message(STATUS "windeployqt found: ${WINDEPLOYQT_EXECUTABLE}")
+        
         # Deploy Qt libraries after build
         add_custom_command(TARGET dupfinder POST_BUILD
             COMMAND ${WINDEPLOYQT_EXECUTABLE}
@@ -343,60 +450,95 @@ if(WIN32)
         )
 
         # Install Qt DLLs deployed by windeployqt
-        install(FILES
-            $<TARGET_FILE_DIR:dupfinder>/Qt6Core.dll
-            $<TARGET_FILE_DIR:dupfinder>/Qt6Gui.dll
-            $<TARGET_FILE_DIR:dupfinder>/Qt6Widgets.dll
-            $<TARGET_FILE_DIR:dupfinder>/Qt6Network.dll
-            $<TARGET_FILE_DIR:dupfinder>/Qt6Svg.dll
-            $<TARGET_FILE_DIR:dupfinder>/opengl32sw.dll
-            DESTINATION bin
-        )
+        if(QT_VERSION EQUAL 6)
+            install(FILES
+                $<TARGET_FILE_DIR:dupfinder>/Qt6Core.dll
+                $<TARGET_FILE_DIR:dupfinder>/Qt6Gui.dll
+                $<TARGET_FILE_DIR:dupfinder>/Qt6Widgets.dll
+                $<TARGET_FILE_DIR:dupfinder>/Qt6Network.dll
+                $<TARGET_FILE_DIR:dupfinder>/Qt6Svg.dll
+                $<TARGET_FILE_DIR:dupfinder>/opengl32sw.dll
+                DESTINATION bin
+                OPTIONAL
+            )
+        else()
+            install(FILES
+                $<TARGET_FILE_DIR:dupfinder>/Qt5Core.dll
+                $<TARGET_FILE_DIR:dupfinder>/Qt5Gui.dll
+                $<TARGET_FILE_DIR:dupfinder>/Qt5Widgets.dll
+                $<TARGET_FILE_DIR:dupfinder>/Qt5Network.dll
+                $<TARGET_FILE_DIR:dupfinder>/Qt5Svg.dll
+                $<TARGET_FILE_DIR:dupfinder>/opengl32sw.dll
+                DESTINATION bin
+                OPTIONAL
+            )
+        endif()
 
         # Install Qt plugin directories deployed by windeployqt
         install(DIRECTORY $<TARGET_FILE_DIR:dupfinder>/platforms
             DESTINATION bin
+            OPTIONAL
         )
         install(DIRECTORY $<TARGET_FILE_DIR:dupfinder>/iconengines
             DESTINATION bin
+            OPTIONAL
         )
         install(DIRECTORY $<TARGET_FILE_DIR:dupfinder>/imageformats
             DESTINATION bin
+            OPTIONAL
         )
         install(DIRECTORY $<TARGET_FILE_DIR:dupfinder>/styles
             DESTINATION bin
+            OPTIONAL
         )
+    else()
+        message(WARNING "windeployqt not found. Qt libraries will not be automatically deployed. Install Qt Creator or add windeployqt to PATH.")
     endif()
 endif()
 
 # Platform-specific install configuration
 if(WIN32)
-    # Windows installer configuration
-    set(CPACK_GENERATOR "NSIS")
-    set(CPACK_NSIS_DISPLAY_NAME "DupFinder")
-    set(CPACK_NSIS_PACKAGE_NAME "DupFinder")
-    set(CPACK_NSIS_EXECUTABLE "C:/Program Files (x86)/NSIS/makensis.exe")
-
-    # Create Start menu shortcuts
-    set(CPACK_NSIS_MENU_LINKS
-        "bin/dupfinder.exe" "DupFinder"
-        "https://github.com/Jade-biz-1/Jade-Dup-Finder" "DupFinder on GitHub"
+    # Find NSIS executable
+    find_program(NSIS_EXECUTABLE makensis
+        PATHS
+            "C:/Program Files (x86)/NSIS"
+            "C:/Program Files/NSIS"
+            "$ENV{PROGRAMFILES}/NSIS"
+            "$ENV{PROGRAMFILES(X86)}/NSIS"
     )
+    
+    if(NSIS_EXECUTABLE)
+        # Windows installer configuration
+        set(CPACK_GENERATOR "NSIS")
+        set(CPACK_NSIS_DISPLAY_NAME "DupFinder")
+        set(CPACK_NSIS_PACKAGE_NAME "DupFinder")
+        set(CPACK_NSIS_EXECUTABLE "${NSIS_EXECUTABLE}")
 
-    # Create desktop shortcut
-    set(CPACK_NSIS_CREATE_ICONS_EXTRA
-        "CreateShortCut '$DESKTOP\\\\DupFinder.lnk' '$INSTDIR\\\\bin\\\\dupfinder.exe'"
-    )
-    set(CPACK_NSIS_DELETE_ICONS_EXTRA
-        "Delete '$DESKTOP\\\\DupFinder.lnk'"
-    )
+        # Create Start menu shortcuts
+        set(CPACK_NSIS_MENU_LINKS
+            "bin/dupfinder.exe" "DupFinder"
+            "https://github.com/Jade-biz-1/Jade-Dup-Finder" "DupFinder on GitHub"
+        )
 
-    # Installer branding
-    set(CPACK_NSIS_CONTACT "DupFinder Team")
-    set(CPACK_NSIS_URL_INFO_ABOUT "https://github.com/Jade-biz-1/Jade-Dup-Finder")
-    set(CPACK_NSIS_HELP_LINK "https://github.com/Jade-biz-1/Jade-Dup-Finder")
+        # Create desktop shortcut
+        set(CPACK_NSIS_CREATE_ICONS_EXTRA
+            "CreateShortCut '$DESKTOP\\\\DupFinder.lnk' '$INSTDIR\\\\bin\\\\dupfinder.exe'"
+        )
+        set(CPACK_NSIS_DELETE_ICONS_EXTRA
+            "Delete '$DESKTOP\\\\DupFinder.lnk'"
+        )
 
-elseif(APPLE)
+        # Installer branding
+        set(CPACK_NSIS_CONTACT "DupFinder Team")
+        set(CPACK_NSIS_URL_INFO_ABOUT "https://github.com/Jade-biz-1/Jade-Dup-Finder")
+        set(CPACK_NSIS_HELP_LINK "https://github.com/Jade-biz-1/Jade-Dup-Finder")
+        
+        message(STATUS "NSIS found: ${NSIS_EXECUTABLE}")
+    else()
+        message(WARNING "NSIS not found. Windows installer will not be available. Install NSIS from https://nsis.sourceforge.io/")
+        # Fallback to ZIP packaging
+        set(CPACK_GENERATOR "ZIP")
+    endif()
     # macOS bundle configuration
     set(CPACK_GENERATOR "DragNDrop")
     set(CPACK_DMG_VOLUME_NAME "DupFinder")
@@ -415,6 +557,15 @@ set(CPACK_PACKAGE_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
 set(CPACK_PACKAGE_VERSION_MINOR ${PROJECT_VERSION_MINOR})
 set(CPACK_PACKAGE_VERSION_PATCH ${PROJECT_VERSION_PATCH})
 set(CPACK_PACKAGE_INSTALL_DIRECTORY "DupFinder")
+
+set(DUPFINDER_PACKAGE_SUFFIX "" CACHE STRING "Optional suffix appended to generated package filenames")
+set(_dupfinder_package_suffix "${DUPFINDER_PACKAGE_SUFFIX}")
+if(_dupfinder_package_suffix)
+    string(REGEX REPLACE "[^A-Za-z0-9_\-]" "-" _dupfinder_package_suffix "${_dupfinder_package_suffix}")
+    set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${PROJECT_VERSION}-${PLATFORM_NAME}-${_dupfinder_package_suffix}")
+else()
+    set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${PROJECT_VERSION}-${PLATFORM_NAME}")
+endif()
 
 include(CPack)
 
@@ -560,7 +711,7 @@ message(STATUS "Platform: ${PLATFORM_NAME}")
 message(STATUS "C++ Standard: ${CMAKE_CXX_STANDARD}")
 message(STATUS "Compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
 message(STATUS "Install Prefix: ${CMAKE_INSTALL_PREFIX}")
-message(STATUS "Qt6 Version: ${Qt6_VERSION}")
+message(STATUS "Qt${QT_VERSION} Version: ${Qt${QT_VERSION}_VERSION}")
 message(STATUS "Available Build Targets:")
 message(STATUS "  - dupfinder (main application)")
 message(STATUS "  - check (run all tests)")

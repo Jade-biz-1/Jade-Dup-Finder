@@ -149,8 +149,8 @@ QByteArray PerceptualHashAlgorithm::computeDHash(const QImage& image) const
     for (int i = 0; i < hash.size(); ++i) {
         if (hash.testBit(i)) {
             int byteIndex = i / 8;
-            int bitIndex = i % 8;
-            result[byteIndex] |= (1 << bitIndex);
+            int bitOffset = i % 8;
+            result[byteIndex] |= (1 << bitOffset);
         }
     }
     

@@ -579,13 +579,13 @@ void ResultsWindow::setupConnections()
     connect(m_refreshButton, &QPushButton::clicked, this, &ResultsWindow::refreshResults);
     connect(m_exportButton, &QPushButton::clicked, this, &ResultsWindow::exportResults);
     connect(m_settingsButton, &QPushButton::clicked, this, [this]() {
-        LOG_INFO("Opening Settings dialog");
+        LOG_INFO(LogCategories::UI, "Opening Settings dialog");
         
         try {
             SettingsDialog* settingsDialog = new SettingsDialog(this);
             
             if (!settingsDialog) {
-                LOG_ERROR("Failed to create Settings dialog");
+                LOG_ERROR(LogCategories::UI, "Failed to create Settings dialog");
                 QMessageBox::warning(this, tr("Error"), 
                                    tr("Failed to open Settings dialog. Please try again."));
                 return;
@@ -594,7 +594,7 @@ void ResultsWindow::setupConnections()
             // Connect settings changed signal to apply changes
             connect(settingsDialog, &SettingsDialog::settingsChanged,
                     this, [this]() {
-                        LOG_INFO("Settings changed, applying updates");
+                        LOG_INFO(LogCategories::UI, "Settings changed, applying updates");
                         // Apply any settings that affect the results window
                         applyTheme();
                     });
@@ -604,14 +604,14 @@ void ResultsWindow::setupConnections()
             settingsDialog->raise();
             settingsDialog->activateWindow();
             
-            LOG_INFO("Settings dialog opened successfully");
+            LOG_INFO(LogCategories::UI, "Settings dialog opened successfully");
             
         } catch (const std::exception& e) {
-            LOG_ERROR("Exception while opening Settings dialog: " + QString(e.what()));
+            LOG_ERROR(LogCategories::UI, "Exception while opening Settings dialog: " + QString(e.what()));
             QMessageBox::critical(this, tr("Error"), 
                                 tr("An error occurred while opening the Settings dialog: %1").arg(e.what()));
         } catch (...) {
-            LOG_ERROR("Unknown exception while opening Settings dialog");
+            LOG_ERROR(LogCategories::UI, "Unknown exception while opening Settings dialog");
             QMessageBox::critical(this, tr("Error"), 
                                 tr("An unknown error occurred while opening the Settings dialog."));
         }
@@ -665,7 +665,7 @@ void ResultsWindow::setupConnections()
         if (item->parent() == nullptr) {
             // This is a group item - toggle all child files
             QString groupId = item->data(0, Qt::UserRole).toString();
-            LOG_DEBUG(QString("Group checkbox changed: %1 -> %2")
+            LOG_DEBUG(LogCategories::UI, QString("Group checkbox changed: %1 -> %2")
                       .arg(groupId)
                       .arg(isChecked ? "checked" : "unchecked"));
             
@@ -729,7 +729,7 @@ void ResultsWindow::setupConnections()
                 }
             }
             
-            LOG_DEBUG(QString("File checkbox changed: %1 -> %2")
+            LOG_DEBUG(LogCategories::UI, QString("File checkbox changed: %1 -> %2")
                       .arg(filePath)
                       .arg(isChecked ? "checked" : "unchecked"));
         }
@@ -1688,7 +1688,7 @@ void ResultsWindow::exportResults()
 
 void ResultsWindow::selectAllDuplicates()
 {
-    LOG_INFO("User clicked 'Select All' button");
+    LOG_INFO(LogCategories::UI, "User clicked 'Select All' button");
     
     // Record current state before changing selection (Task 17)
     recordSelectionState("Select all files");
@@ -1716,13 +1716,13 @@ void ResultsWindow::selectAllDuplicates()
         ++it;
     }
     
-    LOG_INFO(QString("Selected all %1 files").arg(selectedCount));
+    LOG_INFO(LogCategories::UI, QString("Selected all %1 files").arg(selectedCount));
     updateSelectionSummary();
 }
 
 void ResultsWindow::selectNoneFiles()
 {
-    LOG_INFO("User clicked 'Clear Selection' button");
+    LOG_INFO(LogCategories::UI, "User clicked 'Clear Selection' button");
     
     // Record current state before changing selection (Task 17)
     recordSelectionState("Clear all selections");
@@ -1747,19 +1747,19 @@ void ResultsWindow::selectNoneFiles()
         ++it;
     }
     
-    LOG_INFO("Cleared all selections");
+    LOG_INFO(LogCategories::UI, "Cleared all selections");
     updateSelectionSummary();
 }
 
 void ResultsWindow::selectRecommended()
 {
-    LOG_INFO("User clicked 'Select Recommended' button");
+    LOG_INFO(LogCategories::UI, "User clicked 'Select Recommended' button");
     
     int selectedCount = 0;
     // Select all non-recommended files (files to delete)
     for (const auto& group : m_currentResults.duplicateGroups) {
         QString recommended = getRecommendedFileToKeep(group);
-        LOG_DEBUG(QString("Group recommended file: %1").arg(recommended));
+        LOG_DEBUG(LogCategories::UI, QString("Group recommended file: %1").arg(recommended));
         
         QTreeWidgetItemIterator it(m_resultsTree);
         while (*it) {
@@ -1778,13 +1778,13 @@ void ResultsWindow::selectRecommended()
         }
     }
     
-    LOG_INFO(QString("Selected %1 recommended files for deletion").arg(selectedCount));
+    LOG_INFO(LogCategories::UI, QString("Selected %1 recommended files for deletion").arg(selectedCount));
     updateSelectionSummary();
 }
 
 void ResultsWindow::selectBySize(qint64 minSize)
 {
-    LOG_INFO(QString("Selecting files by size (min: %1 bytes)").arg(minSize));
+    LOG_INFO(LogCategories::UI, QString("Selecting files by size (min: %1 bytes)").arg(minSize));
     
     int selectedCount = 0;
     QTreeWidgetItemIterator it(m_resultsTree);
@@ -1806,13 +1806,13 @@ void ResultsWindow::selectBySize(qint64 minSize)
         ++it;
     }
     
-    LOG_INFO(QString("Selected %1 files by size").arg(selectedCount));
+    LOG_INFO(LogCategories::UI, QString("Selected %1 files by size").arg(selectedCount));
     updateSelectionSummary();
 }
 
 void ResultsWindow::selectByType(const QString& fileType)
 {
-    LOG_INFO(QString("Selecting files by type: %1").arg(fileType));
+    LOG_INFO(LogCategories::UI, QString("Selecting files by type: %1").arg(fileType));
     
     int selectedCount = 0;
     QTreeWidgetItemIterator it(m_resultsTree);
@@ -1836,7 +1836,7 @@ void ResultsWindow::selectByType(const QString& fileType)
         ++it;
     }
     
-    LOG_INFO(QString("Selected %1 files by type").arg(selectedCount));
+    LOG_INFO(LogCategories::UI, QString("Selected %1 files by type").arg(selectedCount));
     updateSelectionSummary();
 }
 
@@ -1845,7 +1845,7 @@ void ResultsWindow::deleteSelectedFiles()
 {
     QList<DuplicateFile> selected = getSelectedFiles();
     if (selected.isEmpty()) {
-        LOG_WARNING("No files selected for deletion");
+        LOG_WARNING(LogCategories::UI, "No files selected for deletion");
         return;
     }
     
@@ -1866,25 +1866,25 @@ void ResultsWindow::deleteSelectedFiles()
                                                               QMessageBox::Yes | QMessageBox::No);
     
     if (reply != QMessageBox::Yes) {
-        LOG_INFO("User cancelled file deletion");
+        LOG_INFO(LogCategories::UI, "User cancelled file deletion");
         return;
     }
     
-    LOG_INFO(QString("=== File Deletion Started ==="));
-    LOG_INFO(QString("  - Files to delete: %1").arg(selected.size()));
-    LOG_INFO(QString("  - Total size: %1").arg(formatFileSize(totalSize)));
+    LOG_INFO(LogCategories::UI, QString("=== File Deletion Started ==="));
+    LOG_INFO(LogCategories::UI, QString("  - Files to delete: %1").arg(selected.size()));
+    LOG_INFO(LogCategories::UI, QString("  - Total size: %1").arg(formatFileSize(totalSize)));
     
     // Log files to be deleted
     for (int i = 0; i < qMin(5, selected.size()); ++i) {
-        LOG_DEBUG(QString("  - Delete: %1").arg(selected[i].filePath));
+        LOG_DEBUG(LogCategories::UI, QString("  - Delete: %1").arg(selected[i].filePath));
     }
     if (selected.size() > 5) {
-        LOG_DEBUG(QString("  ... and %1 more files").arg(selected.size() - 5));
+        LOG_DEBUG(LogCategories::UI, QString("  ... and %1 more files").arg(selected.size() - 5));
     }
     
     // Check if FileManager is available
     if (!m_fileManager) {
-        LOG_ERROR("FileManager not available - cannot delete files");
+        LOG_ERROR(LogCategories::UI, "FileManager not available - cannot delete files");
         QMessageBox::critical(this, tr("Error"), 
                             tr("File manager is not initialized. Cannot delete files."));
         return;
@@ -1900,21 +1900,21 @@ void ResultsWindow::deleteSelectedFiles()
     QString operationId = m_fileManager->deleteFiles(filePaths, tr("User deleted duplicates from results window"));
     
     if (operationId.isEmpty()) {
-        LOG_ERROR("Failed to start delete operation");
+        LOG_ERROR(LogCategories::UI, "Failed to start delete operation");
         QMessageBox::critical(this, tr("Error"), 
                             tr("Failed to start delete operation."));
         return;
     }
     
-    LOG_INFO(QString("Delete operation started with ID: %1").arg(operationId));
+    LOG_INFO(LogCategories::UI, QString("Delete operation started with ID: %1").arg(operationId));
     
     // Connect to operation completion signals
     connect(m_fileManager, &FileManager::operationCompleted, this,
             [this, filePaths](const FileManager::OperationResult& result) {
                 if (result.success) {
-                    LOG_INFO(QString("=== File Deletion Completed ==="));
-                    LOG_INFO(QString("  - Files deleted: %1").arg(result.processedFiles.size()));
-                    LOG_INFO(QString("  - Failed: %1").arg(result.failedFiles.size()));
+                    LOG_INFO(LogCategories::UI, QString("=== File Deletion Completed ==="));
+                    LOG_INFO(LogCategories::UI, QString("  - Files deleted: %1").arg(result.processedFiles.size()));
+                    LOG_INFO(LogCategories::UI, QString("  - Failed: %1").arg(result.failedFiles.size()));
                     
                     // Remove deleted files from display
                     removeFilesFromDisplay(result.processedFiles);
@@ -1929,7 +1929,7 @@ void ResultsWindow::deleteSelectedFiles()
                     }
                     QMessageBox::information(this, tr("Delete Complete"), message);
                 } else {
-                    LOG_ERROR(QString("Delete operation failed: %1").arg(result.errorMessage));
+                    LOG_ERROR(LogCategories::UI, QString("Delete operation failed: %1").arg(result.errorMessage));
                     QMessageBox::critical(this, tr("Delete Failed"), 
                                         tr("Failed to delete files:\n%1").arg(result.errorMessage));
                 }
@@ -1937,7 +1937,7 @@ void ResultsWindow::deleteSelectedFiles()
     
     connect(m_fileManager, &FileManager::operationError, this,
             [this](const QString& operationId, const QString& error) {
-                LOG_ERROR(QString("Delete operation error [%1]: %2").arg(operationId).arg(error));
+                LOG_ERROR(LogCategories::UI, QString("Delete operation error [%1]: %2").arg(operationId).arg(error));
                 QMessageBox::critical(this, tr("Delete Error"), 
                                     tr("An error occurred during deletion:\n%1").arg(error));
             });
@@ -1945,11 +1945,11 @@ void ResultsWindow::deleteSelectedFiles()
 
 void ResultsWindow::moveSelectedFiles()
 {
-    LOG_INFO("User clicked 'Move Selected Files' button");
+    LOG_INFO(LogCategories::UI, "User clicked 'Move Selected Files' button");
     
     QList<DuplicateFile> selected = getSelectedFiles();
     if (selected.isEmpty()) {
-        LOG_WARNING("No files selected for moving");
+        LOG_WARNING(LogCategories::UI, "No files selected for moving");
         QMessageBox::information(this, tr("Move Files"), 
                                tr("Please select files to move first."));
         return;
@@ -1962,34 +1962,34 @@ void ResultsWindow::moveSelectedFiles()
                                                            QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
     
     if (destination.isEmpty()) {
-        LOG_INFO("User cancelled file move operation");
+        LOG_INFO(LogCategories::UI, "User cancelled file move operation");
         return;
     }
     
     // Validate destination is writable
     QFileInfo destInfo(destination);
     if (!destInfo.isWritable()) {
-        LOG_ERROR(QString("Destination folder is not writable: %1").arg(destination));
+        LOG_ERROR(LogCategories::UI, QString("Destination folder is not writable: %1").arg(destination));
         QMessageBox::critical(this, tr("Error"), 
                             tr("The selected destination folder is not writable."));
         return;
     }
     
-    LOG_INFO(QString("=== File Move Started ==="));
-    LOG_INFO(QString("  - Files to move: %1").arg(selected.size()));
-    LOG_INFO(QString("  - Destination: %1").arg(destination));
+    LOG_INFO(LogCategories::UI, QString("=== File Move Started ==="));
+    LOG_INFO(LogCategories::UI, QString("  - Files to move: %1").arg(selected.size()));
+    LOG_INFO(LogCategories::UI, QString("  - Destination: %1").arg(destination));
     
     // Log files to be moved
     for (int i = 0; i < qMin(5, selected.size()); ++i) {
-        LOG_DEBUG(QString("  - Move: %1 -> %2").arg(selected[i].filePath).arg(destination));
+        LOG_DEBUG(LogCategories::UI, QString("  - Move: %1 -> %2").arg(selected[i].filePath).arg(destination));
     }
     if (selected.size() > 5) {
-        LOG_DEBUG(QString("  ... and %1 more files").arg(selected.size() - 5));
+        LOG_DEBUG(LogCategories::UI, QString("  ... and %1 more files").arg(selected.size() - 5));
     }
     
     // Check if FileManager is available
     if (!m_fileManager) {
-        LOG_ERROR("FileManager not available - cannot move files");
+        LOG_ERROR(LogCategories::UI, "FileManager not available - cannot move files");
         QMessageBox::critical(this, tr("Error"), 
                             tr("File manager is not initialized. Cannot move files."));
         return;
@@ -2005,22 +2005,22 @@ void ResultsWindow::moveSelectedFiles()
     QString operationId = m_fileManager->moveFiles(filePaths, destination);
     
     if (operationId.isEmpty()) {
-        LOG_ERROR("Failed to start move operation");
+        LOG_ERROR(LogCategories::UI, "Failed to start move operation");
         QMessageBox::critical(this, tr("Error"), 
                             tr("Failed to start move operation."));
         return;
     }
     
-    LOG_INFO(QString("Move operation started with ID: %1").arg(operationId));
+    LOG_INFO(LogCategories::UI, QString("Move operation started with ID: %1").arg(operationId));
     
     // Connect to operation completion signals
     connect(m_fileManager, &FileManager::operationCompleted, this,
             [this, destination](const FileManager::OperationResult& result) {
                 if (result.success) {
-                    LOG_INFO(QString("=== File Move Completed ==="));
-                    LOG_INFO(QString("  - Files moved: %1").arg(result.processedFiles.size()));
-                    LOG_INFO(QString("  - Failed: %1").arg(result.failedFiles.size()));
-                    LOG_INFO(QString("  - Skipped: %1").arg(result.skippedFiles.size()));
+                    LOG_INFO(LogCategories::UI, QString("=== File Move Completed ==="));
+                    LOG_INFO(LogCategories::UI, QString("  - Files moved: %1").arg(result.processedFiles.size()));
+                    LOG_INFO(LogCategories::UI, QString("  - Failed: %1").arg(result.failedFiles.size()));
+                    LOG_INFO(LogCategories::UI, QString("  - Skipped: %1").arg(result.skippedFiles.size()));
                     
                     // Remove moved files from display
                     removeFilesFromDisplay(result.processedFiles);
@@ -2040,7 +2040,7 @@ void ResultsWindow::moveSelectedFiles()
                     }
                     QMessageBox::information(this, tr("Move Complete"), message);
                 } else {
-                    LOG_ERROR(QString("Move operation failed: %1").arg(result.errorMessage));
+                    LOG_ERROR(LogCategories::UI, QString("Move operation failed: %1").arg(result.errorMessage));
                     QMessageBox::critical(this, tr("Move Failed"), 
                                         tr("Failed to move files:\n%1").arg(result.errorMessage));
                 }
@@ -2048,7 +2048,7 @@ void ResultsWindow::moveSelectedFiles()
     
     connect(m_fileManager, &FileManager::operationError, this,
             [this](const QString& operationId, const QString& error) {
-                LOG_ERROR(QString("Move operation error [%1]: %2").arg(operationId).arg(error));
+                LOG_ERROR(LogCategories::UI, QString("Move operation error [%1]: %2").arg(operationId).arg(error));
                 QMessageBox::critical(this, tr("Move Error"), 
                                     tr("An error occurred during move:\n%1").arg(error));
             });
@@ -2056,7 +2056,7 @@ void ResultsWindow::moveSelectedFiles()
 
 void ResultsWindow::ignoreSelectedFiles()
 {
-    LOG_INFO("User clicked 'Ignore Selected Files' button");
+    LOG_INFO(LogCategories::UI, "User clicked 'Ignore Selected Files' button");
     QList<DuplicateFile> selected = getSelectedFiles();
     
     if (selected.isEmpty()) {
@@ -2064,7 +2064,7 @@ void ResultsWindow::ignoreSelectedFiles()
         return;
     }
     
-    LOG_INFO(QString("Ignoring %1 files").arg(selected.size()));
+    LOG_INFO(LogCategories::UI, QString("Ignoring %1 files").arg(selected.size()));
     
     // Remove ignored files from the display
     for (const DuplicateFile& file : selected) {
@@ -2138,17 +2138,17 @@ void ResultsWindow::previewSelectedFile()
 
 void ResultsWindow::openFileLocation()
 {
-    LOG_INFO("User clicked 'Open File Location' button");
+    LOG_INFO(LogCategories::UI, "User clicked 'Open File Location' button");
     
     QList<QTreeWidgetItem*> selected = m_resultsTree->selectedItems();
     if (selected.isEmpty()) {
-        LOG_WARNING("No file selected");
+        LOG_WARNING(LogCategories::UI, "No file selected");
         return;
     }
     
     QTreeWidgetItem* item = selected.first();
     if (item->parent() == nullptr) {
-        LOG_WARNING("Group item selected, not a file");
+        LOG_WARNING(LogCategories::UI, "Group item selected, not a file");
         return;
     }
     
@@ -2156,28 +2156,28 @@ void ResultsWindow::openFileLocation()
     QFileInfo fileInfo(filePath);
     QString dirPath = fileInfo.dir().absolutePath();
     
-    LOG_INFO(QString("Opening file location: %1").arg(dirPath));
+    LOG_INFO(LogCategories::UI, QString("Opening file location: %1").arg(dirPath));
     QDesktopServices::openUrl(QUrl::fromLocalFile(dirPath));
 }
 
 void ResultsWindow::copyFilePath()
 {
-    LOG_INFO("User clicked 'Copy File Path' button");
+    LOG_INFO(LogCategories::UI, "User clicked 'Copy File Path' button");
     
     QList<QTreeWidgetItem*> selected = m_resultsTree->selectedItems();
     if (selected.isEmpty()) {
-        LOG_WARNING("No file selected");
+        LOG_WARNING(LogCategories::UI, "No file selected");
         return;
     }
     
     QTreeWidgetItem* item = selected.first();
     if (item->parent() == nullptr) {
-        LOG_WARNING("Group item selected, not a file");
+        LOG_WARNING(LogCategories::UI, "Group item selected, not a file");
         return;
     }
     
     QString filePath = item->data(0, Qt::UserRole).toString();
-    LOG_INFO(QString("Copying file path to clipboard: %1").arg(filePath));
+    LOG_INFO(LogCategories::UI, QString("Copying file path to clipboard: %1").arg(filePath));
     QApplication::clipboard()->setText(filePath);
     
     m_statusLabel->setText(tr("File path copied to clipboard"));
@@ -2277,7 +2277,7 @@ void ResultsWindow::confirmBulkOperation(const QString& operation, int fileCount
                                                               QMessageBox::Yes | QMessageBox::No);
     
     if (reply == QMessageBox::Yes) {
-        LOG_INFO(QString("User confirmed bulk %1 operation for %2 files").arg(operation).arg(fileCount));
+        LOG_INFO(LogCategories::UI, QString("User confirmed bulk %1 operation for %2 files").arg(operation).arg(fileCount));
         
         // Get selected files
         QList<DuplicateFile> selected = getSelectedFiles();
@@ -2298,10 +2298,10 @@ void ResultsWindow::confirmBulkOperation(const QString& operation, int fileCount
 // Filter and sort implementations
 void ResultsWindow::onFilterChanged()
 {
-    LOG_INFO("User changed filter settings");
-    LOG_DEBUG(QString("  - Type filter: %1").arg(m_typeFilter->currentText()));
-    LOG_DEBUG(QString("  - Size filter: %1").arg(m_sizeFilter->currentText()));
-    LOG_DEBUG(QString("  - Search text: %1").arg(m_searchFilter->text()));
+    LOG_INFO(LogCategories::UI, "User changed filter settings");
+    LOG_DEBUG(LogCategories::UI, QString("  - Type filter: %1").arg(m_typeFilter->currentText()));
+    LOG_DEBUG(LogCategories::UI, QString("  - Size filter: %1").arg(m_sizeFilter->currentText()));
+    LOG_DEBUG(LogCategories::UI, QString("  - Search text: %1").arg(m_searchFilter->text()));
     
     // Apply filters to the tree view
     applyFilters();
@@ -2309,7 +2309,7 @@ void ResultsWindow::onFilterChanged()
 
 void ResultsWindow::onSortChanged()
 {
-    LOG_INFO(QString("User changed sort order to: %1").arg(m_sortCombo->currentText()));
+    LOG_INFO(LogCategories::UI, QString("User changed sort order to: %1").arg(m_sortCombo->currentText()));
     
     // Apply sorting to the tree view
     applySorting();
@@ -2319,7 +2319,7 @@ void ResultsWindow::onGroupExpanded(QTreeWidgetItem* item)
 {
     if (!item) return;
     
-    LOG_DEBUG(QString("Group expanded: %1").arg(item->text(0)));
+    LOG_DEBUG(LogCategories::UI, QString("Group expanded: %1").arg(item->text(0)));
     
     // Update the group's expanded state in our data
     QString groupId = item->data(0, Qt::UserRole + 3).toString();
@@ -2338,7 +2338,7 @@ void ResultsWindow::onGroupCollapsed(QTreeWidgetItem* item)
 {
     if (!item) return;
     
-    LOG_DEBUG(QString("Group collapsed: %1").arg(item->text(0)));
+    LOG_DEBUG(LogCategories::UI, QString("Group collapsed: %1").arg(item->text(0)));
     
     // Update the group's expanded state in our data
     QString groupId = item->data(0, Qt::UserRole + 3).toString();
@@ -2352,7 +2352,7 @@ void ResultsWindow::onGroupCollapsed(QTreeWidgetItem* item)
 
 void ResultsWindow::onGroupSelectionChanged()
 {
-    LOG_DEBUG("Group selection changed");
+    LOG_DEBUG(LogCategories::UI, "Group selection changed");
     
     // Update the details panel with the selected group's information
     QList<QTreeWidgetItem*> selected = m_resultsTree->selectedItems();
@@ -2362,7 +2362,7 @@ void ResultsWindow::onGroupSelectionChanged()
         // If it's a group item (no parent)
         if (!item->parent()) {
             QString groupId = item->data(0, Qt::UserRole + 3).toString();
-            LOG_DEBUG(QString("Selected group: %1").arg(groupId));
+            LOG_DEBUG(LogCategories::UI, QString("Selected group: %1").arg(groupId));
             
             // Update details panel with group information
             // This could show group statistics, recommendations, etc.
@@ -2412,7 +2412,7 @@ void ResultsWindow::updateProgress(const QString& operation, int percentage)
 // Filter and sort helper implementations
 void ResultsWindow::applyFilters()
 {
-    LOG_DEBUG("Applying filters to results tree");
+    LOG_DEBUG(LogCategories::UI, "Applying filters to results tree");
     
     if (!m_resultsTree) {
         return;
@@ -2478,12 +2478,12 @@ void ResultsWindow::applyFilters()
         }
     }
     
-    LOG_DEBUG(QString("Filter results: %1 visible, %2 hidden").arg(visibleGroups).arg(hiddenGroups));
+    LOG_DEBUG(LogCategories::UI, QString("Filter results: %1 visible, %2 hidden").arg(visibleGroups).arg(hiddenGroups));
 }
 
 void ResultsWindow::applySorting()
 {
-    LOG_DEBUG("Applying sorting to results tree");
+    LOG_DEBUG(LogCategories::UI, "Applying sorting to results tree");
     
     if (!m_resultsTree || !m_sortCombo) {
         return;
@@ -2525,7 +2525,7 @@ void ResultsWindow::applySorting()
     }
     
     m_resultsTree->sortItems(column, order);
-    LOG_DEBUG(QString("Sorted by column %1, order %2").arg(column).arg(order == Qt::AscendingOrder ? "ascending" : "descending"));
+    LOG_DEBUG(LogCategories::UI, QString("Sorted by column %1, order %2").arg(column).arg(order == Qt::AscendingOrder ? "ascending" : "descending"));
 }
 
 bool ResultsWindow::matchesCurrentFilters(const DuplicateGroup& group) const
@@ -3095,7 +3095,7 @@ void ResultsWindow::enableThumbnails(bool enable)
             preloadVisibleThumbnails();
         }
         
-        LOG_INFO(QString("Thumbnails %1").arg(enable ? "enabled" : "disabled"));
+        LOG_INFO(LogCategories::UI, QString("Thumbnails %1").arg(enable ? "enabled" : "disabled"));
     }
 }
 
@@ -3111,7 +3111,7 @@ void ResultsWindow::setThumbnailSize(int size)
             preloadVisibleThumbnails();
         }
         
-        LOG_INFO(QString("Thumbnail size set to %1").arg(size));
+        LOG_INFO(LogCategories::UI, QString("Thumbnail size set to %1").arg(size));
     }
 }
 
@@ -3155,7 +3155,7 @@ void ResultsWindow::preloadVisibleThumbnails()
                        m_thumbnailDelegate->thumbnailSize());
         m_thumbnailCache->preloadThumbnails(visibleFilePaths, thumbSize);
         
-        LOG_DEBUG(QString("Preloading %1 thumbnails").arg(visibleFilePaths.size()));
+        LOG_DEBUG(LogCategories::UI, QString("Preloading %1 thumbnails").arg(visibleFilePaths.size()));
     }
 }
 
@@ -3286,7 +3286,7 @@ void ResultsWindow::applySmartSelection(const SmartSelectionDialog::SelectionCri
     // Update selection summary
     updateSelectionSummary();
     
-    LOG_INFO(QString("Smart selection applied: %1 files selected").arg(selectedCount));
+    LOG_INFO(LogCategories::UI, QString("Smart selection applied: %1 files selected").arg(selectedCount));
 }
 
 QStringList ResultsWindow::selectFilesByCriteria(const SmartSelectionDialog::SelectionCriteria& criteria)
@@ -3597,7 +3597,7 @@ void ResultsWindow::undoSelection()
     if (!previousState.selectedFiles.isEmpty() || previousState.description == "Initial state") {
         applySelectionState(previousState);
         updateUndoRedoButtons();
-        LOG_INFO(QString("Undo selection: %1").arg(previousState.description));
+        LOG_INFO(LogCategories::UI, QString("Undo selection: %1").arg(previousState.description));
     }
 }
 
@@ -3611,7 +3611,7 @@ void ResultsWindow::redoSelection()
     if (!nextState.selectedFiles.isEmpty()) {
         applySelectionState(nextState);
         updateUndoRedoButtons();
-        LOG_INFO(QString("Redo selection: %1").arg(nextState.description));
+        LOG_INFO(LogCategories::UI, QString("Redo selection: %1").arg(nextState.description));
     }
 }
 
@@ -3663,7 +3663,7 @@ void ResultsWindow::onInvertSelection()
     setSelectedFilePaths(invertedSelection);
     updateSelectionSummary();
     
-    LOG_INFO(QString("Inverted selection: %1 files now selected").arg(invertedSelection.size()));
+    LOG_INFO(LogCategories::UI, QString("Inverted selection: %1 files now selected").arg(invertedSelection.size()));
 }
 
 void ResultsWindow::recordSelectionState(const QString& description)
@@ -3984,25 +3984,13 @@ QString ResultsWindow::getGroupKey(const DuplicateFile& file,
 void ResultsWindow::setupOperationQueue()
 {
     LOG_INFO(LogCategories::UI, "Setting up operation queue");
-    // TODO(Task30-Complete): Operation queue already implemented
-    // m_operationQueue is initialized in constructor
-    // Connected in setupConnections()
-    // This method can be removed or used for additional queue configuration
+    // TODO: hook operation queue to actual background worker once available.
 }
 
 void ResultsWindow::preloadVisibleThumbnails()
 {
     LOG_DEBUG(LogCategories::UI, "Preloading visible thumbnails");
-    // TODO(Performance): Implement thumbnail preloading for visible items
-    // Scan visible tree items and request thumbnails from ThumbnailCache
-    // Priority: MEDIUM - Improves perceived performance
-    
-    if (!m_resultsTree || !m_thumbnailCache) {
-        return;
-    }
-    
-    // Stub: Just log for now
-    // Future: Iterate visible items and call m_thumbnailCache->requestThumbnail()
+    // TODO: trigger thumbnail preload when thumbnail cache integration is ready.
 }
 
 bool ResultsWindow::isTextFile(const QString& filePath) const

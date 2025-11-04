@@ -1093,7 +1093,7 @@ void ThemeManager::setupSystemThemeDetection()
     themeCheckTimer->start(2000); // Check every 2 seconds for more responsive detection
     
     // Also connect to application palette change signal for immediate detection
-    connect(qApp, &QApplication::paletteChanged, this, [this](const QPalette&) {
+    connect(qApp, &QGuiApplication::paletteChanged, this, [this](const QPalette&) {
         if (m_followSystemTheme && m_currentTheme == SystemDefault) {
             LOG_DEBUG(LogCategories::UI, "Application palette changed, checking system theme");
             QTimer::singleShot(100, this, &ThemeManager::onSystemThemeChanged);
@@ -3148,7 +3148,7 @@ void ThemeManager::setupAccessibleKeyboardShortcuts(QWidget* parent)
         } else if (text.contains("Cancel", Qt::CaseInsensitive)) {
             button->setShortcut(QKeySequence(Qt::Key_Escape));
         } else if (text.contains("Apply", Qt::CaseInsensitive)) {
-            button->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_Return));
+            button->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Return));
         } else if (text.contains("Help", Qt::CaseInsensitive)) {
             button->setShortcut(QKeySequence(Qt::Key_F1));
         }

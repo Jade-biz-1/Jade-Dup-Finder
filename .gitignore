@@ -2,6 +2,7 @@
 build/
 build_*/
 dist/
+config/build_profiles.json
 *.app/
 *.exe
 

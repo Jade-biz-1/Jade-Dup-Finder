@@ -249,7 +249,7 @@ tests/
 - **PRD.md:** Comprehensive product requirements (200+ requirements)
 - **IMPLEMENTATION_PLAN.md:** Development roadmap and current status
 - **ARCHITECTURE_DESIGN.md:** Technical architecture and design decisions
-- **BUILD_SYSTEM_REFERENCE.md:** Complete build system documentation
+- **BUILD_SYSTEM_OVERVIEW.md:** Complete build system documentation
 - **DEVELOPMENT_SETUP.md:** Platform-specific setup guides
 - **IMPLEMENTATION_TASKS.md:** Current task tracking
 - **API Documentation:** Component API references
@@ -373,7 +373,7 @@ cmake --build build --config Release --parallel
 2. **PRD.md** - Product requirements and business context
 3. **ARCHITECTURE_DESIGN.md** - Technical architecture
 4. **IMPLEMENTATION_PLAN.md** - Current status and roadmap
-5. **BUILD_SYSTEM_REFERENCE.md** - Build system details
+5. **BUILD_SYSTEM_OVERVIEW.md** - Build system details
 
 ### Development Setup
 1. Follow `docs/DEVELOPMENT_SETUP.md` for your platform

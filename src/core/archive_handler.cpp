@@ -436,25 +436,25 @@ QList<ArchiveFileInfo> ArchiveHandler::scanTarArchive(const QString& archivePath
     int fileCount = 0;
     
     for (const QString& line : lines) {
-        QString fileName = line.trimmed();
-        if (fileName.isEmpty() || fileName.endsWith('/')) {
+        QString extractedFileName = line.trimmed();
+        if (extractedFileName.isEmpty() || extractedFileName.endsWith('/')) {
             continue; // Skip directories
         }
         
-        emit scanProgress(archivePath, ++fileCount, lines.size(), fileName);
+        emit scanProgress(archivePath, ++fileCount, lines.size(), extractedFileName);
         
         // Get detailed file info using tar -tvf
         QProcess detailProcess;
         QStringList detailArgs;
         
         if (archivePath.contains(".tar.gz") || archivePath.contains(".tgz")) {
-            detailArgs << "-tzvf" << archivePath << fileName;
+            detailArgs << "-tzvf" << archivePath << extractedFileName;
         } else if (archivePath.contains(".tar.bz2") || archivePath.contains(".tbz2")) {
-            detailArgs << "-tjvf" << archivePath << fileName;
+            detailArgs << "-tjvf" << archivePath << extractedFileName;
         } else if (archivePath.contains(".tar.xz") || archivePath.contains(".txz")) {
-            detailArgs << "-tJvf" << archivePath << fileName;
+            detailArgs << "-tJvf" << archivePath << extractedFileName;
         } else {
-            detailArgs << "-tvf" << archivePath << fileName;
+            detailArgs << "-tvf" << archivePath << extractedFileName;
         }
         
         detailProcess.start("tar", detailArgs);
@@ -474,8 +474,8 @@ QList<ArchiveFileInfo> ArchiveHandler::scanTarArchive(const QString& archivePath
             }
             
             ArchiveFileInfo archiveFile;
-            archiveFile.fileName = QFileInfo(fileName).fileName();
-            archiveFile.fullPath = fileName;
+            archiveFile.fileName = QFileInfo(extractedFileName).fileName();
+            archiveFile.fullPath = extractedFileName;
             archiveFile.fileSize = fileSize;
             archiveFile.compressedSize = fileSize; // TAR doesn't compress individual files
             archiveFile.archivePath = archivePath;
@@ -491,7 +491,7 @@ QList<ArchiveFileInfo> ArchiveHandler::scanTarArchive(const QString& archivePath
                 qDebug() << "Found nested archive in TAR:" << archiveFile.fullPath;
                 
                 // Extract nested archive to temp file and scan it
-                QString tempArchivePath = extractToTempFile(archivePath, fileName);
+                QString tempArchivePath = extractToTempFile(archivePath, extractedFileName);
                 if (!tempArchivePath.isEmpty()) {
                     m_currentNestingDepth++;
                     QList<ArchiveFileInfo> nestedFiles = scanArchive(tempArchivePath);

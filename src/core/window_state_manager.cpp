@@ -276,10 +276,10 @@ bool WindowStateManager::restoreWindowGeometry(const QString& identifier, QWidge
         bool wasMaximized = m_settings->value(identifier + "/maximized", false).toBool();
         
         if (!position.isNull() && !size.isEmpty()) {
-            QRect geometry(position, size);
-            geometry = ensureValidGeometry(geometry);
+            QRect windowGeometry(position, size);
+            windowGeometry = ensureValidGeometry(windowGeometry);
             
-            window->setGeometry(geometry);
+            window->setGeometry(windowGeometry);
             
             if (wasMaximized) {
                 window->showMaximized();

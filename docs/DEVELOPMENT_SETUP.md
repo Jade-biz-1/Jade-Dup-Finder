@@ -8,7 +8,16 @@ Before starting, ensure you have the following:
 - Git for version control
 - A modern C++17 compatible compiler
 - CMake 3.20 or later
-- Qt 6.0 or later
+- Qt 6.0 or later (Qt 6.5+ recommended)
+
+### Optional: GPU Acceleration Toolchain
+
+If you plan to build with CUDA acceleration:
+
+- NVIDIA GPU with recent Game Ready/Studio drivers (Windows) or proprietary drivers (Linux)
+- CUDA Toolkit 12.x (or the version referenced in `config/build_profiles.json`)
+- Visual Studio 2022 with MSVC toolset on Windows, or the appropriate host compiler on Linux
+- Ensure `nvcc` is accessible (add `CUDA_PATH/bin` to your PATH if necessary)
 
 ## Platform-Specific Setup
 
@@ -237,34 +246,59 @@ source ~/.zshrc
 
 ## Building the Project
 
-### Command Line Build
+### Primary Workflow: Unified Build Script
+
+The repository ships with `scripts/build.py`, which selects the correct generator, configures CMake, builds the chosen target, optionally runs `cpack`, and mirrors finished artifacts into `dist/`.
+
+1. **Configure build profiles (first run only)**
+    ```bash
+    cp config/build_profiles.example.json config/build_profiles.json
+    ```
+    Edit the copy to point at your local toolchains (Qt, CUDA, Visual Studio vcvars script, etc.). Remove targets you do not use.
+
+2. **Run the script interactively**
+    ```bash
+    python scripts/build.py
+    ```
+    Select the desired target (for example `windows-msvc-cpu` or `windows-msvc-cuda`) and build type (`Debug` or `Release`). The script automatically prepares the environment, runs the build, and copies results into `dist/`.
+
+3. **Non-interactive/CI usage**
+    ```bash
+    python scripts/build.py \
+       --target windows-msvc-cpu \
+       --build-type Release \
+       --non-interactive --force
+    ```
+
+Use `--skip-package` if you only want binaries, or `--list-targets` to inspect available profiles.
+
+### Manual CMake Workflow (Advanced)
+
+Manual invocation remains useful for rapid iteration or debugging:
 
 ```bash
-# Clone the repository
-git clone <your-repo-url> dupfinder
-cd dupfinder
+# Configure (example: Ninja on Linux)
+cmake -S . -B build/linux/x64/manual-ninja -G "Ninja" \
+   -DDUPFINDER_BUILD_VARIANT=cpu \
+   -DENABLE_GPU_ACCELERATION=OFF
 
-# Create build directory
-mkdir build
-cd build
+# Build
+cmake --build build/linux/x64/manual-ninja --parallel
 
-# Configure with CMake
-cmake ..
-
-# Build (Linux/macOS)
-make -j$(nproc)  # Linux
-make -j$(sysctl -n hw.ncpu)  # macOS
-
-# Build (Windows)
-cmake --build . --config Release --parallel
-
-# Run tests
-ctest --output-on-failure
-
-# Run the application
-./dupfinder  # Linux/macOS
-.\Release\dupfinder.exe  # Windows
+# Test
+cd build/linux/x64/manual-ninja && ctest --output-on-failure
 ```
+
+On Windows, open a "x64 Native Tools Command Prompt for VS 2022" and run:
+
+```cmd
+cmake -S . -B build/windows/win64/manual-msvc ^
+   -G "Visual Studio 17 2022" -A x64 ^
+   -DDUPFINDER_BUILD_VARIANT=cpu
+cmake --build build/windows/win64/manual-msvc --config Release --target dupfinder
+```
+
+To enable CUDA builds manually, add `-DDUPFINDER_BUILD_VARIANT=gpu -DENABLE_GPU_ACCELERATION=ON` and ensure CUDA libraries are resolvable.
 
 ### IDE-Specific Build
 
@@ -308,6 +342,15 @@ sudo apt update && sudo apt install cmake
 - Ensure Visual Studio C++ tools are installed
 - Run CMake from "Developer Command Prompt for VS"
 - Or install MinGW-w64 and ensure it's in PATH
+
+#### CUDA Toolkit Not Detected
+- Confirm the toolkit is installed and `nvcc --version` works
+- Ensure the profile or environment exports `CUDA_PATH` and adds `CUDA_PATH\bin` to `PATH`
+- On Windows, run builds from a Visual Studio Developer Command Prompt so MSVC is discoverable
+
+#### GPU Build Using Wrong Generator
+- CUDA requires MSVC on Windows; use the `windows-msvc-cuda` profile or specify `-G "Visual Studio 17 2022"`
+- If you see `Error: could create CMAKE_GENERATOR "Visual Studio 17 2022"`, launch the build inside the Visual Studio developer shell or reference the full path to the newer CMake bundled with Qt
 
 ### Platform-Specific Issues
 

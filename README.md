@@ -75,6 +75,23 @@ We believe in building great software together! 🚀
 
 ### Building from Source
 
+#### Unified Build Orchestrator (Recommended)
+
+DupFinder ships with `scripts/build.py`, an interactive helper that selects the
+correct toolchain (CPU/GPU, OS, architecture) and copies finished installers
+into the standardized `dist/` layout. To use it:
+
+1. Copy `config/build_profiles.example.json` to `config/build_profiles.json` and
+  update the toolchain paths (Qt, CUDA, Visual Studio, etc.) for your machine.
+2. Run `python scripts/build.py` (or `py scripts\build.py` on Windows). The
+  script detects the host OS and GPU, shows the proposed configuration, and
+  waits for confirmation before building.
+3. Distribution artifacts land in `dist/Win64`, `dist/Linux`, or
+  `dist/MacOS/<arch>`, with separate `Debug` and `Release` folders as required.
+
+Use `python scripts/build.py --list-targets` to see every configured profile or
+`--non-interactive` for automation once the correct target id is known.
+
 #### Clone the Repository
 ```bash
 git clone https://github.com/yourusername/dupfinder.git

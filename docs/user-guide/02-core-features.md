@@ -457,6 +457,12 @@ Choose how DupFinder identifies duplicates:
 - **Accuracy:** Specialized for media files
 - **Best for:** Photo and video collections
 
+#### Perceptual (Images)
+- **Method:** Visual similarity using perceptual hashing
+- **Speed:** Moderate (includes image processing)
+- **Accuracy:** Finds visually similar images (resized, compressed, edited)
+- **Best for:** Photo libraries, finding duplicate images with variations
+
 ### File Filters
 
 Control which files are included in the scan:

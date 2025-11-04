@@ -1,0 +1,203 @@
+{
+  "_comment": "Copy this file to build_profiles.json and customize toolchain paths before running scripts/build.py.",
+  "targets": [
+    {
+      "id": "windows-msvc-cpu",
+      "display_name": "Windows 64-bit (MSVC, CPU build)",
+      "os": "Windows",
+      "arch": ["x86_64", "amd64"],
+      "requires_gpu": false,
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "multi_config": true,
+      "setup_scripts": [
+        "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Auxiliary\\Build\\vcvars64.bat"
+      ],
+      "environment": {
+        "Qt6_DIR": "C:\\Qt\\6.5.0\\msvc2019_64"
+      },
+      "path": [],
+      "cmake_args": [
+        "-DDUPFINDER_BUILD_VARIANT=cpu",
+        "-DDUPFINDER_PACKAGE_SUFFIX=win64-msvc-cpu",
+        "-DENABLE_GPU_ACCELERATION=OFF"
+      ],
+      "default_build_type": "Release",
+      "supported_build_types": ["Debug", "Release"],
+      "artifact_extensions": [".exe"],
+      "dist": {
+        "subdir": ["Win64", "{build_type}"]
+      },
+      "notes": "Requires Visual Studio 2022 with Qt6 MSVC package installed."
+    },
+    {
+      "id": "windows-msvc-cuda",
+      "display_name": "Windows 64-bit (MSVC, CUDA GPU build)",
+      "os": "Windows",
+      "arch": ["x86_64", "amd64"],
+      "requires_gpu": true,
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "multi_config": true,
+      "setup_scripts": [
+        "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Auxiliary\\Build\\vcvars64.bat"
+      ],
+      "environment": {
+        "Qt6_DIR": "C:\\Qt\\6.5.0\\msvc2019_64",
+        "CUDA_PATH": "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.3"
+      },
+      "path": [
+        "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.3\\bin"
+      ],
+      "cmake_args": [
+        "-DDUPFINDER_BUILD_VARIANT=gpu",
+        "-DDUPFINDER_PACKAGE_SUFFIX=win64-msvc-cuda",
+        "-DENABLE_GPU_ACCELERATION=ON"
+      ],
+      "default_build_type": "Release",
+      "supported_build_types": ["Debug", "Release"],
+      "artifact_extensions": [".exe"],
+      "dist": {
+        "subdir": ["Win64", "{build_type}"]
+      },
+      "notes": "Requires NVIDIA CUDA toolkit with nvcc and nvidia-smi available."
+    },
+    {
+      "id": "windows-mingw-cpu",
+      "display_name": "Windows 64-bit (MinGW, CPU build)",
+      "os": "Windows",
+      "arch": ["x86_64", "amd64"],
+      "requires_gpu": false,
+      "generator": "MinGW Makefiles",
+      "multi_config": false,
+      "setup_scripts": [],
+      "environment": {
+        "Qt6_DIR": "C:\\Qt\\6.5.0\\mingw_64"
+      },
+      "path": [
+        "C:\\mingw64\\bin"
+      ],
+      "cmake_args": [
+        "-DDUPFINDER_BUILD_VARIANT=cpu",
+        "-DDUPFINDER_PACKAGE_SUFFIX=win64-mingw-cpu",
+        "-DENABLE_GPU_ACCELERATION=OFF"
+      ],
+      "default_build_type": "Release",
+      "supported_build_types": ["Debug", "Release"],
+      "artifact_extensions": [".exe"],
+      "dist": {
+        "subdir": ["Win64", "{build_type}"]
+      },
+      "notes": "Requires MinGW-w64 toolchain and matching Qt6 build."
+    },
+    {
+      "id": "linux-ninja-cpu",
+      "display_name": "Linux x86_64 (Ninja, CPU build)",
+      "os": "Linux",
+      "arch": ["x86_64", "amd64"],
+      "requires_gpu": false,
+      "generator": "Ninja",
+      "multi_config": false,
+      "setup_scripts": [],
+      "environment": {
+        "Qt6_DIR": "/opt/qt6"
+      },
+      "path": [],
+      "cmake_args": [
+        "-DDUPFINDER_BUILD_VARIANT=cpu",
+        "-DDUPFINDER_PACKAGE_SUFFIX=linux-x86_64-cpu",
+        "-DENABLE_GPU_ACCELERATION=OFF"
+      ],
+      "default_build_type": "Release",
+      "supported_build_types": ["Debug", "Release"],
+      "artifact_extensions": [".deb", ".rpm", ".tgz", ".tar.gz"],
+      "dist": {
+        "subdir": ["Linux", "{build_type}"]
+      },
+      "notes": "Requires Ninja build system, Qt6 dev packages, and CPack DEB/RPM dependencies."
+    },
+    {
+      "id": "linux-ninja-gpu",
+      "display_name": "Linux x86_64 (Ninja, CUDA GPU build)",
+      "os": "Linux",
+      "arch": ["x86_64", "amd64"],
+      "requires_gpu": true,
+      "generator": "Ninja",
+      "multi_config": false,
+      "setup_scripts": [],
+      "environment": {
+        "Qt6_DIR": "/opt/qt6",
+        "CUDA_HOME": "/usr/local/cuda"
+      },
+      "path": [
+        "/usr/local/cuda/bin"
+      ],
+      "cmake_args": [
+        "-DDUPFINDER_BUILD_VARIANT=gpu",
+        "-DDUPFINDER_PACKAGE_SUFFIX=linux-x86_64-gpu",
+        "-DENABLE_GPU_ACCELERATION=ON"
+      ],
+      "default_build_type": "Release",
+      "supported_build_types": ["Debug", "Release"],
+      "artifact_extensions": [".deb", ".rpm", ".tgz", ".tar.gz"],
+      "dist": {
+        "subdir": ["Linux", "{build_type}"]
+      },
+      "notes": "Requires CUDA toolkit and GPU drivers on Linux."
+    },
+    {
+      "id": "macos-ninja-x86_64",
+      "display_name": "macOS x86_64 (Ninja)",
+      "os": "Darwin",
+      "arch": ["x86_64"],
+      "requires_gpu": false,
+      "generator": "Ninja",
+      "multi_config": false,
+      "setup_scripts": [],
+      "environment": {
+        "Qt6_DIR": "/usr/local/opt/qt"
+      },
+      "path": [],
+      "cmake_args": [
+        "-DCMAKE_OSX_ARCHITECTURES=x86_64",
+        "-DDUPFINDER_BUILD_VARIANT=cpu",
+        "-DDUPFINDER_PACKAGE_SUFFIX=macos-x86_64",
+        "-DENABLE_GPU_ACCELERATION=OFF"
+      ],
+      "default_build_type": "Release",
+      "supported_build_types": ["Debug", "Release"],
+      "artifact_extensions": [".dmg", ".pkg"],
+      "dist": {
+        "subdir": ["MacOS", "X64", "{build_type}"]
+      },
+      "notes": "Requires Ninja, Qt6 via Homebrew or Qt installer, and macOS packaging tools."
+    },
+    {
+      "id": "macos-ninja-arm64",
+      "display_name": "macOS arm64 (Ninja)",
+      "os": "Darwin",
+      "arch": ["arm64", "aarch64"],
+      "requires_gpu": false,
+      "generator": "Ninja",
+      "multi_config": false,
+      "setup_scripts": [],
+      "environment": {
+        "Qt6_DIR": "/opt/homebrew/opt/qt"
+      },
+      "path": [],
+      "cmake_args": [
+        "-DCMAKE_OSX_ARCHITECTURES=arm64",
+        "-DDUPFINDER_BUILD_VARIANT=cpu",
+        "-DDUPFINDER_PACKAGE_SUFFIX=macos-arm64",
+        "-DENABLE_GPU_ACCELERATION=OFF"
+      ],
+      "default_build_type": "Release",
+      "supported_build_types": ["Debug", "Release"],
+      "artifact_extensions": [".dmg", ".pkg"],
+      "dist": {
+        "subdir": ["MacOS", "ARM", "{build_type}"]
+      },
+      "notes": "Requires Apple silicon toolchain and Qt6 arm64 build."
+    }
+  ]
+}

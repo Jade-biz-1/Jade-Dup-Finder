@@ -101,32 +101,21 @@ private:
     LogStats m_stats;
 };
 
-// Helper macros to handle both single and double argument cases
-#define LOG_DEBUG_1(message) Logger::instance()->logWithLocation(Logger::Debug, LogCategories::UI, message, __FILE__, __LINE__, Q_FUNC_INFO)
-#define LOG_DEBUG_2(category, message) Logger::instance()->logWithLocation(Logger::Debug, category, message, __FILE__, __LINE__, Q_FUNC_INFO)
-#define LOG_INFO_1(message) Logger::instance()->logWithLocation(Logger::Info, LogCategories::UI, message, __FILE__, __LINE__, Q_FUNC_INFO)
-#define LOG_INFO_2(category, message) Logger::instance()->logWithLocation(Logger::Info, category, message, __FILE__, __LINE__, Q_FUNC_INFO)
-#define LOG_WARNING_1(message) Logger::instance()->logWithLocation(Logger::Warning, LogCategories::UI, message, __FILE__, __LINE__, Q_FUNC_INFO)
-#define LOG_WARNING_2(category, message) Logger::instance()->logWithLocation(Logger::Warning, category, message, __FILE__, __LINE__, Q_FUNC_INFO)
-#define LOG_ERROR_1(message) Logger::instance()->logWithLocation(Logger::Error, LogCategories::UI, message, __FILE__, __LINE__, Q_FUNC_INFO)
-#define LOG_ERROR_2(category, message) Logger::instance()->logWithLocation(Logger::Error, category, message, __FILE__, __LINE__, Q_FUNC_INFO)
-#define LOG_CRITICAL_1(message) Logger::instance()->logWithLocation(Logger::Critical, LogCategories::UI, message, __FILE__, __LINE__, Q_FUNC_INFO)
-#define LOG_CRITICAL_2(category, message) Logger::instance()->logWithLocation(Logger::Critical, category, message, __FILE__, __LINE__, Q_FUNC_INFO)
+// Convenience macros for logging with file/line information
+#define LOG_DEBUG(category, message) \
+    Logger::instance()->logWithLocation(Logger::Debug, category, message, __FILE__, __LINE__, Q_FUNC_INFO)
 
-// Macro overloading helpers
-#define GET_3RD_ARG(arg1, arg2, arg3, ...) arg3
-#define LOG_DEBUG_CHOOSER(...) GET_3RD_ARG(__VA_ARGS__, LOG_DEBUG_2, LOG_DEBUG_1, )
-#define LOG_INFO_CHOOSER(...) GET_3RD_ARG(__VA_ARGS__, LOG_INFO_2, LOG_INFO_1, )
-#define LOG_WARNING_CHOOSER(...) GET_3RD_ARG(__VA_ARGS__, LOG_WARNING_2, LOG_WARNING_1, )
-#define LOG_ERROR_CHOOSER(...) GET_3RD_ARG(__VA_ARGS__, LOG_ERROR_2, LOG_ERROR_1, )
-#define LOG_CRITICAL_CHOOSER(...) GET_3RD_ARG(__VA_ARGS__, LOG_CRITICAL_2, LOG_CRITICAL_1, )
+#define LOG_INFO(category, message) \
+    Logger::instance()->logWithLocation(Logger::Info, category, message, __FILE__, __LINE__, Q_FUNC_INFO)
 
-// Main macros that support both 1 and 2 arguments
-#define LOG_DEBUG(...) LOG_DEBUG_CHOOSER(__VA_ARGS__)(__VA_ARGS__)
-#define LOG_INFO(...) LOG_INFO_CHOOSER(__VA_ARGS__)(__VA_ARGS__)
-#define LOG_WARNING(...) LOG_WARNING_CHOOSER(__VA_ARGS__)(__VA_ARGS__)
-#define LOG_ERROR(...) LOG_ERROR_CHOOSER(__VA_ARGS__)(__VA_ARGS__)
-#define LOG_CRITICAL(...) LOG_CRITICAL_CHOOSER(__VA_ARGS__)(__VA_ARGS__)
+#define LOG_WARNING(category, message) \
+    Logger::instance()->logWithLocation(Logger::Warning, category, message, __FILE__, __LINE__, Q_FUNC_INFO)
+
+#define LOG_ERROR(category, message) \
+    Logger::instance()->logWithLocation(Logger::Error, category, message, __FILE__, __LINE__, Q_FUNC_INFO)
+
+#define LOG_CRITICAL(category, message) \
+    Logger::instance()->logWithLocation(Logger::Critical, category, message, __FILE__, __LINE__, Q_FUNC_INFO)
 
 // Category constants
 namespace LogCategories {
