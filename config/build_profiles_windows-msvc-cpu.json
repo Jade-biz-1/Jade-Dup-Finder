@@ -1,0 +1,49 @@
+{
+  "_comment": "Windows 64-bit build profile for MSVC toolchain with CPU-only support",
+  "_description": "This profile builds DupFinder for Windows x64 using Visual Studio 2022 MSVC compiler without GPU acceleration",
+  "_local_setup_notes": [
+    "IMPORTANT: Update paths below to match YOUR local installation",
+    "See LOCAL_SETTINGS.md for this machine's configuration",
+    "",
+    "Key paths to verify:",
+    "1. setup_scripts: Path to vcvars64.bat (run this to set up MSVC environment)",
+    "2. Qt6_DIR: Your Qt 6.9.3 MSVC installation folder",
+    "",
+    "CMake Note: This machine has two CMake installations:",
+    "  - Visual Studio CMake: C:\\Program Files\\CMake\\bin\\cmake (recommended)",
+    "  - Qt CMake: C:\\Qt6\\Tools\\CMake_64\\bin (alternative)",
+    "The vcvars64.bat script will set the correct CMake in PATH"
+  ],
+  "targets": [
+    {
+      "id": "windows-msvc-cpu",
+      "display_name": "Windows 64-bit (MSVC, CPU build)",
+      "os": "Windows",
+      "arch": ["x86_64", "amd64"],
+      "requires_gpu": false,
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "multi_config": true,
+      "setup_scripts": [
+        "C:\\Program Files\\Microsoft Visual Studio\\2022\\Professional\\VC\\Auxiliary\\Build\\vcvars64.bat"
+      ],
+      "environment": {
+        "Qt6_DIR": "C:\\Qt\\6.9.3\\msvc2022_64"
+      },
+      "path": [],
+      "cmake_args": [
+        "-DDUPFINDER_BUILD_VARIANT=cpu",
+        "-DDUPFINDER_PACKAGE_SUFFIX=win64-msvc-cpu",
+        "-DENABLE_GPU_ACCELERATION=OFF",
+        "-DDUPFINDER_WARNINGS_AS_ERRORS=OFF"
+      ],
+      "default_build_type": "Release",
+      "supported_build_types": ["Debug", "Release"],
+      "artifact_extensions": [".exe"],
+      "dist": {
+        "subdir": ["Win64", "{build_type}"]
+      },
+      "notes": "Requires Visual Studio 2022 Professional with Qt6 MSVC 2022 64-bit package. vcvars64.bat sets up MSVC environment automatically."
+    }
+  ]
+}

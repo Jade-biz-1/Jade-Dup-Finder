@@ -1,0 +1,33 @@
+{
+  "_comment": "macOS x86_64 (Intel) build profile",
+  "_description": "This profile builds DupFinder for macOS on Intel x86_64 architecture using Ninja. Produces DMG and PKG installers.",
+  "targets": [
+    {
+      "id": "macos-ninja-x86_64",
+      "display_name": "macOS x86_64 (Ninja)",
+      "os": "Darwin",
+      "arch": ["x86_64"],
+      "requires_gpu": false,
+      "generator": "Ninja",
+      "multi_config": false,
+      "setup_scripts": [],
+      "environment": {
+        "Qt6_DIR": "/usr/local/opt/qt"
+      },
+      "path": [],
+      "cmake_args": [
+        "-DCMAKE_OSX_ARCHITECTURES=x86_64",
+        "-DDUPFINDER_BUILD_VARIANT=cpu",
+        "-DDUPFINDER_PACKAGE_SUFFIX=macos-x86_64",
+        "-DENABLE_GPU_ACCELERATION=OFF"
+      ],
+      "default_build_type": "Release",
+      "supported_build_types": ["Debug", "Release"],
+      "artifact_extensions": [".dmg", ".pkg"],
+      "dist": {
+        "subdir": ["MacOS", "X64", "{build_type}"]
+      },
+      "notes": "Requires Ninja, Qt6 via Homebrew or Qt installer, and macOS packaging tools. Install Qt6 with: brew install qt@6"
+    }
+  ]
+}

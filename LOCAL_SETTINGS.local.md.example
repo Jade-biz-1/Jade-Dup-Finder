@@ -1,0 +1,53 @@
+# Personal Local Settings (Template)
+
+This is a template for creating your personal `LOCAL_SETTINGS.local.md` file.
+
+**Purpose**: Keep private notes, machine-specific details, or proprietary information that shouldn't be committed to version control.
+
+**How to Use**:
+1. Copy this file: `cp LOCAL_SETTINGS.local.md.example LOCAL_SETTINGS.local.md`
+2. Edit `LOCAL_SETTINGS.local.md` with your personal notes
+3. The file is ignored by git (see `.gitignore`)
+
+---
+
+## My Development Machine
+
+**Machine Name**:
+**OS**:
+**Notes**:
+
+### Custom Paths
+
+List any non-standard paths or environment variables:
+
+```
+Qt6_DIR=
+CUDA_PATH=
+Custom tool paths=
+```
+
+### Private Reminders
+
+- Special build configurations
+- Performance notes
+- Troubleshooting solutions specific to your setup
+- Internal company paths (if applicable)
+
+### Build Commands I Use Often
+
+```bash
+# My typical build command
+python scripts/build.py --target ... --build-type Release
+
+# Special configurations
+...
+```
+
+---
+
+## Notes
+
+This file is for YOUR personal use only. It will never be committed to version control.
+
+For information that should be shared with the team, update `LOCAL_SETTINGS.md` instead.

@@ -6,6 +6,10 @@ config/build_profiles.json
 *.app/
 *.exe
 
+# Personal local settings (if developers want to keep private notes)
+LOCAL_SETTINGS.local.md
+*.local.md
+
 # CMake
 CMakeCache.txt
 CMakeFiles/

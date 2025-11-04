@@ -1,0 +1,33 @@
+{
+  "_comment": "macOS ARM64 (Apple Silicon) build profile",
+  "_description": "This profile builds DupFinder for macOS on Apple Silicon ARM64 architecture using Ninja. Produces DMG and PKG installers.",
+  "targets": [
+    {
+      "id": "macos-ninja-arm64",
+      "display_name": "macOS ARM64 (Ninja)",
+      "os": "Darwin",
+      "arch": ["arm64", "aarch64"],
+      "requires_gpu": false,
+      "generator": "Ninja",
+      "multi_config": false,
+      "setup_scripts": [],
+      "environment": {
+        "Qt6_DIR": "/opt/homebrew/opt/qt"
+      },
+      "path": [],
+      "cmake_args": [
+        "-DCMAKE_OSX_ARCHITECTURES=arm64",
+        "-DDUPFINDER_BUILD_VARIANT=cpu",
+        "-DDUPFINDER_PACKAGE_SUFFIX=macos-arm64",
+        "-DENABLE_GPU_ACCELERATION=OFF"
+      ],
+      "default_build_type": "Release",
+      "supported_build_types": ["Debug", "Release"],
+      "artifact_extensions": [".dmg", ".pkg"],
+      "dist": {
+        "subdir": ["MacOS", "ARM", "{build_type}"]
+      },
+      "notes": "Requires Apple Silicon toolchain and Qt6 ARM64 build. Install Qt6 with: brew install qt@6"
+    }
+  ]
+}

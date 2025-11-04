@@ -171,29 +171,99 @@ class ArtifactSnapshot:
 
 
 def ensure_config_file(config_path: Path, template_path: Path) -> None:
+    """Ensure configuration files exist.
+
+    Checks for either:
+    1. build_profiles.json (single-file mode), or
+    2. build_profiles_*.json files (multi-file mode)
+
+    If neither exists, provides helpful guidance.
+    """
+    config_dir = config_path.parent
+
+    # Check if any profile files exist (single or multi-file mode)
     if config_path.exists():
-        return
+        return  # Single-file mode active
+
+    # Check for multi-file mode
+    profile_files = list(config_dir.glob("build_profiles_*.json"))
+    if profile_files:
+        return  # Multi-file mode active
+
+    # No configuration found - provide guidance
     if not template_path.exists():
         raise BuildScriptError(
-            "Missing build configuration. Expected config/build_profiles.json or the example template."  # noqa: E501
+            "Missing build configuration.\n"
+            "Expected either:\n"
+            "  - config/build_profiles.json (single-file mode), or\n"
+            "  - config/build_profiles_*.json files (multi-file mode), or\n"
+            "  - config/build_profiles.example.json (template)\n\n"
+            "No configuration files or templates found."
         )
-    config_path.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(template_path, config_path)
+
+    # Suggest multi-file approach since it's the new standard
     raise BuildScriptError(
-        f"Created {config_path.relative_to(REPO_ROOT)} from template. Edit it with local toolchain paths before rerunning."  # noqa: E501
+        f"No build configuration found.\n\n"
+        f"You can either:\n"
+        f"  1. Copy example profiles: Copy build_profiles.example.json to build_profiles.json\n"
+        f"  2. Use multi-file mode: The example file shows targets that can be split into:\n"
+        f"     - build_profiles_windows-msvc-cpu.json\n"
+        f"     - build_profiles_windows-msvc-cuda.json\n"
+        f"     - build_profiles_linux-cpu.json\n"
+        f"     - etc.\n\n"
+        f"See docs/BUILD_SYSTEM_OVERVIEW.md for more information."
     )
 
 
-def load_targets(config_path: Path) -> List[BuildTarget]:
-    with config_path.open("r", encoding="utf-8") as handle:
-        raw = json.load(handle)
-    target_dicts = raw.get("targets", [])
-    if not target_dicts:
-        raise BuildScriptError("No build targets defined in configuration file.")
+def load_targets(config_path: Path) -> Tuple[List[BuildTarget], Dict[str, str]]:
+    """Load build targets from configuration file(s).
+
+    Supports two modes:
+    1. Single file: Load from build_profiles.json (legacy)
+    2. Multi-file: Auto-discover and load all build_profiles_*.json files
+
+    Returns:
+        Tuple of (targets list, target_id -> source_file mapping)
+    """
     targets: List[BuildTarget] = []
-    for entry in target_dicts:
-        targets.append(BuildTarget.from_dict(entry))
-    return targets
+    target_sources: Dict[str, str] = {}
+
+    # Check if we're using the single-file approach (legacy)
+    if config_path.name == "build_profiles.json" and config_path.exists():
+        with config_path.open("r", encoding="utf-8") as handle:
+            raw = json.load(handle)
+        target_dicts = raw.get("targets", [])
+        for entry in target_dicts:
+            target = BuildTarget.from_dict(entry)
+            targets.append(target)
+            target_sources[target.id] = "build_profiles.json"
+
+    # Auto-discover all build_profiles_*.json files (new multi-file approach)
+    config_dir = config_path.parent
+    profile_files = sorted(config_dir.glob("build_profiles_*.json"))
+
+    if profile_files:
+        for profile_file in profile_files:
+            try:
+                with profile_file.open("r", encoding="utf-8") as handle:
+                    raw = json.load(handle)
+                target_dicts = raw.get("targets", [])
+                for entry in target_dicts:
+                    target = BuildTarget.from_dict(entry)
+                    targets.append(target)
+                    target_sources[target.id] = profile_file.name
+            except (json.JSONDecodeError, KeyError) as exc:
+                print(f"Warning: Failed to load {profile_file.name}: {exc}")
+                continue
+
+    if not targets:
+        raise BuildScriptError(
+            "No build targets found. Either:\n"
+            "  1. Create build_profiles.json (single-file mode), or\n"
+            "  2. Create build_profiles_<target>.json files (multi-file mode)"
+        )
+
+    return targets, target_sources
 
 
 def detect_gpu() -> Tuple[bool, Optional[str]]:
@@ -467,11 +537,12 @@ def parse_arguments() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def list_all_targets(targets: List[BuildTarget]) -> None:
+def list_all_targets(targets: List[BuildTarget], target_sources: Dict[str, str]) -> None:
     print("Configured build targets:")
     for target in targets:
         gpu_flag = " [GPU]" if target.prefers_gpu() else ""
-        print(f"- {target.id}: {target.display_name}{gpu_flag} ({target.os_name})")
+        source_file = target_sources.get(target.id, "unknown")
+        print(f"- {target.id}: {target.display_name}{gpu_flag} ({target.os_name}) [from {source_file}]")
 
 
 def main() -> None:
@@ -485,13 +556,13 @@ def main() -> None:
         return
 
     try:
-        targets = load_targets(config_path)
+        targets, target_sources = load_targets(config_path)
     except BuildScriptError as exc:
         print(exc)
         return
 
     if args.list_targets:
-        list_all_targets(targets)
+        list_all_targets(targets, target_sources)
         return
 
     system = platform.system()

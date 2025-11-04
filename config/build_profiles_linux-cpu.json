@@ -1,0 +1,32 @@
+{
+  "_comment": "Linux x86_64 build profile for GCC/Clang with CPU-only support",
+  "_description": "This profile builds DupFinder for Linux x86_64 using Ninja and system GCC/Clang without GPU acceleration. Produces DEB, RPM, and TGZ packages.",
+  "targets": [
+    {
+      "id": "linux-ninja-cpu",
+      "display_name": "Linux x86_64 (Ninja, CPU build)",
+      "os": "Linux",
+      "arch": ["x86_64", "amd64"],
+      "requires_gpu": false,
+      "generator": "Ninja",
+      "multi_config": false,
+      "setup_scripts": [],
+      "environment": {
+        "Qt6_DIR": "/opt/qt6"
+      },
+      "path": [],
+      "cmake_args": [
+        "-DDUPFINDER_BUILD_VARIANT=cpu",
+        "-DDUPFINDER_PACKAGE_SUFFIX=linux-x86_64-cpu",
+        "-DENABLE_GPU_ACCELERATION=OFF"
+      ],
+      "default_build_type": "Release",
+      "supported_build_types": ["Debug", "Release"],
+      "artifact_extensions": [".deb", ".rpm", ".tgz", ".tar.gz"],
+      "dist": {
+        "subdir": ["Linux", "{build_type}"]
+      },
+      "notes": "Requires Ninja build system, Qt6 dev packages, and CPack dependencies (dpkg-deb, rpmbuild). Edit Qt6_DIR to match your Qt6 installation path."
+    }
+  ]
+}
