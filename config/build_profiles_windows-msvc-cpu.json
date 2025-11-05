@@ -17,15 +17,15 @@
   "targets": [
     {
       "id": "windows-msvc-cpu",
-      "display_name": "Windows 64-bit (MSVC, CPU build)",
+      "display_name": "Windows 64-bit (MSVC 2019, CPU build)",
       "os": "Windows",
       "arch": ["x86_64", "amd64"],
       "requires_gpu": false,
-      "generator": "Visual Studio 17 2022",
+      "generator": "Visual Studio 16 2019",
       "architecture": "x64",
       "multi_config": true,
       "setup_scripts": [
-        "C:\\Program Files\\Microsoft Visual Studio\\2022\\Professional\\VC\\Auxiliary\\Build\\vcvars64.bat"
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\VC\\Auxiliary\\Build\\vcvars64.bat"
       ],
       "environment": {
         "Qt6_DIR": "C:\\Qt\\6.9.3\\msvc2022_64"

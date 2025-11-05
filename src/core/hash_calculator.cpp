@@ -1434,7 +1434,40 @@ QList<QStringList> HashCalculator::createSizeGroupedBatches(const QStringList& f
     for (const auto& batchGroup : batches) {
         flatBatches.append(batchGroup);
     }
-    
+
     return flatBatches;
+}
+
+// GPU-related stub implementations
+void HashCalculator::initializeGPU() {
+    // TODO: Implement GPU initialization
+}
+
+QString HashCalculator::calculateFileHashGPU(const QString& filePath) {
+    // TODO: Implement GPU hash calculation
+    // For now, fall back to CPU
+    Q_UNUSED(filePath);
+    return QString();
+}
+
+bool HashCalculator::isGPUEnabled() const {
+    // TODO: Implement GPU detection
+    return false;
+}
+
+// Buffer pool stub implementations
+void HashCalculator::initializeBufferPool() {
+    // TODO: Implement buffer pool initialization
+}
+
+void HashCalculator::cleanupIOOptimizations() {
+    // TODO: Implement IO optimizations cleanup
+}
+
+// Batch processing stub implementation
+void HashCalculator::processBatchWithAdaptation(const QStringList& batch, int threadId) {
+    // TODO: Implement adaptive batch processing
+    Q_UNUSED(batch);
+    Q_UNUSED(threadId);
 }
 

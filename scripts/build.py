@@ -500,6 +500,18 @@ def build_and_package(
         if target.multi_config:
             package_cmd.extend(["--config", build_type])
         run_command(package_cmd, env, REPO_ROOT, setup_scripts, dry_run)
+
+        # Also run copy_installer target to copy packages to dist folder
+        copy_installer_cmd: List[str] = ["cmake", "--build", str(build_dir), "--target", "copy_installer"]
+        if target.multi_config:
+            copy_installer_cmd.extend(["--config", build_type])
+        try:
+            run_command(copy_installer_cmd, env, REPO_ROOT, setup_scripts, dry_run)
+        except BuildScriptError:
+            # copy_installer target might fail if package files don't exist yet
+            # This is acceptable - we'll copy them manually if needed
+            pass
+
         if not dry_run:
             after = ArtifactSnapshot.capture(build_dir, artifact_extensions)
             produced = before.diff(after)

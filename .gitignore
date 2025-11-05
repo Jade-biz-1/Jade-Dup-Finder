@@ -135,3 +135,7 @@ core.*
 
 # Linux
 *.debug
+
+# AI Assistant files
+.claude/
+nul

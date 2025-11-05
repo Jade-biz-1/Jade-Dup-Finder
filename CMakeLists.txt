@@ -65,11 +65,20 @@ if(ENABLE_GPU_ACCELERATION)
     message(STATUS "Checking for GPU acceleration libraries...")
 
     # Try CUDA first (preferred for NVIDIA GPUs)
-    find_package(CUDA QUIET)
+    # Use modern CMake CUDA language support instead of deprecated FindCUDA
+    include(CheckLanguage)
+    check_language(CUDA)
+    if(CMAKE_CUDA_COMPILER)
+        enable_language(CUDA)
+        # Find CUDA Toolkit to get imported targets like CUDA::cudart
+        find_package(CUDAToolkit REQUIRED)
+        set(CUDA_FOUND TRUE)
+        set(CUDA_VERSION ${CMAKE_CUDA_COMPILER_VERSION})
+    endif()
     if(CUDA_FOUND)
         message(STATUS "CUDA found: ${CUDA_VERSION}")
-        message(STATUS "CUDA libraries: ${CUDA_LIBRARIES}")
-        message(STATUS "CUDA include dirs: ${CUDA_INCLUDE_DIRS}")
+        message(STATUS "CUDA toolkit root: ${CUDAToolkit_INCLUDE_DIRS}")
+        # Modern CMake uses CUDA language support - no need for manual library/include setup
         set(GPU_BACKEND "CUDA")
         set(USE_CUDA ON)
         set(HAS_CUDA ON)
@@ -111,15 +120,17 @@ endif()
 option(DUPFINDER_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" ON)
 
 if(MSVC)
-    # Enable all warnings for MSVC
-    add_compile_options(/W4)
+    # Enable all warnings for MSVC (C++ only - CUDA uses its own warning flags)
+    add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/W4>)
     if(DUPFINDER_WARNINGS_AS_ERRORS)
-        add_compile_options(/WX)
+        add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/WX>)
     endif()
-    # Enable parallel compilation
-    add_compile_options(/MP)
-    # Security features
-    add_compile_options(/guard:cf /DYNAMICBASE /NXCOMPAT)
+    # Enable parallel compilation for C++ only (not CUDA - nvcc doesn't support /MP)
+    add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/MP>)
+    # Security features for C++ only (CUDA passes different flags)
+    add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/guard:cf>)
+    add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/DYNAMICBASE>)
+    add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/NXCOMPAT>)
 else()
     # Enable comprehensive warnings for GCC/Clang
     add_compile_options(-Wall -Wextra -pedantic)
@@ -145,7 +156,8 @@ include_directories(
 # Add GPU include directories if enabled
 if(ENABLE_GPU_ACCELERATION)
     if(USE_CUDA)
-        include_directories(${CUDA_INCLUDE_DIRS})
+        # Modern CMake CUDA language support handles include directories automatically
+        # No manual include_directories needed
     elseif(USE_OPENCL)
         include_directories(${OpenCL_INCLUDE_DIRS})
     endif()
@@ -239,6 +251,9 @@ set(HEADER_FILES
     include/safety_manager.h
     include/app_config.h
     src/core/logger.h
+    include/scan_history_manager.h
+    include/selection_history_manager.h
+    include/file_operation_queue.h
     include/theme_manager.h
     include/theme_error_handler.h
     include/theme_performance_optimizer.h
@@ -305,15 +320,8 @@ add_executable(dupfinder
     ${HEADER_FILES}
 )
 
-# Ensure Visual Studio compiles the aggregated MOC translation unit
-if(CMAKE_GENERATOR MATCHES "Visual Studio")
-    set(_dupfinder_autogen_dir "${CMAKE_CURRENT_BINARY_DIR}/dupfinder_autogen")
-    foreach(_cfg Debug Release MinSizeRel RelWithDebInfo)
-        target_sources(dupfinder PRIVATE
-            "$<$<CONFIG:${_cfg}>:${_dupfinder_autogen_dir}/mocs_compilation_${_cfg}.cpp>"
-        )
-    endforeach()
-endif()
+# Note: With modern CMake and AUTOMOC enabled, MOC files are handled automatically
+# Visual Studio multi-config generators will compile the autogen MOC files without manual intervention
 
 # Add preprocessor definitions for GPU backends
 if(ENABLE_GPU_ACCELERATION)
@@ -332,16 +340,31 @@ if(ENABLE_GPU_ACCELERATION)
             message(FATAL_ERROR "CUDA acceleration requires MSVC compiler on Windows.\n"
                               "Current compiler: ${CMAKE_CXX_COMPILER_ID}\n"
                               "To enable CUDA acceleration:\n"
-                              "1. Open 'Visual Studio 2022 Developer Command Prompt' or 'x86 Native Tools Command Prompt for VS 2022'\n"
-                              "2. Run: cmake .. -G \"Visual Studio 17 2022\" (or appropriate VS version)\n"
+                              "1. Open 'Visual Studio Developer Command Prompt' (x64 Native Tools)\n"
+                              "2. Run: cmake .. -G \"Visual Studio 16 2019\" (or appropriate VS version)\n"
                               "3. Build with: cmake --build . --config Release\n"
                               "Alternatively, you can disable GPU acceleration: cmake .. -DENABLE_GPU_ACCELERATION=OFF")
         else()
             message(STATUS "CUDA compilation enabled with MSVC")
-            set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-O3;-gencode=arch=compute_60,code=sm_60)
-            cuda_add_library(gpu_acceleration STATIC
+            # Modern CMake CUDA language support
+            add_library(gpu_acceleration STATIC
                 src/gpu/cuda_hash_calculator.cu
             )
+            # Set CUDA properties for the library
+            set_target_properties(gpu_acceleration PROPERTIES
+                CUDA_STANDARD 17
+                CUDA_ARCHITECTURES "60;70;75;80;86"  # Support common NVIDIA GPU architectures
+                # Disable problematic MSVC flags for CUDA compilation
+                COMPILE_OPTIONS ""
+            )
+            # Remove /MP flag for CUDA files (incompatible with nvcc)
+            if(MSVC)
+                target_compile_options(gpu_acceleration PRIVATE
+                    $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=/wd4819>  # Suppress charset warnings
+                )
+            endif()
+            # Link CUDA runtime to the GPU library
+            target_link_libraries(gpu_acceleration CUDA::cudart)
         endif()
     elseif(USE_OPENCL)
         message(STATUS "OpenCL compilation enabled")
@@ -372,7 +395,8 @@ endif()
 if(ENABLE_GPU_ACCELERATION)
     target_link_libraries(dupfinder gpu_acceleration)
     if(USE_CUDA)
-        target_link_libraries(dupfinder ${CUDA_LIBRARIES})
+        # Modern CMake CUDA language support - link with CUDA runtime
+        target_link_libraries(dupfinder CUDA::cudart)
     elseif(USE_OPENCL)
         target_link_libraries(dupfinder OpenCL::OpenCL)
     endif()
@@ -499,12 +523,27 @@ endif()
 # Platform-specific install configuration
 if(WIN32)
     # Find NSIS executable
+    # Note: Use ProgramFiles(x86) via cmake variable, not ENV due to parentheses
+    file(TO_CMAKE_PATH "$ENV{ProgramFiles}" PROGRAM_FILES_PATH)
+    if(DEFINED ENV{ProgramW6432})
+        file(TO_CMAKE_PATH "$ENV{ProgramW6432}" PROGRAM_FILES_64_PATH)
+    else()
+        set(PROGRAM_FILES_64_PATH "${PROGRAM_FILES_PATH}")
+    endif()
+    # ProgramFiles(x86) is only set on 64-bit Windows
+    if(DEFINED ENV{ProgramFiles\(x86\)})
+        file(TO_CMAKE_PATH "$ENV{ProgramFiles\(x86\)}" PROGRAM_FILES_X86_PATH)
+    else()
+        set(PROGRAM_FILES_X86_PATH "${PROGRAM_FILES_PATH}")
+    endif()
+
     find_program(NSIS_EXECUTABLE makensis
         PATHS
             "C:/Program Files (x86)/NSIS"
             "C:/Program Files/NSIS"
-            "$ENV{PROGRAMFILES}/NSIS"
-            "$ENV{PROGRAMFILES(X86)}/NSIS"
+            "${PROGRAM_FILES_X86_PATH}/NSIS"
+            "${PROGRAM_FILES_64_PATH}/NSIS"
+            "${PROGRAM_FILES_PATH}/NSIS"
     )
     
     if(NSIS_EXECUTABLE)
@@ -539,14 +578,32 @@ if(WIN32)
         # Fallback to ZIP packaging
         set(CPACK_GENERATOR "ZIP")
     endif()
+elseif(APPLE)
     # macOS bundle configuration
     set(CPACK_GENERATOR "DragNDrop")
     set(CPACK_DMG_VOLUME_NAME "DupFinder")
+    set(CPACK_DMG_FORMAT "UDZO")  # Compressed DMG
+    set(CPACK_BUNDLE_NAME "DupFinder")
+    set(CPACK_BUNDLE_ICON "${CMAKE_CURRENT_SOURCE_DIR}/resources/icon.icns")
+    set(CPACK_BUNDLE_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/resources/Info.plist")
+
+    message(STATUS "macOS packaging configured: DMG installer")
 elseif(UNIX)
     # Linux package configuration
     set(CPACK_GENERATOR "DEB;RPM;TGZ")
+
+    # Debian package configuration
     set(CPACK_DEBIAN_PACKAGE_MAINTAINER "DupFinder Team")
+    set(CPACK_DEBIAN_PACKAGE_SECTION "utils")
+    set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
+    set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc6, libqt6core6, libqt6gui6, libqt6widgets6")
+
+    # RPM package configuration
     set(CPACK_RPM_PACKAGE_LICENSE "MIT")
+    set(CPACK_RPM_PACKAGE_GROUP "Applications/File")
+    set(CPACK_RPM_PACKAGE_REQUIRES "qt6-qtbase >= 6.0")
+
+    message(STATUS "Linux packaging configured: DEB, RPM, TGZ installers")
 endif()
 
 # CPack configuration
@@ -568,6 +625,59 @@ else()
 endif()
 
 include(CPack)
+
+# Custom target to copy installers to dist folder
+if(WIN32)
+    # Windows: Copy NSIS installer or ZIP to dist folder
+    set(_dist_dir "${CMAKE_SOURCE_DIR}/dist/${PLATFORM_NAME}/${CMAKE_BUILD_TYPE}")
+    if(NSIS_EXECUTABLE)
+        set(_package_ext "exe")
+    else()
+        set(_package_ext "zip")
+    endif()
+    add_custom_target(copy_installer
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${_dist_dir}"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_BINARY_DIR}/${CPACK_PACKAGE_FILE_NAME}.${_package_ext}"
+            "${_dist_dir}/${CPACK_PACKAGE_FILE_NAME}.${_package_ext}"
+        DEPENDS package
+        COMMENT "Copying Windows installer to dist/${PLATFORM_NAME}/${CMAKE_BUILD_TYPE}/"
+        VERBATIM
+    )
+    message(STATUS "Installer will be copied to: ${_dist_dir}")
+elseif(APPLE)
+    # macOS: Copy DMG to dist folder
+    set(_dist_dir "${CMAKE_SOURCE_DIR}/dist/macOS/${CMAKE_BUILD_TYPE}")
+    add_custom_target(copy_installer
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${_dist_dir}"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_BINARY_DIR}/${CPACK_PACKAGE_FILE_NAME}.dmg"
+            "${_dist_dir}/${CPACK_PACKAGE_FILE_NAME}.dmg"
+        DEPENDS package
+        COMMENT "Copying macOS DMG to dist/macOS/${CMAKE_BUILD_TYPE}/"
+        VERBATIM
+    )
+    message(STATUS "DMG installer will be copied to: ${_dist_dir}")
+elseif(UNIX)
+    # Linux: Copy DEB, RPM, and TGZ to dist folder
+    set(_dist_dir "${CMAKE_SOURCE_DIR}/dist/Linux/${CMAKE_BUILD_TYPE}")
+    add_custom_target(copy_installer
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${_dist_dir}"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_BINARY_DIR}/${CPACK_PACKAGE_FILE_NAME}.deb"
+            "${_dist_dir}/${CPACK_PACKAGE_FILE_NAME}.deb"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_BINARY_DIR}/${CPACK_PACKAGE_FILE_NAME}.rpm"
+            "${_dist_dir}/${CPACK_PACKAGE_FILE_NAME}.rpm"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_BINARY_DIR}/${CPACK_PACKAGE_FILE_NAME}.tar.gz"
+            "${_dist_dir}/${CPACK_PACKAGE_FILE_NAME}.tar.gz"
+        DEPENDS package
+        COMMENT "Copying Linux packages to dist/Linux/${CMAKE_BUILD_TYPE}/"
+        VERBATIM
+    )
+    message(STATUS "Linux packages will be copied to: ${_dist_dir}")
+endif()
 
 # Testing configuration
 # enable_testing()

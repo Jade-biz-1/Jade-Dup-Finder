@@ -21,6 +21,7 @@
 #include <QtWidgets/QLineEdit>
 #include <QtWidgets/QTextEdit>
 #include <QtWidgets/QTabWidget>
+#include <QtWidgets/QStatusBar>
 #include <QtCore/QTimer>
 #include <QtCore/QFileInfo>
 #include <QtCore/QDateTime>
@@ -42,6 +43,9 @@ class ThumbnailCache;
 class ThumbnailDelegate;
 class DuplicateRelationshipWidget;
 class SmartSelectionDialog;
+class SelectionHistoryManager;
+class FileOperationQueue;
+class FileOperationProgressDialog;
 
 class ResultsWindow : public QMainWindow
 {
@@ -126,7 +130,6 @@ public:
     void highlightFileInVisualization(const QString& filePath);
     
     // Smart selection
-    void showSmartSelectionDialog();
     void applySmartSelection(const SmartSelectionDialog::SelectionCriteria& criteria);
     QStringList selectFilesByCriteria(const SmartSelectionDialog::SelectionCriteria& criteria);
     
@@ -166,6 +169,8 @@ signals:
     void filesMoved(const QStringList& filePaths, const QString& destination);
     void resultsExported(const QString& filePath);
     void windowClosed();
+    void fileOperationRequested(const QString& operation, const QStringList& files);
+    void resultsUpdated(const ScanResults& results);
 
 protected:
     void closeEvent(QCloseEvent* event) override;
@@ -175,8 +180,11 @@ protected:
 private slots:
     void initializeUI();
     void setupConnections();
+    void setupKeyboardShortcuts();
     void applyTheme();
-    
+    void applyFilters();
+    void applySorting();
+
     // Results display
     void onGroupExpanded(QTreeWidgetItem* item);
     void onGroupCollapsed(QTreeWidgetItem* item);
@@ -270,9 +278,12 @@ private:
     QString generateThumbnailForExport(const QString& filePath, const QString& thumbnailDir, const QString& baseName);
     
     // Grouping helper methods
-    QString generateGroupKeyForDuplicateFile(const DuplicateFile& file, 
+    QString generateGroupKeyForDuplicateFile(const DuplicateFile& file,
                             GroupingOptionsDialog::GroupingCriteria criteria,
                             const GroupingOptionsDialog::GroupingOptions& options) const;
+
+    // Filter helper methods
+    bool matchesCurrentFilters(const DuplicateGroup& group) const;
 
     // UI Components
     QWidget* m_centralWidget;
@@ -312,6 +323,10 @@ private:
     QPushButton* m_selectRecommendedButton;
     QPushButton* m_selectByTypeButton;
     QPushButton* m_clearSelectionButton;
+    QPushButton* m_groupingButton;
+    QPushButton* m_undoButton;
+    QPushButton* m_redoButton;
+    QPushButton* m_invertSelectionButton;
     QLabel* m_selectionSummaryLabel;
     
     // Details Panel (Right side)
@@ -371,8 +386,11 @@ private:
     DuplicateRelationshipWidget* m_relationshipWidget;
     SmartSelectionDialog* m_smartSelectionDialog;
     GroupingOptionsDialog* m_groupingDialog;
+    SelectionHistoryManager* m_selectionHistory;
+    FileOperationQueue* m_operationQueue;
+    FileOperationProgressDialog* m_progressDialog;
 
-    
+
     // State
     bool m_isProcessingBulkOperation;
     QString m_lastExportPath;
@@ -386,38 +404,40 @@ private:
 };
 
 // Helper widget for custom duplicate group display
+// TODO: Implement DuplicateGroupWidget - currently commented out to fix build
+/*
 class DuplicateGroupWidget : public QWidget
 {
     Q_OBJECT
-    
+
 public:
     explicit DuplicateGroupWidget(const ResultsWindow::DuplicateGroup& group, QWidget* parent = nullptr);
-    
+
     void updateGroup(const ResultsWindow::DuplicateGroup& group);
     void setExpanded(bool expanded);
     bool isExpanded() const { return m_isExpanded; }
-    
+
     const ResultsWindow::DuplicateGroup& getGroup() const { return m_group; }
-    
+
 signals:
     void expansionToggled(bool expanded);
     void fileSelectionChanged(const QString& filePath, bool selected);
     void groupSelectionChanged(bool selected);
-    
+
 private slots:
     void onExpandButtonClicked();
     void onFileCheckboxToggled(bool checked);
     void updateDisplay();
-    
+
 private:
     void createGroupHeader();
     void createFilesList();
     void updateGroupHeader();
     void updateFilesList();
-    
+
     ResultsWindow::DuplicateGroup m_group;
     bool m_isExpanded;
-    
+
     // UI Components
     QVBoxLayout* m_layout;
     QWidget* m_headerWidget;
@@ -427,10 +447,11 @@ private:
     QLabel* m_groupIcon;
     QLabel* m_groupTitle;
     QLabel* m_groupStats;
-    
+
     QWidget* m_filesWidget;
     QVBoxLayout* m_filesLayout;
     QList<QCheckBox*> m_fileCheckboxes;
 };
+*/
 
 #endif // RESULTS_WINDOW_H

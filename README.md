@@ -77,20 +77,42 @@ We believe in building great software together! 🚀
 
 #### Unified Build Orchestrator (Recommended)
 
-DupFinder ships with `scripts/build.py`, an interactive helper that selects the
+DupFinder uses `scripts/build.py`, an intelligent build orchestrator that selects the
 correct toolchain (CPU/GPU, OS, architecture) and copies finished installers
-into the standardized `dist/` layout. To use it:
+into the standardized `dist/` layout.
 
-1. Copy `config/build_profiles.example.json` to `config/build_profiles.json` and
-  update the toolchain paths (Qt, CUDA, Visual Studio, etc.) for your machine.
-2. Run `python scripts/build.py` (or `py scripts\build.py` on Windows). The
-  script detects the host OS and GPU, shows the proposed configuration, and
-  waits for confirmation before building.
-3. Distribution artifacts land in `dist/Win64`, `dist/Linux`, or
-  `dist/MacOS/<arch>`, with separate `Debug` and `Release` folders as required.
+**Quick Start:**
 
-Use `python scripts/build.py --list-targets` to see every configured profile or
-`--non-interactive` for automation once the correct target id is known.
+1. **Configure your build environment:**
+   - **Option A (Recommended):** Edit individual profile files for platforms you'll use:
+     - Windows: `config/build_profiles_windows-msvc-cpu.json` or `config/build_profiles_windows-msvc-cuda.json`
+     - Linux: `config/build_profiles_linux-cpu.json` or `config/build_profiles_linux-gpu.json`
+     - macOS: `config/build_profiles_macos-x86_64.json` or `config/build_profiles_macos-arm64.json`
+   - **Option B (Legacy):** Copy `config/build_profiles.example.json` to `config/build_profiles.json`
+   - See [LOCAL_SETTINGS.md](LOCAL_SETTINGS.md) for reference configurations and examples
+
+2. **List available build targets:**
+   ```bash
+   python scripts/build.py --list-targets
+   ```
+
+3. **Run interactive build:**
+   ```bash
+   python scripts/build.py
+   ```
+   The script detects your OS and GPU, shows available targets, and builds after confirmation.
+
+4. **Find your artifacts:**
+   - Windows: `dist/Win64/{Debug,Release}/`
+   - Linux: `dist/Linux/{Debug,Release}/` (includes DEB, RPM, and TGZ packages)
+   - macOS: `dist/MacOS/{X64,ARM}/{Debug,Release}/`
+
+**For CI/CD and automation:**
+```bash
+python scripts/build.py --target <target-id> --build-type Release --non-interactive
+```
+
+**For comprehensive build system documentation, see [docs/BUILD_SYSTEM_OVERVIEW.md](docs/BUILD_SYSTEM_OVERVIEW.md)**
 
 #### Clone the Repository
 ```bash
@@ -98,53 +120,64 @@ git clone https://github.com/yourusername/dupfinder.git
 cd dupfinder
 ```
 
-#### Linux/Ubuntu Build
+#### Manual Build (Alternative to build.py)
+
+If you prefer manual CMake configuration instead of using the build orchestrator:
+
+**Linux/Ubuntu Build:**
 ```bash
 # Install dependencies
 sudo apt update
-sudo apt install build-essential cmake qt6-base-dev qt6-tools-dev
+sudo apt install build-essential cmake ninja-build qt6-base-dev qt6-tools-dev
+
+# Configure with CMake
+cmake -S . -B build -GNinja -DCMAKE_BUILD_TYPE=Release
 
 # Build
-mkdir build && cd build
-cmake ..
-make -j$(nproc)
+cmake --build build --parallel
 
 # Run
-./dupfinder
+./build/dupfinder
 ```
 
-#### Windows Build
+**Windows Build:**
 ```cmd
 # Using Visual Studio Developer Command Prompt
-mkdir build && cd build
-cmake .. -G "Visual Studio 17 2022"
-cmake --build . --config Release
+# Set Qt6_DIR environment variable first:
+# set Qt6_DIR=C:\Qt6\6.9.3\msvc2022_64
+
+cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+cmake --build build --config Release
 
 # Run
-Release\dupfinder.exe
+build\Release\dupfinder.exe
 ```
 
-#### macOS Build
+**macOS Build:**
 ```bash
 # Install dependencies (using Homebrew)
-brew install cmake qt6
+brew install cmake ninja qt6
+
+# Configure with CMake
+cmake -S . -B build -GNinja -DCMAKE_BUILD_TYPE=Release
 
 # Build
-mkdir build && cd build
-cmake ..
-make -j$(sysctl -n hw.ncpu)
+cmake --build build --parallel
 
 # Run
-open ./dupfinder.app
+open ./build/dupfinder.app
 ```
+
+**Note:** Manual builds don't automatically copy artifacts to `dist/`. Use `scripts/build.py` for automated packaging and distribution.
 
 ## 📁 Project Structure
 
 ```
 dupfinder/
-├── src/
+├── src/                   # Source code
 │   ├── core/              # Core duplicate detection algorithms
 │   ├── gui/               # Qt6-based user interface
+│   ├── gpu/               # GPU acceleration (CUDA/OpenCL)
 │   ├── platform/          # Platform-specific implementations
 │   │   ├── windows/       # Windows-specific code
 │   │   ├── macos/         # macOS-specific code
@@ -153,39 +186,61 @@ dupfinder/
 ├── include/               # Header files
 ├── tests/                 # Unit and integration tests
 │   ├── unit/              # Unit tests
-│   └── integration/       # Integration tests
-├── docs/                  # Documentation
-│   ├── PRD.md            # Product Requirements Document
-│   ├── design/           # Design documentation
-│   └── api/              # API documentation
-├── resources/            # Application resources
-│   ├── icons/            # Application icons
-│   └── translations/     # Internationalization files
-├── scripts/              # Build and deployment scripts
-├── cmake/                # CMake modules
-└── dist/                 # Distribution packages
+│   ├── integration/       # Integration tests
+│   └── performance/       # Performance benchmarks
+├── config/                # Build configuration
+│   ├── build_profiles_*.json  # Per-target build profiles
+│   └── build_profiles.example.json  # Example configuration
+├── docs/                  # Documentation (see docs/README.md)
+│   ├── BUILD_SYSTEM_OVERVIEW.md   # Complete build guide
+│   ├── IMPLEMENTATION_TASKS.md    # Active task list
+│   ├── PRD.md                     # Product requirements
+│   ├── ARCHITECTURE_DESIGN.md     # System architecture
+│   └── archive/           # Historical documentation
+├── resources/             # Application resources
+│   ├── icons/             # Application icons
+│   └── translations/      # Internationalization files
+├── scripts/               # Build and deployment scripts
+│   └── build.py           # Unified build orchestrator
+├── cmake/                 # CMake modules
+├── build/                 # Build output (generated)
+│   ├── windows/           # Windows builds
+│   ├── linux/             # Linux builds
+│   └── macos/             # macOS builds
+└── dist/                  # Distribution packages (generated)
+    ├── Win64/             # Windows installers
+    ├── Linux/             # Linux packages (DEB/RPM/TGZ)
+    └── MacOS/             # macOS disk images
 ```
 
 ## 📚 Documentation
 
-### Component Documentation
+**Complete documentation index available at [docs/README.md](docs/README.md)**
 
-#### FileScanner Component
-The FileScanner is the core component responsible for finding files to analyze. Complete documentation:
+### Quick Links
 
-- **[API Reference](docs/API_FILESCANNER.md)** - Complete API documentation with all methods, signals, and data structures
-- **[Usage Examples](docs/FILESCANNER_EXAMPLES.md)** - Practical examples for common use cases
-- **[Error Handling Guide](docs/FILESCANNER_ERROR_HANDLING.md)** - Best practices for handling scan errors
-- **[Performance Tuning](docs/FILESCANNER_PERFORMANCE.md)** - Optimization guide for large-scale scanning
-- **[Integration Guide](docs/FILESCANNER_INTEGRATION.md)** - How to integrate with HashCalculator and DuplicateDetector
-- **[Migration Guide](docs/FILESCANNER_MIGRATION.md)** - Upgrading from older versions
+#### For Developers
+- **[BUILD_SYSTEM_OVERVIEW.md](docs/BUILD_SYSTEM_OVERVIEW.md)** - Comprehensive build system guide (start here!)
+- **[LOCAL_SETTINGS.md](LOCAL_SETTINGS.md)** - Reference configurations for all platforms
+- **[DEVELOPMENT_SETUP.md](docs/DEVELOPMENT_SETUP.md)** - Development environment setup
+- **[ARCHITECTURE_DESIGN.md](docs/ARCHITECTURE_DESIGN.md)** - System architecture and design
+- **[IMPLEMENTATION_TASKS.md](docs/IMPLEMENTATION_TASKS.md)** - Current development tasks
 
-### General Documentation
-- **[Product Requirements](docs/PRD.md)** - Product vision and requirements
-- **[Architecture Design](docs/ARCHITECTURE_DESIGN.md)** - System architecture overview
-- **[API Design](docs/API_DESIGN.md)** - API design for all components
-- **[Testing Status](docs/TESTING_STATUS.md)** - Current testing status and known issues
-- **[User Guide](docs/USER_GUIDE.md)** - End-user documentation
+#### For Contributors
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Contribution guidelines
+- **[DEVELOPMENT_WORKFLOW.md](docs/DEVELOPMENT_WORKFLOW.md)** - Development processes
+- **[IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md)** - Project roadmap
+
+#### Product Documentation
+- **[PRD.md](docs/PRD.md)** - Product Requirements Document
+- **[UI_DESIGN_SPECIFICATION.md](docs/UI_DESIGN_SPECIFICATION.md)** - User interface design
+- **[MANUAL_TESTING_GUIDE.md](docs/MANUAL_TESTING_GUIDE.md)** - Testing procedures
+
+### Documentation Organization
+
+- **Active Documentation**: Current guides and references in `docs/`
+- **Archived Documentation**: Historical documents in `docs/archive/`
+- **Component Documentation**: Archived API docs in `docs/archive/`
 
 ## 🔧 Development
 
@@ -242,18 +297,37 @@ We have a comprehensive testing infrastructure with:
 ## 📦 Distribution
 
 ### Creating Packages
+
+**Using build.py (Recommended):**
 ```bash
-# In build directory
-make package    # Creates platform-specific packages
+python scripts/build.py --target <target-id> --build-type Release
 ```
 
-This generates:
-- **Windows**: `.exe` installer (NSIS)
-- **macOS**: `.dmg` disk image
-- **Linux**: `.deb`, `.rpm`, and `.tar.gz` packages
+Automatically creates platform-specific packages and copies them to `dist/`:
+
+- **Windows**: NSIS installer (`.exe`)
+  - `dist/Win64/Release/dupfinder-<version>-win64-<variant>.exe`
+- **Linux**: Multiple package formats
+  - `dist/Linux/Release/dupfinder-<version>-linux-x86_64-<variant>.deb` (Debian/Ubuntu)
+  - `dist/Linux/Release/dupfinder-<version>-linux-x86_64-<variant>.rpm` (RedHat/Fedora)
+  - `dist/Linux/Release/dupfinder-<version>-linux-x86_64-<variant>.tgz` (Universal)
+- **macOS**: Disk image (`.dmg`)
+  - `dist/MacOS/{X64,ARM}/Release/dupfinder-<version>-macos-<arch>.dmg`
+
+**Manual packaging:**
+```bash
+cd build
+cmake --build . --target package
+```
+
+### Build Variants
+
+- **Windows**: `msvc-cpu`, `msvc-cuda` (GPU), `mingw-cpu`
+- **Linux**: `cpu`, `gpu` (CUDA)
+- **macOS**: `x86_64` (Intel), `arm64` (Apple Silicon)
 
 ### Continuous Integration
-GitHub Actions automatically builds and tests on all platforms. See `.github/workflows/` for configuration.
+GitHub Actions can automatically build and test on all platforms. Configure with `scripts/build.py --non-interactive` for CI/CD pipelines.
 
 ## 🛡️ Safety Features
 

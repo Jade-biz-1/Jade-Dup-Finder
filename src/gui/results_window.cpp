@@ -7,6 +7,9 @@
 #include "duplicate_relationship_widget.h"
 #include "smart_selection_dialog.h"
 #include "settings_dialog.h"
+#include "selection_history_manager.h"
+#include "file_operation_queue.h"
+#include "file_operation_progress_dialog.h"
 #include "logger.h"
 #include "theme_manager.h"
 #include <QtWidgets/QApplication>
