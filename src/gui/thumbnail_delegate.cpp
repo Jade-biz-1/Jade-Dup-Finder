@@ -58,17 +58,47 @@ void ThumbnailDelegate::paint(QPainter* painter,
 
     // Handle first column with checkbox and thumbnail
     if (index.column() == 0) {
-        // For group items, use Qt default painting but with our background
+        // For group items, draw checkbox and text (no thumbnail)
         if (!isFileItem(index)) {
-            // Draw the text for group items
+            // Draw checkbox for group items
+            QRect checkboxRect = opt.rect;
+            checkboxRect.setWidth(20);
+            checkboxRect.setHeight(20);
+            checkboxRect.moveTop(opt.rect.top() + (opt.rect.height() - 20) / 2);
+            checkboxRect.moveLeft(opt.rect.left() + 4);
+
+            QStyleOptionButton checkboxOption;
+            checkboxOption.rect = checkboxRect;
+            checkboxOption.state = QStyle::State_Enabled;
+
+            // Get checkbox state from the model
+            QVariant checkState = index.data(Qt::CheckStateRole);
+            if (checkState.isValid()) {
+                Qt::CheckState state = static_cast<Qt::CheckState>(checkState.toInt());
+                if (state == Qt::Checked) {
+                    checkboxOption.state |= QStyle::State_On;
+                } else if (state == Qt::PartiallyChecked) {
+                    checkboxOption.state |= QStyle::State_NoChange;
+                } else {
+                    checkboxOption.state |= QStyle::State_Off;
+                }
+            }
+
+            QApplication::style()->drawControl(QStyle::CE_CheckBox, &checkboxOption, painter);
+
+            // Draw the text for group items after checkbox
             QString text = index.data(Qt::DisplayRole).toString();
             if (!text.isEmpty()) {
+                int textX = checkboxRect.right() + TEXT_MARGIN;
+                QRect textRect(textX, opt.rect.top(),
+                              opt.rect.right() - textX, opt.rect.height());
+
                 QColor textColor = opt.palette.text().color();
                 if (opt.state & QStyle::State_Selected) {
                     textColor = Qt::white; // Force white text on selected rows
                 }
                 painter->setPen(textColor);
-                painter->drawText(opt.rect.adjusted(4, 0, -4, 0), Qt::AlignLeft | Qt::AlignVCenter, text);
+                painter->drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, text);
             }
             painter->restore();
             return;

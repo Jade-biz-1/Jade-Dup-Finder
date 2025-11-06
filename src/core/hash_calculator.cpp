@@ -1440,19 +1440,70 @@ QList<QStringList> HashCalculator::createSizeGroupedBatches(const QStringList& f
 
 // GPU-related stub implementations
 void HashCalculator::initializeGPU() {
-    // TODO: Implement GPU initialization
+#ifdef HAS_CUDA
+    try {
+        m_cudaCalculator = std::make_unique<GPU::CUDAHashCalculator>();
+        if (m_cudaCalculator->initialize()) {
+            m_gpuAvailable = true;
+            LOG_INFO(LogCategories::HASH, "CUDA GPU acceleration initialized successfully");
+        } else {
+            m_gpuAvailable = false;
+            LOG_WARNING(LogCategories::HASH, "CUDA GPU acceleration failed to initialize");
+        }
+    } catch (const std::exception& e) {
+        m_gpuAvailable = false;
+        LOG_WARNING(LogCategories::HASH, QString("CUDA GPU acceleration initialization error: %1").arg(e.what()));
+    }
+#else
+    m_gpuAvailable = false;
+    LOG_INFO(LogCategories::HASH, "CUDA support not compiled in");
+#endif
 }
 
 QString HashCalculator::calculateFileHashGPU(const QString& filePath) {
-    // TODO: Implement GPU hash calculation
-    // For now, fall back to CPU
+#ifdef HAS_CUDA
+    if (!m_gpuAvailable || !m_cudaCalculator) {
+        return QString();
+    }
+
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly)) {
+        return QString();
+    }
+
+    QByteArray fileData = file.readAll();
+    file.close();
+
+    if (fileData.isEmpty()) {
+        return QString();
+    }
+
+    try {
+        // Convert to vector<uint8_t>
+        std::vector<uint8_t> inputData(fileData.begin(), fileData.end());
+
+        // Compute hash on GPU
+        auto hashResult = m_cudaCalculator->computeHash(inputData);
+
+        // Convert back to hex string
+        QString hashString;
+        for (uint8_t byte : hashResult) {
+            hashString += QString("%1").arg(byte, 2, 16, QChar('0'));
+        }
+
+        return hashString;
+    } catch (const std::exception& e) {
+        LOG_WARNING(LogCategories::HASH, QString("GPU hash calculation failed for %1: %2").arg(filePath, e.what()));
+        return QString();
+    }
+#else
     Q_UNUSED(filePath);
     return QString();
+#endif
 }
 
 bool HashCalculator::isGPUEnabled() const {
-    // TODO: Implement GPU detection
-    return false;
+    return m_gpuAvailable;
 }
 
 // Buffer pool stub implementations

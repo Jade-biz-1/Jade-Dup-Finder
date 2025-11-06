@@ -19,6 +19,14 @@
 #include <QWaitCondition>
 #include <QFile>
 #include <QSharedPointer>
+#include <memory>
+
+// Forward declarations for GPU acceleration types
+#ifdef HAS_CUDA
+namespace GPU {
+    class CUDAHashCalculator;
+}
+#endif
 
 /**
  * @brief HashCalculator - High-performance SHA-256 file hash calculator
@@ -762,6 +770,12 @@ private:
     double m_lastCpuCheck = 0.0;
     qint64 m_lastMemoryCheck = 0;
     int m_resourceCheckInterval = 1000; // milliseconds
+
+    // GPU acceleration
+    bool m_gpuAvailable = false;
+#ifdef HAS_CUDA
+    std::unique_ptr<GPU::CUDAHashCalculator> m_cudaCalculator;
+#endif
 
     // GPU acceleration methods
     void initializeGPU();

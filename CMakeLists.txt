@@ -74,8 +74,6 @@ if(ENABLE_GPU_ACCELERATION)
         find_package(CUDAToolkit REQUIRED)
         set(CUDA_FOUND TRUE)
         set(CUDA_VERSION ${CMAKE_CUDA_COMPILER_VERSION})
-    endif()
-    if(CUDA_FOUND)
         message(STATUS "CUDA found: ${CUDA_VERSION}")
         message(STATUS "CUDA toolkit root: ${CUDAToolkit_INCLUDE_DIRS}")
         # Modern CMake uses CUDA language support - no need for manual library/include setup
@@ -559,12 +557,14 @@ if(WIN32)
             "https://github.com/Jade-biz-1/Jade-Dup-Finder" "DupFinder on GitHub"
         )
 
-        # Create desktop shortcut
+        # Create desktop shortcut and uninstall shortcut in Start Menu
         set(CPACK_NSIS_CREATE_ICONS_EXTRA
-            "CreateShortCut '$DESKTOP\\\\DupFinder.lnk' '$INSTDIR\\\\bin\\\\dupfinder.exe'"
+            "CreateShortCut \\\"$DESKTOP\\\\DupFinder.lnk\\\" \\\"$INSTDIR\\\\bin\\\\dupfinder.exe\\\"
+             CreateShortCut \\\"$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\Uninstall.lnk\\\" \\\"$INSTDIR\\\\Uninstall.exe\\\""
         )
         set(CPACK_NSIS_DELETE_ICONS_EXTRA
-            "Delete '$DESKTOP\\\\DupFinder.lnk'"
+            "Delete \\\"$DESKTOP\\\\DupFinder.lnk\\\"
+             Delete \\\"$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\Uninstall.lnk\\\""
         )
 
         # Installer branding

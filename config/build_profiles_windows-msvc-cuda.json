@@ -31,7 +31,8 @@
       ],
       "environment": {
         "Qt6_DIR": "C:\\Qt\\6.9.3\\msvc2022_64",
-        "CUDA_PATH": "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.5"
+        "CUDA_PATH": "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.5",
+        "PATH": "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.5\\bin;%PATH%"
       },
       "path": [
         "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.5\\bin"
@@ -40,7 +41,9 @@
         "-DDUPFINDER_BUILD_VARIANT=gpu",
         "-DDUPFINDER_PACKAGE_SUFFIX=win64-msvc-cuda",
         "-DENABLE_GPU_ACCELERATION=ON",
-        "-DDUPFINDER_WARNINGS_AS_ERRORS=OFF"
+        "-DDUPFINDER_WARNINGS_AS_ERRORS=OFF",
+        "-DQT_FORCE_MIN_CMAKE_VERSION_FOR_USING_QT=3.20",
+        "-DCMAKE_CUDA_COMPILER=C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.5\\bin\\nvcc.exe"
       ],
       "default_build_type": "Release",
       "supported_build_types": ["Debug", "Release"],
