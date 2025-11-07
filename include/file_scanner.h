@@ -10,6 +10,7 @@
 #include <QDateTime>
 #include <QElapsedTimer>
 
+
 /**
  * @brief File Scanner - Core component for traversing directories and finding files
  * 
@@ -126,12 +127,9 @@ public:
 
     // Main scanning interface
     void startScan(const ScanOptions& options);
-    void cancelScan();
     bool isScanning() const;
     
     // Pause/Resume interface (Task 9)
-    void pauseScan();
-    void resumeScan();
     bool isPaused() const;
 
     // Results access
@@ -148,6 +146,12 @@ public:
     
     // Cache management (public for testing)
     void clearMetadataCache();
+
+public slots:
+    // Pause/Resume interface (Task 9) - must be slots for Qt::UniqueConnection
+    void pauseScan();
+    void resumeScan();
+    void cancelScan();
 
 signals:
     void scanStarted();
@@ -228,4 +232,5 @@ private:
     QString m_currentFolder;
     QString m_currentFile;
     QElapsedTimer m_elapsedTimer;
+
 };

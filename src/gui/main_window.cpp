@@ -53,6 +53,7 @@ MainWindow::MainWindow(QWidget *parent)
     , m_savingsLabel(nullptr)
     , m_fileScanner(nullptr)
     , m_duplicateDetector(nullptr)
+    , m_detectorThread(nullptr)
     , m_hashCalculator(nullptr)
     , m_safetyManager(nullptr)
     , m_fileManager(nullptr)
@@ -102,6 +103,15 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
+    // Clean up detector thread if it exists
+    if (m_detectorThread) {
+        // Stop the thread gracefully
+        m_detectorThread->quit();
+        m_detectorThread->wait();
+        delete m_detectorThread;
+        m_detectorThread = nullptr;
+    }
+
     saveSettings();
 }
 
@@ -169,7 +179,7 @@ void MainWindow::setFileScanner(FileScanner* scanner)
                             m_scanErrorDialog->show();
                             m_scanErrorDialog->raise();
                             m_scanErrorDialog->activateWindow();
-                        }, Qt::UniqueConnection);
+                        });
                 
                 // Connect FileScanner pause/resume signals to dialog
                 connect(m_fileScanner, &FileScanner::scanPaused, 
@@ -177,17 +187,26 @@ void MainWindow::setFileScanner(FileScanner* scanner)
                             if (m_scanProgressDialog) {
                                 m_scanProgressDialog->setPaused(true);
                             }
-                        }, Qt::UniqueConnection);
+                        });
                 connect(m_fileScanner, &FileScanner::scanResumed, 
                         this, [this]() {
                             if (m_scanProgressDialog) {
                                 m_scanProgressDialog->setPaused(false);
                             }
-                        }, Qt::UniqueConnection);
+                        });
             }
             
+            // Ensure the dialog is properly shown and brought to front
             m_scanProgressDialog->show();
-        }, Qt::UniqueConnection);
+            m_scanProgressDialog->raise();
+            m_scanProgressDialog->activateWindow();
+            
+            // Force the dialog to be visible and on top
+            m_scanProgressDialog->setWindowState(m_scanProgressDialog->windowState() & ~Qt::WindowMinimized);
+            m_scanProgressDialog->setWindowState(m_scanProgressDialog->windowState() | Qt::WindowActive);
+            
+            LOG_DEBUG(LogCategories::UI, "Scan progress dialog shown and activated");
+        });
         
         connect(m_fileScanner, &FileScanner::scanProgress, this, [this](int filesProcessed, int totalFiles, const QString& currentPath) {
             Q_UNUSED(totalFiles);
@@ -198,7 +217,7 @@ void MainWindow::setFileScanner(FileScanner* scanner)
             }
             LOG_DEBUG(LogCategories::UI, QString("Scan progress: %1 files processed").arg(filesProcessed));
             LOG_DEBUG(LogCategories::SCAN, QString("File: %1 - %2").arg(currentPath).arg("Currently scanning"));
-        }, Qt::UniqueConnection);
+        });
         
         bool connected = connect(m_fileScanner, &FileScanner::scanCompleted, this, &MainWindow::onScanCompleted, Qt::UniqueConnection);
         LOG_DEBUG(LogCategories::UI, QString("FileScanner::scanCompleted connection result: %1").arg(connected ? "success" : "failed"));
@@ -207,6 +226,9 @@ void MainWindow::setFileScanner(FileScanner* scanner)
         connect(m_fileScanner, &FileScanner::detailedProgress, this, [this](const FileScanner::ScanProgress& progress) {
             if (m_scanProgressDialog) {
                 ScanProgressDialog::ProgressInfo info;
+                // PERFORMANCE FIX: Set operation type and status to show "Running" instead of "Initializing"
+                info.operationType = tr("File Scan");
+                info.status = ScanProgressDialog::OperationStatus::Running;
                 info.filesScanned = progress.filesScanned;
                 info.bytesScanned = progress.bytesScanned;
                 info.currentFolder = progress.currentFolder;
@@ -214,10 +236,10 @@ void MainWindow::setFileScanner(FileScanner* scanner)
                 info.filesPerSecond = progress.filesPerSecond;
                 info.isPaused = progress.isPaused;
                 info.errorsEncountered = m_fileScanner->getTotalErrorsEncountered(); // Task 10
-                
+
                 m_scanProgressDialog->updateProgress(info);
             }
-        }, Qt::UniqueConnection);
+        });
         
         LOG_DEBUG(LogCategories::UI, "FileScanner connections complete");
     }
@@ -231,23 +253,39 @@ void MainWindow::setHashCalculator(HashCalculator* calculator)
 void MainWindow::setDuplicateDetector(DuplicateDetector* detector)
 {
     m_duplicateDetector = detector;
-    
+
     // Set up connections now that we have the detector
     if (m_duplicateDetector) {
-        LOG_DEBUG(LogCategories::UI, "Setting up DuplicateDetector connections");
-        
+        LOG_DEBUG(LogCategories::UI, "Setting up DuplicateDetector on background thread");
+
+        // Create a background thread for the detector
+        m_detectorThread = new QThread(this);
+        LOG_DEBUG(LogCategories::UI, QString("Created detector thread: %1").arg(reinterpret_cast<quintptr>(m_detectorThread)));
+
+        // Move detector to the background thread
+        m_duplicateDetector->moveToThread(m_detectorThread);
+        LOG_DEBUG(LogCategories::UI, "DuplicateDetector moved to background thread");
+
+        // Connect signals with Qt::QueuedConnection for thread-safe communication
+        // Qt::QueuedConnection ensures signals are processed in the receiver's thread
         connect(m_duplicateDetector, &DuplicateDetector::detectionStarted,
-                this, &MainWindow::onDuplicateDetectionStarted);
-        
+                this, &MainWindow::onDuplicateDetectionStarted, Qt::QueuedConnection);
+
         connect(m_duplicateDetector, &DuplicateDetector::detectionProgress,
-                this, &MainWindow::onDuplicateDetectionProgress);
-        
+                this, &MainWindow::onDuplicateDetectionProgress, Qt::QueuedConnection);
+
         connect(m_duplicateDetector, &DuplicateDetector::detectionCompleted,
-                this, &MainWindow::onDuplicateDetectionCompleted);
-        
+                this, &MainWindow::onDuplicateDetectionCompleted, Qt::QueuedConnection);
+
         connect(m_duplicateDetector, &DuplicateDetector::detectionError,
-                this, &MainWindow::onDuplicateDetectionError);
-        
+                this, &MainWindow::onDuplicateDetectionError, Qt::QueuedConnection);
+
+        // Clean up thread when detector is done or on application exit
+        connect(m_detectorThread, &QThread::finished, m_detectorThread, &QObject::deleteLater);
+
+        // Start the thread
+        m_detectorThread->start();
+        LOG_DEBUG(LogCategories::UI, "Detector thread started");
         LOG_DEBUG(LogCategories::UI, "DuplicateDetector connections complete");
     }
 }
@@ -1398,10 +1436,8 @@ void MainWindow::onScanCompleted()
         m_fileCountLabel->setText(tr("Files: %1").arg(filesFound));
     }
     
-    // Hide scan progress dialog
-    if (m_scanProgressDialog) {
-        m_scanProgressDialog->hide();
-    }
+    // Keep scan progress dialog open - it will be used for duplicate detection
+    // Don't hide it here, let duplicate detection reuse it
     
     // Cache scan results for duplicate detection
     m_lastScanResults = m_fileScanner->getScannedFiles();
@@ -1426,11 +1462,16 @@ void MainWindow::onScanCompleted()
         // Configure detection options based on scan configuration
         DuplicateDetector::DetectionOptions detectionOptions = convertScanConfigToDetectionOptions(m_currentScanConfig);
         m_duplicateDetector->setOptions(detectionOptions);
-        
+
         LOG_INFO(LogCategories::DUPLICATE, QString("Starting duplicate detection with %1 files using algorithm: %2")
                  .arg(detectorFiles.size())
                  .arg(static_cast<int>(detectionOptions.algorithmType)));
-        m_duplicateDetector->findDuplicates(detectorFiles);
+
+        // Invoke findDuplicates on the background thread using Qt::QueuedConnection
+        // This ensures the method executes on the detector's thread, not the main thread
+        QMetaObject::invokeMethod(m_duplicateDetector, "findDuplicates",
+                                   Qt::QueuedConnection,
+                                   Q_ARG(QList<DuplicateDetector::FileInfo>, detectorFiles));
     } else {
         if (!m_duplicateDetector) {
             LOG_ERROR(LogCategories::DUPLICATE, "DuplicateDetector is NULL!");
@@ -1457,7 +1498,24 @@ void MainWindow::onDuplicateDetectionStarted(int totalFiles)
 {
     LOG_INFO(LogCategories::UI, QString("=== Duplicate Detection Started ==="));
     LOG_INFO(LogCategories::UI, QString("  - Total files to process: %1").arg(totalFiles));
-    
+
+    // Show the progress dialog if it exists
+    if (m_scanProgressDialog) {
+        m_scanProgressDialog->show();
+        m_scanProgressDialog->raise();
+        m_scanProgressDialog->activateWindow();
+
+        // Initialize progress info
+        ScanProgressDialog::ProgressInfo progressInfo;
+        progressInfo.operationType = "duplicate_detection";
+        progressInfo.status = ScanProgressDialog::OperationStatus::Running;
+        progressInfo.totalFiles = totalFiles;
+        progressInfo.filesScanned = 0;
+
+        m_scanProgressDialog->updateProgress(progressInfo);
+        LOG_DEBUG(LogCategories::UI, "Progress dialog shown for duplicate detection");
+    }
+
     updateScanProgress(0, tr("Detecting duplicates..."));
 }
 
@@ -1481,14 +1539,36 @@ void MainWindow::onDuplicateDetectionProgress(const DuplicateDetector::Detection
             phaseText = tr("Complete");
             break;
     }
-    
+
     QString status = tr("Detecting duplicates: %1 (%2/%3 files)")
         .arg(phaseText)
         .arg(progress.filesProcessed)
         .arg(progress.totalFiles);
-    
+
     updateScanProgress(static_cast<int>(progress.percentComplete), status);
-    
+
+    // Update the detailed progress dialog if it exists
+    if (m_scanProgressDialog) {
+        ScanProgressDialog::ProgressInfo progressInfo;
+        progressInfo.operationType = "duplicate_detection";
+        progressInfo.status = ScanProgressDialog::OperationStatus::Running;
+        progressInfo.totalFiles = progress.totalFiles;
+        progressInfo.filesScanned = progress.filesProcessed;
+
+        // Add phase information to the operation type
+        if (!progress.currentFile.isEmpty()) {
+            progressInfo.currentFile = QFileInfo(progress.currentFile).fileName();
+            progressInfo.currentFolder = QFileInfo(progress.currentFile).dir().path();
+        }
+
+        // Set file size for current file if available
+        if (progress.currentFileSize > 0) {
+            progressInfo.bytesScanned = progress.currentFileSize;
+        }
+
+        m_scanProgressDialog->updateProgress(progressInfo);
+    }
+
     LOG_DEBUG(LogCategories::UI, QString("Detection progress: %1% - %2").arg(progress.percentComplete, 0, 'f', 1).arg(phaseText));
 }
 
@@ -1582,8 +1662,14 @@ void MainWindow::onDuplicateDetectionCompleted(int totalGroups)
         m_resultsWindow->activateWindow();
         LOG_DEBUG(LogCategories::UI, "Results window displayed");
     } else {
-        showSuccess(tr("Detection Complete"), 
+        showSuccess(tr("Detection Complete"),
                    tr("No duplicate files found. Your files are unique!"));
+    }
+
+    // Hide the scan progress dialog now that detection is complete
+    if (m_scanProgressDialog) {
+        m_scanProgressDialog->hide();
+        LOG_DEBUG(LogCategories::UI, "Progress dialog hidden after detection completion");
     }
 }
 
@@ -1600,8 +1686,14 @@ void MainWindow::onDuplicateDetectionError(const QString& error)
         LOG_DEBUG(LogCategories::UI, "Quick actions re-enabled");
     }
     
-    showError(tr("Detection Error"), 
+    showError(tr("Detection Error"),
              tr("An error occurred during duplicate detection:\n%1").arg(error));
+
+    // Hide the scan progress dialog on error
+    if (m_scanProgressDialog) {
+        m_scanProgressDialog->hide();
+        LOG_DEBUG(LogCategories::UI, "Progress dialog hidden after detection error");
+    }
 }
 
 void MainWindow::saveScanToHistory(const QList<DuplicateDetector::DuplicateGroup>& groups)

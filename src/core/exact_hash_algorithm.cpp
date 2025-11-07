@@ -1,5 +1,4 @@
 #include "exact_hash_algorithm.h"
-#include "hash_calculator.h"
 #include <QCryptographicHash>
 #include <QFile>
 #include <QDebug>
@@ -28,15 +27,16 @@ QStringList ExactHashAlgorithm::supportedExtensions() const
 
 QByteArray ExactHashAlgorithm::computeSignature(const QString& filePath)
 {
-    // Use existing HashCalculator for consistency
-    HashCalculator calculator;
-    QString hash = calculator.calculateFileHashSync(filePath);
-    
+    // Use shared HashCalculator instance - CRITICAL: don't create new instance per file!
+    // Creating a new HashCalculator for each file initializes thread pools, buffers, GPU contexts
+    // which causes severe performance degradation with large file sets (378K+ files)
+    QString hash = m_calculator.calculateFileHashSync(filePath);
+
     if (hash.isEmpty()) {
         qWarning() << "Failed to calculate hash for:" << filePath;
         return QByteArray();
     }
-    
+
     return hash.toUtf8();
 }
 

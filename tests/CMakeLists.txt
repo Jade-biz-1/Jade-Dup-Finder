@@ -1204,3 +1204,40 @@ set_tests_properties(FinalThemeValidationTest PROPERTIES
     LABELS "final;validation;documentation;certification"
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
 )
+# Command-line test for Downloads folder (no UI)
+add_executable(test_downloads_cli
+    test_downloads_cli.cpp
+)
+
+# Link against core components (from parent CMake)
+target_include_directories(test_downloads_cli PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/src/core
+)
+
+target_link_libraries(test_downloads_cli
+    Qt6::Core
+    Qt6::Test
+)
+
+# Link to the same core sources used by main application
+# We need file_scanner, duplicate_detector, logger, etc.
+target_sources(test_downloads_cli PRIVATE
+    ${CMAKE_SOURCE_DIR}/src/core/file_scanner.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/duplicate_detector.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/hash_calculator.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/logger.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/detection_algorithm.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/detection_algorithm_factory.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/exact_hash_algorithm.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/quick_scan_algorithm.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/perceptual_hash_algorithm.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/document_similarity_algorithm.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/app_config.cpp
+)
+
+set_target_properties(test_downloads_cli PROPERTIES
+    AUTOMOC ON
+)
+
+# Not added as a ctest - run manually

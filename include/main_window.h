@@ -15,6 +15,7 @@
 #include <QtWidgets/QFrame>
 #include <QtWidgets/QScrollArea>
 #include <QtCore/QTimer>
+#include <QtCore/QThread>
 
 // Include headers for types used in method signatures
 #include "file_scanner.h"
@@ -130,6 +131,7 @@ private:
     // Core Engine References
     FileScanner* m_fileScanner;
     DuplicateDetector* m_duplicateDetector;
+    QThread* m_detectorThread;  // Background thread for duplicate detection
     HashCalculator* m_hashCalculator;
     SafetyManager* m_safetyManager;
     FileManager* m_fileManager;

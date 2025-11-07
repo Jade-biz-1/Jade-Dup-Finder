@@ -120,12 +120,12 @@ public:
     struct DetectionProgress {
         enum Phase {
             SizeGrouping,               // Grouping files by size
-            HashCalculation,            // Calculating hashes for potential duplicates  
+            HashCalculation,            // Calculating hashes for potential duplicates
             DuplicateGrouping,          // Creating final duplicate groups
             GeneratingRecommendations,  // Analyzing and generating recommendations
             Complete                    // Detection finished
         };
-        
+
         Phase currentPhase = SizeGrouping;
         int filesProcessed = 0;
         int totalFiles = 0;
@@ -133,8 +133,9 @@ public:
         int duplicateGroupsFound = 0;
         qint64 wastedSpaceFound = 0;
         QString currentFile;            // Currently processing file
+        qint64 currentFileSize = 0;     // Size of currently processing file (in bytes)
         double percentComplete = 0.0;
-        
+
         DetectionProgress() = default;
     };
     
@@ -168,7 +169,7 @@ public:
     DetectionOptions getOptions() const;
     
     // Main detection interface
-    void findDuplicates(const QList<FileInfo>& files);
+    Q_INVOKABLE void findDuplicates(const QList<FileInfo>& files);
     void findDuplicates(const QList<FileScanner::FileInfo>& scanResults);
     QList<DuplicateGroup> findDuplicatesSync(const QList<FileInfo>& files);
     
@@ -272,7 +273,7 @@ private:
     double getPathScore(const QString& filePath);
     
     // Progress and statistics
-    void updateProgress(DetectionProgress::Phase phase, int processed, int total, const QString& currentFile = QString());
+    void updateProgress(DetectionProgress::Phase phase, int processed, int total, const QString& currentFile = QString(), qint64 currentFileSize = 0);
     void updateStatistics();
     
     // Utility methods

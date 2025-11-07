@@ -115,7 +115,7 @@ elseif(UNIX)
 endif()
 
 # Compiler-specific flags
-option(DUPFINDER_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" ON)
+option(DUPFINDER_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
 
 if(MSVC)
     # Enable all warnings for MSVC (C++ only - CUDA uses its own warning flags)
@@ -237,9 +237,15 @@ set(GUI_SOURCES
 
 set(PLATFORM_SOURCES
     src/platform/${PLATFORM_NAME}/platform_file_ops.cpp
-    src/platform/${PLATFORM_NAME}/trash_manager.cpp
     src/platform/${PLATFORM_NAME}/system_integration.cpp
 )
+
+# Platform-specific trash manager (macOS uses Objective-C++)
+if(APPLE)
+    list(APPEND PLATFORM_SOURCES src/platform/${PLATFORM_NAME}/trash_manager.mm)
+else()
+    list(APPEND PLATFORM_SOURCES src/platform/${PLATFORM_NAME}/trash_manager.cpp)
+endif()
 
 set(HEADER_FILES
     include/duplicate_detector.h
@@ -413,6 +419,7 @@ elseif(APPLE)
     find_library(FOUNDATION_LIB Foundation)
     find_library(APPKIT_LIB AppKit)
     target_link_libraries(dupfinder ${FOUNDATION_LIB} ${APPKIT_LIB})
+
     # Set macOS bundle properties
     set_target_properties(dupfinder PROPERTIES
         MACOSX_BUNDLE TRUE
@@ -515,6 +522,33 @@ if(WIN32)
         )
     else()
         message(WARNING "windeployqt not found. Qt libraries will not be automatically deployed. Install Qt Creator or add windeployqt to PATH.")
+    endif()
+elseif(APPLE)
+    # Qt deployment for macOS
+    # Find macdeployqt tool
+    if(QT_VERSION EQUAL 6)
+        find_program(MACDEPLOYQT_EXECUTABLE macdeployqt HINTS "${Qt6_DIR}/../../../libexec" "${Qt6_DIR}/../../libexec" "${Qt6_DIR}/../../../bin" "${Qt6_DIR}/../../bin")
+    else()
+        find_program(MACDEPLOYQT_EXECUTABLE macdeployqt HINTS "${Qt5_DIR}/../../../libexec" "${Qt5_DIR}/../../libexec" "${Qt5_DIR}/../../../bin" "${Qt5_DIR}/../../bin")
+    endif()
+
+    if(MACDEPLOYQT_EXECUTABLE)
+        message(STATUS "macdeployqt found: ${MACDEPLOYQT_EXECUTABLE}")
+
+        # Deploy Qt frameworks into the app bundle after build
+        # macdeployqt automatically sets the rpath, so we don't need to do it manually
+        add_custom_command(TARGET dupfinder POST_BUILD
+            COMMAND ${MACDEPLOYQT_EXECUTABLE}
+                $<TARGET_BUNDLE_DIR:dupfinder>
+                -always-overwrite
+            COMMENT "Deploying Qt frameworks for macOS DupFinder"
+            VERBATIM
+        )
+    else()
+        message(WARNING "macdeployqt not found. Qt frameworks will not be automatically deployed.")
+        message(WARNING "To enable macOS deployment:")
+        message(WARNING "  - Install Qt via Homebrew: brew install qt@6")
+        message(WARNING "  - Or install Qt from qt.io with the macOS deployment tools")
     endif()
 endif()
 

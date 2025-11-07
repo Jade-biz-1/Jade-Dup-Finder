@@ -10,6 +10,7 @@
 #include <QtCore/QHash>
 #include <QtCore/QThread>
 #include <QtCore/QElapsedTimer>
+#include <QtCore/QCoreApplication>
 
 // FileScanner Implementation - Phase 1 Basic Version
 
@@ -20,6 +21,7 @@ FileScanner::FileScanner(QObject* parent)
     , m_isPaused(false)
     , m_filesProcessed(0)
     , m_totalBytesScanned(0)
+
 {
     LOG_DEBUG(LogCategories::SCAN, "FileScanner initialized");
 }
@@ -168,6 +170,8 @@ void FileScanner::processScanQueue()
         m_isScanning = false;
         m_scanEndTime = QDateTime::currentDateTime();
         
+
+        
         if (m_cancelRequested) {
             LOG_INFO(LogCategories::SCAN, "Scan cancelled");
             emit scanCancelled();
@@ -217,7 +221,8 @@ void FileScanner::processScanQueue()
     scanDirectory(currentPath);
     
     // Continue processing queue asynchronously
-    QTimer::singleShot(10, this, &FileScanner::processScanQueue);
+    // PERFORMANCE FIX: Remove artificial delay - process immediately
+    QTimer::singleShot(0, this, &FileScanner::processScanQueue);
 }
 
 bool FileScanner::shouldIncludeFile(const QFileInfo& fileInfo) const
@@ -326,10 +331,17 @@ void FileScanner::scanDirectory(const QString& directoryPath)
     // Use QDirIterator for recursive scanning
     QDirIterator iterator(directoryPath, QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot,
                          QDirIterator::Subdirectories);
-    
+
+    int filesProcessedSinceYield = 0;
+    int iterationsProcessedSinceYield = 0;
+    // PERFORMANCE FIX: Reduce event loop yields for better scan throughput
+    const int EVENT_YIELD_INTERVAL = 500;  // Process events every 500 files (was 25)
+    const int ITERATION_YIELD_INTERVAL = 2000;  // Process events every 2000 iterations (was 100)
+
     while (iterator.hasNext() && !m_cancelRequested && !m_isPaused) {
         QString filePath;
-        
+        iterationsProcessedSinceYield++;
+
         try {
             filePath = iterator.next();
         } catch (...) {
@@ -337,39 +349,39 @@ void FileScanner::scanDirectory(const QString& directoryPath)
             recordError(ScanError::FileSystemError, directoryPath, "Exception during directory iteration");
             continue;
         }
-        
+
         QFileInfo fileInfo(filePath);
-        
+
         // Check for file system errors
         if (!fileInfo.exists()) {
             // File may have been deleted during scan
             continue;
         }
-        
+
         // Check if file is readable
         if (fileInfo.isFile() && !fileInfo.isReadable()) {
             recordError(ScanError::PermissionDenied, filePath, "Permission denied");
             continue;
         }
-        
+
         // Check for path length issues
         if (filePath.length() > 4096) {  // Common path length limit
             recordError(ScanError::PathTooLong, filePath, "Path exceeds maximum length");
             continue;
         }
-        
+
         if (fileInfo.isFile() && shouldIncludeFile(fileInfo)) {
             LOG_FILE("Processing file", filePath);
-            
+
             // Update current file for progress tracking (Task 7)
             m_currentFile = filePath;
-            
+
             // Create FileInfo structure
             FileInfo info;
             info.filePath = fileInfo.absoluteFilePath();
             info.fileName = fileInfo.fileName();
             info.directory = fileInfo.absolutePath();
-            
+
             // Try to use cached metadata if enabled
             if (m_currentOptions.enableMetadataCache) {
                 CachedFileInfo cachedInfo;
@@ -397,7 +409,7 @@ void FileScanner::scanDirectory(const QString& directoryPath)
                 info.fileSize = fileInfo.size();
                 info.lastModified = fileInfo.lastModified();
             }
-            
+
             // In streaming mode, emit files immediately without storing
             if (m_currentOptions.streamingMode) {
                 emit fileFound(info);
@@ -405,22 +417,40 @@ void FileScanner::scanDirectory(const QString& directoryPath)
                 // Store files in memory for later retrieval
                 m_scannedFiles.append(info);
             }
-            
+
             m_totalBytesScanned += info.fileSize;
             m_filesProcessed++;
-            
-            // Emit progress periodically based on configured batch size
-            int batchSize = m_currentOptions.progressBatchSize > 0 ? m_currentOptions.progressBatchSize : 100;
+            filesProcessedSinceYield++;
+
+            // PERFORMANCE FIX: Emit progress less frequently for better throughput
+            // Only update UI every 1000 files instead of every 50
+            int batchSize = m_currentOptions.progressBatchSize > 0 ? m_currentOptions.progressBatchSize : 1000;
             if (m_filesProcessed % batchSize == 0) {
                 emit scanProgress(m_filesProcessed, -1, filePath);
                 // In non-streaming mode, also emit fileFound periodically
                 if (!m_currentOptions.streamingMode) {
                     emit fileFound(info);
                 }
-                
+
                 // Emit detailed progress (Task 7)
                 emitDetailedProgress();
             }
+        }
+
+        // CRITICAL FIX: Yield to event loop more frequently to prevent UI freezing
+        // This prevents the application from becoming unresponsive during large directory scans
+        // Yield based on either files processed OR total iterations to handle directories with many non-matching files
+        if (filesProcessedSinceYield >= EVENT_YIELD_INTERVAL || iterationsProcessedSinceYield >= ITERATION_YIELD_INTERVAL) {
+            QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+            
+            // Also emit progress update to keep UI informed even if no files match criteria
+            if (iterationsProcessedSinceYield >= ITERATION_YIELD_INTERVAL) {
+                emit scanProgress(m_filesProcessed, -1, filePath);
+                emitDetailedProgress();
+            }
+            
+            filesProcessedSinceYield = 0;
+            iterationsProcessedSinceYield = 0;
         }
     }
     

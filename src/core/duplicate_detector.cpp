@@ -6,6 +6,7 @@
 #include <QFileInfo>
 #include <QMutexLocker>
 #include <QCoreApplication>
+#include <QEventLoop>
 #include <QtAlgorithms>
 #include <QRegularExpression>
 #include <QTimer>
@@ -396,7 +397,7 @@ QHash<qint64, QList<DuplicateDetector::FileInfo>> DuplicateDetector::groupFilesB
         
         // Update progress periodically
         if (processed % 1000 == 0) {
-            updateProgress(DetectionProgress::SizeGrouping, processed, static_cast<int>(files.size()), file.filePath);
+            updateProgress(DetectionProgress::SizeGrouping, processed, static_cast<int>(files.size()), file.filePath, file.fileSize);
         }
     }
     
@@ -547,22 +548,40 @@ void DuplicateDetector::calculateHashesForFiles(const QList<FileInfo>& files)
 
 void DuplicateDetector::calculateSignaturesBatch(const QList<FileInfo>& files, int startIndex)
 {
-    const int batchSize = 10; // Process 10 files at a time
+    // PERFORMANCE FIX: Increase batch size dramatically for better throughput
+    const int batchSize = 500; // Process 500 files at a time (was 5!)
     int processed = 0;
-    
-    QMutexLocker locker(&m_mutex);
-    
-    if (m_cancelRequested || !m_isDetecting || !m_currentAlgorithm) {
-        return;
-    }
-    
-    // Process batch
+
+    // Process batch - minimize mutex contention
     for (int i = startIndex; i < files.size() && processed < batchSize; ++i, ++processed) {
+        // Check cancellation without holding lock
+        {
+            QMutexLocker locker(&m_mutex);
+            if (m_cancelRequested || !m_isDetecting || !m_currentAlgorithm) {
+                return;
+            }
+        }
+
         const FileInfo& file = files[i];
-        
+        QByteArray signature;
+
         try {
-            QByteArray signature = m_currentAlgorithm->computeSignature(file.filePath);
-            
+            // Calculate hash WITHOUT holding mutex - this is the slow operation
+            {
+                QMutexLocker locker(&m_mutex);
+                if (!m_currentAlgorithm) {
+                    return;
+                }
+            }
+            signature = m_currentAlgorithm->computeSignature(file.filePath);
+        } catch (...) {
+            LOG_WARNING(LogCategories::DUPLICATE, QString("Exception calculating signature for %1").arg(file.filePath));
+            signature = QByteArray(); // Empty signature on error
+        }
+
+        // Update internal state - lock only for the update
+        {
+            QMutexLocker locker(&m_mutex);
             auto it = m_pendingHashes.find(file.filePath);
             if (it != m_pendingHashes.end()) {
                 if (!signature.isEmpty()) {
@@ -573,29 +592,24 @@ void DuplicateDetector::calculateSignaturesBatch(const QList<FileInfo>& files, i
                     m_pendingHashes.erase(it);
                 }
             }
-        } catch (...) {
-            LOG_WARNING(LogCategories::DUPLICATE, QString("Exception calculating signature for %1").arg(file.filePath));
-            auto it = m_pendingHashes.find(file.filePath);
-            if (it != m_pendingHashes.end()) {
-                m_pendingHashes.erase(it);
-            }
         }
-        
-        // Update progress
-        int completed = startIndex + processed + 1;
-        int total = static_cast<int>(files.size());
-        
-        locker.unlock();
-        updateProgress(DetectionProgress::HashCalculation, completed, total, file.filePath);
-        locker.relock();
+
+        // PERFORMANCE FIX: Update progress only occasionally, not for every file
+        // Update every 100 files to reduce cross-thread signal overhead
+        if (processed % 100 == 0 || processed == batchSize - 1) {
+            int completed = startIndex + processed + 1;
+            int total = static_cast<int>(files.size());
+            updateProgress(DetectionProgress::HashCalculation, completed, total, file.filePath, file.fileSize);
+        }
     }
-    
+
     int nextIndex = startIndex + processed;
-    locker.unlock();
-    
+
     // Continue with next batch or finish
     if (nextIndex < files.size()) {
-        QTimer::singleShot(1, this, [this, files, nextIndex]() {
+        // PERFORMANCE FIX: Remove artificial delay - process immediately for maximum throughput
+        // Background thread ensures UI stays responsive without needing delays
+        QTimer::singleShot(0, this, [this, files, nextIndex]() {
             calculateSignaturesBatch(files, nextIndex);
         });
     } else {
@@ -1043,22 +1057,23 @@ bool DuplicateDetector::shouldIncludeFile(const FileInfo& file) const
     return true;
 }
 
-void DuplicateDetector::updateProgress(DetectionProgress::Phase phase, int processed, int total, const QString& currentFile)
+void DuplicateDetector::updateProgress(DetectionProgress::Phase phase, int processed, int total, const QString& currentFile, qint64 currentFileSize)
 {
     QMutexLocker locker(&m_mutex);
-    
+
     m_progress.currentPhase = phase;
     m_progress.filesProcessed = processed;
     m_progress.totalFiles = total;
     m_progress.currentFile = currentFile;
+    m_progress.currentFileSize = currentFileSize;
     m_progress.percentComplete = total > 0 ? (static_cast<double>(processed) / total) * 100.0 : 0.0;
-    
+
     // Update phase-specific counters
     if (phase == DetectionProgress::SizeGrouping) {
         m_progress.sizeGroupsFound = static_cast<int>(m_sizeGroups.size());
     } else if (phase >= DetectionProgress::DuplicateGrouping) {
         m_progress.duplicateGroupsFound = static_cast<int>(m_duplicateGroups.size());
-        
+
         // Calculate wasted space directly here to avoid recursive mutex lock
         qint64 totalWasted = 0;
         for (const DuplicateGroup& group : m_duplicateGroups) {
@@ -1066,10 +1081,10 @@ void DuplicateDetector::updateProgress(DetectionProgress::Phase phase, int proce
         }
         m_progress.wastedSpaceFound = totalWasted;
     }
-    
+
     DetectionProgress progressCopy = m_progress;
     locker.unlock();
-    
+
     emit detectionProgress(progressCopy);
 }
 

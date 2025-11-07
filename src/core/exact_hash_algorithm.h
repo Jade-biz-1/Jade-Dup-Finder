@@ -2,6 +2,7 @@
 #define EXACT_HASH_ALGORITHM_H
 
 #include "detection_algorithm.h"
+#include "hash_calculator.h"
 
 /**
  * @class ExactHashAlgorithm
@@ -31,6 +32,7 @@ public:
 
 private:
     QVariantMap m_config;
+    HashCalculator m_calculator;  // Single instance shared for all hash calculations
 };
 
 #endif // EXACT_HASH_ALGORITHM_H
