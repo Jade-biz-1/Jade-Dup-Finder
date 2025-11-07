@@ -161,9 +161,9 @@ bool FinalThemeValidator::validateAllRequirementsMet()
     LOG_INFO(LogCategories::UI, "Validating all requirements are met");
     
     QList<RequirementStatus> requirements = validateAllRequirements();
-    
+
     int completedCount = 0;
-    int totalCount = requirements.size();
+    int totalCount = static_cast<int>(requirements.size());
     
     for (const RequirementStatus& req : requirements) {
         if (req.isCompleted) {

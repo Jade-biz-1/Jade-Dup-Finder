@@ -217,7 +217,7 @@ QString FileManager::executeBatchOperation(const FileOperation& operation)
         // Initialize progress tracking
         OperationProgress progress;
         progress.operationId = operation.operationId;
-        progress.totalFiles = operation.sourceFiles.size();
+        progress.totalFiles = static_cast<int>(operation.sourceFiles.size());
         m_operationProgress[operation.operationId] = progress;
     }
     
@@ -296,7 +296,7 @@ void FileManager::processOperationQueue()
     int activeCount = 0;
     {
         QMutexLocker locker(&m_operationMutex);
-        activeCount = m_activeOperations.size();
+        activeCount = static_cast<int>(m_activeOperations.size());
     }
     
     if (activeCount >= m_maxConcurrentOperations) {
@@ -355,9 +355,9 @@ void FileManager::processOperationQueue()
         // Process events to keep UI responsive
         QCoreApplication::processEvents();
     }
-    
+
     // Final progress update
-    updateProgress(operation.operationId, operation.sourceFiles.size(), result.totalSize, QString());
+    updateProgress(operation.operationId, static_cast<int>(operation.sourceFiles.size()), result.totalSize, QString());
     
     // Store result and emit completion
     {
@@ -580,10 +580,10 @@ bool FileManager::performRestore(const QString& backupPath, const QString& opera
                         QString backupFilename = QFileInfo(backupPath).fileName();
                         // Remove timestamp and .backup extension
                         // Format: filename.YYYYMMDD_HHMMSS.backup
-                        int lastDot = backupFilename.lastIndexOf('.');
+                        qsizetype lastDot = backupFilename.lastIndexOf('.');
                         if (lastDot > 0) {
                             backupFilename = backupFilename.left(lastDot); // Remove .backup
-                            int secondLastDot = backupFilename.lastIndexOf('.');
+                            qsizetype secondLastDot = backupFilename.lastIndexOf('.');
                             if (secondLastDot > 0) {
                                 backupFilename = backupFilename.left(secondLastDot); // Remove timestamp
                             }

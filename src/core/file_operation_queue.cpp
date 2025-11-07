@@ -21,7 +21,7 @@ QString FileOperationQueue::queueDeleteOperation(const QStringList& files) {
     operation.operationId = generateOperationId();
     operation.type = OperationType::Delete;
     operation.sourceFiles = files;
-    operation.totalFiles = files.size();
+    operation.totalFiles = static_cast<int>(files.size());
     operation.totalBytes = calculateTotalBytes(files);
     
     m_operationQueue.enqueue(operation);
@@ -44,7 +44,7 @@ QString FileOperationQueue::queueMoveOperation(const QStringList& files, const Q
     operation.type = OperationType::Move;
     operation.sourceFiles = files;
     operation.destinationPath = destination;
-    operation.totalFiles = files.size();
+    operation.totalFiles = static_cast<int>(files.size());
     operation.totalBytes = calculateTotalBytes(files);
     
     m_operationQueue.enqueue(operation);
@@ -66,7 +66,7 @@ QString FileOperationQueue::queueCopyOperation(const QStringList& files, const Q
     operation.type = OperationType::Copy;
     operation.sourceFiles = files;
     operation.destinationPath = destination;
-    operation.totalFiles = files.size();
+    operation.totalFiles = static_cast<int>(files.size());
     operation.totalBytes = calculateTotalBytes(files);
     
     m_operationQueue.enqueue(operation);
@@ -87,7 +87,7 @@ QString FileOperationQueue::queueTrashOperation(const QStringList& files) {
     operation.operationId = generateOperationId();
     operation.type = OperationType::Trash;
     operation.sourceFiles = files;
-    operation.totalFiles = files.size();
+    operation.totalFiles = static_cast<int>(files.size());
     operation.totalBytes = calculateTotalBytes(files);
     
     m_operationQueue.enqueue(operation);
@@ -220,7 +220,7 @@ FileOperationQueue::FileOperation FileOperationQueue::getCurrentOperation() cons
 
 int FileOperationQueue::getQueueSize() const {
     QMutexLocker locker(&m_mutex);
-    return m_operationQueue.size();
+    return static_cast<int>(m_operationQueue.size());
 }
 
 void FileOperationQueue::clearCompletedOperations() {

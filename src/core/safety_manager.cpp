@@ -704,7 +704,7 @@ void SafetyManager::addSystemProtectedPath(const QString& path)
 int SafetyManager::getTotalOperationsTracked() const
 {
     QMutexLocker locker(&m_operationMutex);
-    return m_operations.size();
+    return static_cast<int>(m_operations.size());
 }
 
 qint64 SafetyManager::getTotalBackupSize() const

@@ -150,8 +150,8 @@ QList<ArchiveFileInfo> ArchiveHandler::scanArchive(const QString& archivePath)
         
         m_totalArchivesProcessed++;
         m_totalFilesScanned += files.size();
-        
-        emit scanCompleted(archivePath, files.size());
+
+        emit scanCompleted(archivePath, static_cast<int>(files.size()));
         qDebug() << "Archive scan completed:" << archivePath << "Files found:" << files.size();
         
     } catch (const std::exception& e) {
@@ -335,7 +335,7 @@ QList<ArchiveFileInfo> ArchiveHandler::scanZipArchive(const QString& archivePath
         }
         
         // Extract filename (everything after the time field)
-        int nameIndex = line.lastIndexOf(parts[3]) + parts[3].length();
+        int nameIndex = static_cast<int>(line.lastIndexOf(parts[3])) + static_cast<int>(parts[3].length());
         if (nameIndex >= line.length()) {
             continue;
         }
@@ -441,7 +441,7 @@ QList<ArchiveFileInfo> ArchiveHandler::scanTarArchive(const QString& archivePath
             continue; // Skip directories
         }
         
-        emit scanProgress(archivePath, ++fileCount, lines.size(), extractedFileName);
+        emit scanProgress(archivePath, ++fileCount, static_cast<int>(lines.size()), extractedFileName);
         
         // Get detailed file info using tar -tvf
         QProcess detailProcess;

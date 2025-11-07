@@ -768,8 +768,8 @@ void ComponentRegistry::onMonitoringUpdate()
         }
     }
     
-    emit componentValidationCompleted(validComponents + validDialogs, 
-                                    m_components.size() + m_dialogs.size());
+    emit componentValidationCompleted(validComponents + validDialogs,
+                                    static_cast<int>(m_components.size() + m_dialogs.size()));
 }
 
 void ComponentRegistry::updateComponentInfo(QWidget* component, bool success, const QString& error)

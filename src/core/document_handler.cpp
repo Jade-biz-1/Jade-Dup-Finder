@@ -162,7 +162,7 @@ DocumentInfo DocumentHandler::extractDocumentInfo(const QString& filePath)
         // Calculate word count
         if (!info.textContent.isEmpty()) {
             QStringList words = info.textContent.split(QRegularExpression("\\s+"), Qt::SkipEmptyParts);
-            info.wordCount = words.size();
+            info.wordCount = static_cast<int>(words.size());
         }
         
         m_totalDocumentsProcessed++;

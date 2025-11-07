@@ -102,7 +102,7 @@ public:
         : m_parent(parent), m_options(options), m_shutdown(false) {
         
         // Initialize workers vector with move construction
-        m_workers.reserve(m_options.threadPoolSize);
+        m_workers.reserve(static_cast<size_t>(m_options.threadPoolSize));
         for (int i = 0; i < m_options.threadPoolSize; ++i) {
             m_workers.emplace_back();
         }
@@ -133,10 +133,10 @@ public:
         
         // Find worker with smallest queue or round-robin
         int targetWorker = findBestWorker();
-        
-        QMutexLocker locker(m_workers[targetWorker].localMutex.get());
-        m_workers[targetWorker].localQueue.enqueue(task);
-        m_workers[targetWorker].waitCondition->wakeOne();
+
+        QMutexLocker locker(m_workers[static_cast<size_t>(targetWorker)].localMutex.get());
+        m_workers[static_cast<size_t>(targetWorker)].localQueue.enqueue(task);
+        m_workers[static_cast<size_t>(targetWorker)].waitCondition->wakeOne();
         
         m_queuedTasks.fetchAndAddOrdered(1);
     }
@@ -183,14 +183,14 @@ private:
     QTimer* m_monitorTimer = nullptr;
     
     void initializeWorker(int workerId) {
-        WorkerThread& worker = m_workers[workerId];
+        WorkerThread& worker = m_workers[static_cast<size_t>(workerId)];
         worker.thread = QThread::create([this, workerId]() { workerLoop(workerId); });
         worker.thread->start();
         m_activeWorkers.fetchAndAddOrdered(1);
     }
     
     void workerLoop(int workerId) {
-        WorkerThread& worker = m_workers[workerId];
+        WorkerThread& worker = m_workers[static_cast<size_t>(workerId)];
         
         while (!m_shutdown.loadAcquire()) {
             HashTask* task = getNextTask(workerId);
@@ -219,7 +219,7 @@ private:
     }
     
     HashTask* getNextTask(int workerId) {
-        WorkerThread& worker = m_workers[workerId];
+        WorkerThread& worker = m_workers[static_cast<size_t>(workerId)];
         
         // Try local queue first
         {
@@ -239,13 +239,13 @@ private:
     
     HashTask* stealWork(int thiefId) {
         // Try to steal from a random worker with enough tasks
-        for (int attempts = 0; attempts < static_cast<int>(m_workers.size()); ++attempts) {
-            int victimId = static_cast<int>(QRandomGenerator::global()->bounded(static_cast<qint64>(m_workers.size())));
-            if (victimId == thiefId) continue;
-            
+        for (size_t attempts = 0; attempts < m_workers.size(); ++attempts) {
+            size_t victimId = static_cast<size_t>(QRandomGenerator::global()->bounded(static_cast<quint32>(m_workers.size())));
+            if (static_cast<int>(victimId) == thiefId) continue;
+
             WorkerThread& victim = m_workers[victimId];
             QMutexLocker locker(victim.localMutex.get());
-            
+
             if (victim.localQueue.size() >= m_options.workStealingThreshold) {
                 // Steal from the end (LIFO for cache locality)
                 HashTask* stolen = victim.localQueue.takeLast();
@@ -257,24 +257,24 @@ private:
                 }
             }
         }
-        
+
         return nullptr;
     }
     
     int findBestWorker() {
         int bestWorker = 0;
         int minQueueSize = INT_MAX;
-        
-        for (int i = 0; i < static_cast<int>(m_workers.size()); ++i) {
+
+        for (size_t i = 0; i < m_workers.size(); ++i) {
             QMutexLocker locker(m_workers[i].localMutex.get());
             int queueSize = static_cast<int>(m_workers[i].localQueue.size());
             if (queueSize < minQueueSize) {
                 minQueueSize = queueSize;
-                bestWorker = i;
+                bestWorker = static_cast<int>(i);
                 if (queueSize == 0) break; // Found idle worker
             }
         }
-        
+
         return bestWorker;
     }
     
@@ -326,7 +326,7 @@ private:
                 activeThreads++;
             }
             QMutexLocker locker(worker.localMutex.get());
-            totalQueueSize += static_cast<int>(worker.localQueue.size());
+            totalQueueSize += worker.localQueue.size();
         }
         
         // Update statistics
@@ -342,14 +342,14 @@ private:
         }
         
         // Dynamic thread adjustment logic
-        if (totalQueueSize > m_workers.size() * 2 && m_workers.size() < m_options.maxThreads) {
+        if (totalQueueSize > static_cast<int>(m_workers.size()) * 2 && m_workers.size() < static_cast<size_t>(m_options.maxThreads)) {
             // Add more threads if queue is backing up
-        int newWorkerId = static_cast<int>(m_workers.size());
+            size_t newWorkerId = m_workers.size();
             m_workers.resize(newWorkerId + 1);
-            initializeWorker(newWorkerId);
+            initializeWorker(static_cast<int>(newWorkerId));
             LOG_DEBUG(LogCategories::HASH, QString("Added thread, now %1 threads").arg(m_workers.size()));
-            
-        } else if (activeThreads < m_workers.size() / 2 && m_workers.size() > m_options.minThreads) {
+
+        } else if (activeThreads < static_cast<int>(m_workers.size()) / 2 && m_workers.size() > static_cast<size_t>(m_options.minThreads)) {
             // Remove idle threads (implementation would need thread-safe removal)
             // For now, just log the opportunity
             // TODO: Could remove threads, utilization low
@@ -662,21 +662,20 @@ QString HashCalculator::calculateChunkedHash(const QString& filePath, qint64 /* 
         qWarning() << "HashCalculator: Cannot open file for reading:" << filePath << file.errorString();
         return QString();
     }
-    
+
     QCryptographicHash hasher(QCryptographicHash::Sha256);
-    QByteArray buffer(static_cast<int>(m_options.chunkSize), 0);
+    QByteArray buffer(m_options.chunkSize, 0);
     
-    qint64 totalRead = 0;
     while (!file.atEnd() && !m_cancelAllRequested) {
         qint64 bytesRead = file.read(buffer.data(), m_options.chunkSize);
         if (bytesRead < 0) {
             qWarning() << "HashCalculator: Error reading file:" << filePath << file.errorString();
             return QString();
         }
-        
+
+
         if (bytesRead > 0) {
             hasher.addData(QByteArrayView(buffer.constData(), bytesRead));
-            totalRead += bytesRead;
         }
     }
     
@@ -698,8 +697,8 @@ QString HashCalculator::hashLargeFile(const QString& filePath, qint64 fileSize)
     }
     
     QCryptographicHash hasher(QCryptographicHash::Sha256);
-    QByteArray buffer(static_cast<int>(m_options.chunkSize), 0);
-    
+    QByteArray buffer(m_options.chunkSize, 0);
+
     QElapsedTimer timer;
     timer.start();
     
@@ -821,7 +820,7 @@ void HashCalculator::clearCache()
 
 int HashCalculator::getCacheSize() const
 {
-    return m_cache ? m_cache->size() : 0;
+    return m_cache ? static_cast<int>(m_cache->size()) : 0;
 }
 
 double HashCalculator::getCacheHitRate() const
@@ -1152,15 +1151,15 @@ QList<QStringList> HashCalculator::createOptimalBatches(const QStringList& fileP
     
     // Create larger batches for small files
     while (!smallFiles.isEmpty()) {
-        int batchSize = qMin(m_options.smallFileBatchSize, static_cast<int>(smallFiles.size()));
+        int batchSize = static_cast<int>(qMin(static_cast<qsizetype>(m_options.smallFileBatchSize), smallFiles.size()));
         QStringList batch = smallFiles.mid(0, batchSize);
         smallFiles = smallFiles.mid(batchSize);
         batches.append(batch);
     }
-    
+
     // Create smaller batches for large files
     while (!largeFiles.isEmpty()) {
-        int batchSize = qMin(m_options.batchSize, static_cast<int>(largeFiles.size()));
+        int batchSize = static_cast<int>(qMin(static_cast<qsizetype>(m_options.batchSize), largeFiles.size()));
         QStringList batch = largeFiles.mid(0, batchSize);
         largeFiles = largeFiles.mid(batchSize);
         batches.append(batch);
@@ -1330,7 +1329,7 @@ void HashCalculator::calculateFileHashesParallel(const QList<QStringList>& batch
     // Update statistics
     {
         QMutexLocker locker(&m_statsMutex);
-        m_statistics.parallelBatchesExecuted += static_cast<int>(batches.size());
+        m_statistics.parallelBatchesExecuted += batches.size();
     }
     
     // Wait for all batches to complete (optional - they run asynchronously)

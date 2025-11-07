@@ -14,7 +14,11 @@
 #include <QCheckBox>
 #include <QRadioButton>
 #include <cmath>
+
+// Platform-specific includes
+#ifdef _WIN32
 #include <windows.h>
+#endif
 
 StyleValidator::StyleValidator(QObject* parent)
     : QObject(parent)
@@ -123,7 +127,7 @@ ComplianceReport StyleValidator::generateReport(const QList<QWidget*>& component
 {
     ComplianceReport report;
     report.generated = QDateTime::currentDateTime();
-    report.totalComponents = components.size();
+    report.totalComponents = static_cast<int>(components.size());
     report.compliantComponents = 0;
     report.violationCount = 0;
     report.overallScore = 0.0;
@@ -643,7 +647,7 @@ void StyleValidator::performRuntimeScan()
         m_recentViolations = m_recentViolations.mid(m_recentViolations.size() - 100);
     }
     
-    emit scanCompleted(newViolations.size());
+    emit scanCompleted(static_cast<int>(newViolations.size()));
 }
 
 ComplianceReport StyleValidator::performComprehensiveApplicationScan()

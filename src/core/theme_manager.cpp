@@ -19,7 +19,6 @@
 #include <QLabel>
 #include <QGroupBox>
 #include <QProgressBar>
-#include <windows.h>
 #include <QSlider>
 #include <QTreeWidget>
 #include <QRegularExpression>
@@ -28,6 +27,11 @@
 #include <QMetaObject>
 #include <cmath>
 #include <algorithm>
+
+// Platform-specific includes
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 // ThemeData implementation
 bool ThemeData::isValid() const
@@ -117,12 +121,12 @@ ThemeManager::ThemeManager(QObject* parent)
         connect(m_componentRegistry, &ComponentRegistry::componentUnregistered,
                 this, &ThemeManager::componentUnregistered);
         connect(m_componentRegistry, &ComponentRegistry::dialogRegistered,
-                this, [this](QDialog* dialog) {
+                this, [](QDialog* dialog) {
                     LOG_DEBUG(LogCategories::UI, QString("Dialog registered: %1")
                              .arg(dialog->metaObject()->className()));
                 });
         connect(m_componentRegistry, &ComponentRegistry::dialogUnregistered,
-                this, [this](QDialog* dialog) {
+                this, [](QDialog* dialog) {
                     LOG_DEBUG(LogCategories::UI, QString("Dialog unregistered: %1")
                              .arg(dialog->metaObject()->className()));
                 });
@@ -1093,13 +1097,17 @@ void ThemeManager::setupSystemThemeDetection()
     themeCheckTimer->start(2000); // Check every 2 seconds for more responsive detection
     
     // Also connect to application palette change signal for immediate detection
+    // Note: paletteChanged is deprecated in Qt 6.0+, but still functional for compatibility
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
     connect(qApp, &QGuiApplication::paletteChanged, this, [this](const QPalette&) {
         if (m_followSystemTheme && m_currentTheme == SystemDefault) {
             LOG_DEBUG(LogCategories::UI, "Application palette changed, checking system theme");
             QTimer::singleShot(100, this, &ThemeManager::onSystemThemeChanged);
         }
     });
-    
+#pragma GCC diagnostic pop
+
     LOG_INFO(LogCategories::UI, "Enhanced system theme detection initialized");
 }
 
@@ -1149,7 +1157,7 @@ void ThemeManager::unregisterDialog(QDialog* dialog)
     }
     
     // Remove from registered dialogs (legacy)
-    for (int i = m_registeredDialogs.size() - 1; i >= 0; --i) {
+    for (int i = static_cast<int>(m_registeredDialogs.size()) - 1; i >= 0; --i) {
         if (m_registeredDialogs[i].isNull() || m_registeredDialogs[i].data() == dialog) {
             m_registeredDialogs.removeAt(i);
         }
@@ -1162,7 +1170,7 @@ void ThemeManager::unregisterDialog(QDialog* dialog)
 void ThemeManager::updateRegisteredDialogs()
 {
     // Clean up null pointers and update remaining dialogs
-    for (int i = m_registeredDialogs.size() - 1; i >= 0; --i) {
+    for (int i = static_cast<int>(m_registeredDialogs.size()) - 1; i >= 0; --i) {
         if (m_registeredDialogs[i].isNull()) {
             m_registeredDialogs.removeAt(i);
         } else {
@@ -1529,7 +1537,7 @@ void ThemeManager::validateApplicationCompliance()
     
     // Get all widgets in the application
     QWidgetList allWidgets = QApplication::allWidgets();
-    int totalWidgets = allWidgets.size();
+    int totalWidgets = static_cast<int>(allWidgets.size());
     int nonCompliantWidgets = 0;
     
     for (QWidget* widget : allWidgets) {
@@ -2742,13 +2750,13 @@ void ThemeManager::enableRealTimeThemeUpdates(bool enabled)
                     this, [this]() {
                         ThemeData currentThemeData = getCurrentThemeData();
                         m_componentRegistry->applyThemeToAll(currentThemeData);
-                    }, Qt::UniqueConnection);
+                    });
             
             connect(m_componentRegistry, &ComponentRegistry::themeApplicationFailed,
-                    this, [this](QWidget* component, const QString& error) {
+                    this, [](QWidget* component, const QString& error) {
                         LOG_WARNING(LogCategories::UI, QString("Real-time theme update failed for %1: %2")
                                    .arg(component->metaObject()->className()).arg(error));
-                    }, Qt::UniqueConnection);
+                    });
         }
         
         LOG_INFO(LogCategories::UI, QString("Real-time theme updates %1")
@@ -2772,12 +2780,12 @@ void ThemeManager::enableComponentMonitoring(bool enabled)
             
             // Connect to monitoring signals
             connect(m_componentRegistry, &ComponentRegistry::componentValidationCompleted,
-                    this, [this](int validCount, int totalCount) {
+                    this, [](int validCount, int totalCount) {
                         if (totalCount > 0 && validCount < totalCount) {
                             LOG_DEBUG(LogCategories::UI, QString("Component validation: %1/%2 valid")
                                      .arg(validCount).arg(totalCount));
                         }
-                    }, Qt::UniqueConnection);
+                    });
         } else {
             m_componentRegistry->stopMonitoring();
         }
@@ -3194,7 +3202,7 @@ void ThemeManager::enablePerformanceOptimization(bool enabled)
         m_performanceOptimizer->startPerformanceMonitoring();
         
         // Connect performance optimizer to theme changes
-        connect(this, &ThemeManager::themeChanged, this, [this](Theme theme, const QString& themeName) {
+        connect(this, &ThemeManager::themeChanged, this, [this](Theme /*theme*/, const QString& /*themeName*/) {
             if (m_performanceOptimizer) {
                 ThemeData currentTheme = getCurrentThemeData();
                 m_performanceOptimizer->optimizedApplyTheme(currentTheme);
