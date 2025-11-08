@@ -1,8 +1,8 @@
 # DupFinder User Documentation
 
-**Version:** 2.0  
-**Last Updated:** October 17, 2025  
-**Status:** Complete - All Features Documented  
+**Version:** 2.1
+**Last Updated:** November 7, 2025
+**Status:** Complete - All Features Documented (Updated with macOS support and performance improvements)
 **Replaces:** Original docs/USER_GUIDE.md (now 10x more comprehensive)
 
 ---
@@ -88,8 +88,8 @@ Go to **Volume 6** (Troubleshooting) for solutions to common problems.
 
 ### 🔄 Platform Status
 - **Linux:** ✅ Complete (all features available)
-- **Windows:** 📅 Coming Soon (cross-platform port planned)
-- **macOS:** 📅 Coming Soon (cross-platform port planned)
+- **macOS:** ✅ Complete (November 2025 - fully implemented with native trash support)
+- **Windows:** 📅 Coming Soon (platform files present, build testing in progress)
 
 ---
 
@@ -137,16 +137,17 @@ If DupFinder is running slowly:
 
 ## 🔄 Documentation Updates
 
-This documentation is updated with each release to reflect new features and improvements. 
+This documentation is updated with each release to reflect new features and improvements.
 
-**Last Major Update:** October 17, 2025
-- Added advanced features documentation (smart selection, visualization)
-- Updated all screenshots and examples
-- Added comprehensive keyboard shortcuts
-- Expanded troubleshooting section
+**Last Major Update:** November 7, 2025
+- ✅ Added macOS platform support documentation
+- ✅ Documented critical performance optimizations (handles 378K+ files)
+- ✅ Updated platform status and system requirements
+- ✅ Added information about large file set handling
 
 **Previous Updates:**
-- October 14, 2025: Added safety features and settings documentation
+- October 17, 2025: Advanced features documentation (smart selection, visualization)
+- October 14, 2025: Safety features and settings documentation
 - October 13, 2025: Initial comprehensive documentation structure
 
 ---
