@@ -49,7 +49,7 @@ ScanProgressDialog::ScanProgressDialog(QWidget* parent)
 
 void ScanProgressDialog::setupUI() {
     setWindowTitle(tr("Operation Progress"));
-    setModal(true);
+    setModal(false);  // CRITICAL FIX: Must be non-modal to allow background processing
     setMinimumWidth(600);
     setMinimumHeight(450);
 
