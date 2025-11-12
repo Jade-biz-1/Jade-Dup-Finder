@@ -40,16 +40,21 @@ ScanProgressDialog::ScanProgressDialog(QWidget* parent)
     , m_isPaused(false)
     , m_operationManager(nullptr)
 {
+    qDebug() << "ScanProgressDialog constructor called";
     setupUI();
+    qDebug() << "ScanProgressDialog setupUI completed";
     
     // Register with ThemeManager for automatic theme updates
     ThemeManager::instance()->registerDialog(this);
     m_scanTimer.start();
+    qDebug() << "ScanProgressDialog constructor finished - dialog ready";
 }
 
 void ScanProgressDialog::setupUI() {
+    qDebug() << "ScanProgressDialog::setupUI() called";
     setWindowTitle(tr("Operation Progress"));
     setModal(false);  // CRITICAL FIX: Must be non-modal to allow background processing
+    qDebug() << "ScanProgressDialog: setModal(false) - dialog is non-modal";
     setMinimumWidth(600);
     setMinimumHeight(450);
 

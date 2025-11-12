@@ -6,6 +6,8 @@
 #include "scan_history_dialog.h"
 #include "restore_dialog.h"
 #include "safety_features_dialog.h"
+#include "scan_progress_dialog.h"
+#include "scan_error_dialog.h"
 #include "about_dialog.h"
 #include "file_scanner.h"
 #include "theme_manager.h"
@@ -141,7 +143,9 @@ void MainWindow::setFileScanner(FileScanner* scanner)
             
             // Show scan progress dialog
             if (!m_scanProgressDialog) {
+                LOG_INFO(LogCategories::UI, "Creating new ScanProgressDialog");
                 m_scanProgressDialog = new ScanProgressDialog(this);
+                LOG_INFO(LogCategories::UI, QString("ScanProgressDialog created at address: %1").arg(reinterpret_cast<quintptr>(m_scanProgressDialog), 0, 16));
                 
                 // Register with WindowStateManager
                 WindowStateManager::instance()->registerDialog(m_scanProgressDialog, "ScanProgressDialog");
@@ -197,7 +201,9 @@ void MainWindow::setFileScanner(FileScanner* scanner)
             }
             
             // Ensure the dialog is properly shown and brought to front
+            LOG_INFO(LogCategories::UI, QString("About to show ScanProgressDialog - isVisible before: %1").arg(m_scanProgressDialog->isVisible()));
             m_scanProgressDialog->show();
+            LOG_INFO(LogCategories::UI, QString("After show() - isVisible: %1, isHidden: %2").arg(m_scanProgressDialog->isVisible()).arg(m_scanProgressDialog->isHidden()));
             m_scanProgressDialog->raise();
             m_scanProgressDialog->activateWindow();
             
@@ -205,7 +211,7 @@ void MainWindow::setFileScanner(FileScanner* scanner)
             m_scanProgressDialog->setWindowState(m_scanProgressDialog->windowState() & ~Qt::WindowMinimized);
             m_scanProgressDialog->setWindowState(m_scanProgressDialog->windowState() | Qt::WindowActive);
             
-            LOG_DEBUG(LogCategories::UI, "Scan progress dialog shown and activated");
+            LOG_INFO(LogCategories::UI, QString("Scan progress dialog shown and activated - Final isVisible: %1").arg(m_scanProgressDialog->isVisible()));
         });
         
         connect(m_fileScanner, &FileScanner::scanProgress, this, [this](int filesProcessed, int totalFiles, const QString& currentPath) {
