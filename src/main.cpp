@@ -11,7 +11,7 @@
 #include <QtCore/QLibraryInfo>
 #include <QtCore/QStandardPaths>
 #include <QtCore/QDir>
-
+#include <QtCore/QThread>
 #include <QtCore/QLocale>
 
 int main(int argc, char *argv[])
@@ -58,8 +58,14 @@ int main(int argc, char *argv[])
     SafetyManager safetyManager;
     FileManager fileManager;
     
+    // CRITICAL FIX: Move FileScanner to background thread to prevent UI freezing
+    QThread* scannerThread = new QThread(&app);
+    scannerThread->setObjectName("FileScannerThread");
+    fileScanner.moveToThread(scannerThread);
+    scannerThread->start();
+    
     logger->info(LogCategories::SYSTEM, "Core components initialized:");
-    logger->info(LogCategories::SYSTEM, "  - FileScanner");
+    logger->info(LogCategories::SYSTEM, "  - FileScanner (on background thread)");
     logger->info(LogCategories::SYSTEM, "  - HashCalculator");
     logger->info(LogCategories::SYSTEM, "  - DuplicateDetector");
     logger->info(LogCategories::SYSTEM, "  - SafetyManager");
@@ -96,5 +102,18 @@ int main(int argc, char *argv[])
     int result = app.exec();
     
     logger->info(LogCategories::SYSTEM, QString("Application exiting with code: %1").arg(result));
+    
+    // CRITICAL FIX: Properly stop and cleanup the scanner thread
+    if (scannerThread && scannerThread->isRunning()) {
+        logger->info(LogCategories::SYSTEM, "Stopping FileScanner thread...");
+        scannerThread->quit();
+        if (!scannerThread->wait(3000)) {
+            logger->warning(LogCategories::SYSTEM, "FileScanner thread did not stop gracefully, terminating...");
+            scannerThread->terminate();
+            scannerThread->wait();
+        }
+        logger->info(LogCategories::SYSTEM, "FileScanner thread stopped");
+    }
+    
     return result;
 }

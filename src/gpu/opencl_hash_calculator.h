@@ -14,10 +14,12 @@ public:
 
     // GPUHashCalculator interface
     bool initialize() override;
-    bool isAvailable() const override;
-    std::string getBackendName() const override;
-    HashResult computeHash(const std::vector<uint8_t>& data) override;
-    std::vector<HashResult> computeHashes(const std::vector<std::vector<uint8_t>>& dataBatch) override;
+    std::vector<uint8_t> computeHash(const std::vector<uint8_t>& data) override;
+    std::vector<std::vector<uint8_t>> computeHashes(const std::vector<std::vector<uint8_t>>& dataBatch) override;
+    std::string getAlgorithmName() const override;
+    std::string getBackendType() const override;
+    bool isReady() const override;
+    PerformanceMetrics getPerformanceMetrics() const override;
 
 private:
     class Impl;

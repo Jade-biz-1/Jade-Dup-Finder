@@ -1364,18 +1364,29 @@ void ScanSetupDialog::onExcludeFolderItemChanged(QTreeWidgetItem* item, int colu
 
 void ScanSetupDialog::startScan()
 {
+    qDebug() << "ScanSetupDialog::startScan() called";
+    LOG_INFO(LogCategories::UI, "ScanSetupDialog: Start Scan button clicked");
+    
     // Validate configuration
     ScanConfiguration config = getCurrentConfiguration();
     
+    qDebug() << "Configuration retrieved, validating...";
     QString error = config.validationError();
     if (!error.isEmpty()) {
+        qDebug() << "Validation error:" << error;
+        LOG_WARNING(LogCategories::UI, QString("Scan configuration validation failed: %1").arg(error));
         QMessageBox::warning(this, tr("Invalid Configuration"), error);
         return;
     }
     
+    qDebug() << "Configuration valid, emitting scanConfigured signal";
+    LOG_INFO(LogCategories::UI, "Scan configuration valid, starting scan");
+    
     // Emit signal and close dialog
     emit scanConfigured(config);
+    qDebug() << "scanConfigured signal emitted, calling accept()";
     accept();
+    qDebug() << "Dialog accepted";
 }
 
 void ScanSetupDialog::savePreset()

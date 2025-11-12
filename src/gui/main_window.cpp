@@ -229,7 +229,13 @@ void MainWindow::setFileScanner(FileScanner* scanner)
         LOG_DEBUG(LogCategories::UI, QString("FileScanner::scanCompleted connection result: %1").arg(connected ? "success" : "failed"));
         
         // Connect detailed progress to scan progress dialog
-        connect(m_fileScanner, &FileScanner::detailedProgress, this, [this](const FileScanner::ScanProgress& progress) {
+        // CRITICAL: Must use Qt::QueuedConnection since FileScanner is on a different thread
+        // Qt should auto-detect this, but we'll use QueuedConnection explicitly to be sure
+        QObject::connect(m_fileScanner, &FileScanner::detailedProgress,
+                        this, [this](const FileScanner::ScanProgress& progress) {
+            LOG_DEBUG(LogCategories::UI, QString("Received detailedProgress signal: %1 files, %2 bytes")
+                     .arg(progress.filesScanned).arg(progress.bytesScanned));
+
             if (m_scanProgressDialog) {
                 ScanProgressDialog::ProgressInfo info;
                 // PERFORMANCE FIX: Set operation type and status to show "Running" instead of "Initializing"
@@ -243,9 +249,13 @@ void MainWindow::setFileScanner(FileScanner* scanner)
                 info.isPaused = progress.isPaused;
                 info.errorsEncountered = m_fileScanner->getTotalErrorsEncountered(); // Task 10
 
+                LOG_DEBUG(LogCategories::UI, QString("Calling updateProgress on dialog"));
                 m_scanProgressDialog->updateProgress(info);
+                LOG_DEBUG(LogCategories::UI, QString("updateProgress completed"));
+            } else {
+                LOG_WARNING(LogCategories::UI, "scanProgressDialog is NULL!");
             }
-        });
+        }, Qt::QueuedConnection);
         
         LOG_DEBUG(LogCategories::UI, "FileScanner connections complete");
     }
@@ -1388,7 +1398,7 @@ void MainWindow::handleScanConfiguration(const ScanSetupDialog::ScanConfiguratio
         scanOptions.includeHiddenFiles = config.includeHidden;
         scanOptions.scanSystemDirectories = config.includeSystem;
         scanOptions.followSymlinks = config.followSymlinks;
-        
+
         // Parse exclude patterns
         if (!config.excludePatterns.isEmpty()) {
             scanOptions.excludePatterns = config.excludePatterns;
@@ -1398,12 +1408,15 @@ void MainWindow::handleScanConfiguration(const ScanSetupDialog::ScanConfiguratio
         LOG_INFO(LogCategories::UI, QString("Initiating FileScanner with %1 target paths").arg(scanOptions.targetPaths.size()));
         LOG_DEBUG(LogCategories::UI, QString("  - Min file size (bytes): %1").arg(scanOptions.minimumFileSize));
         
-        // Start the scan
-        m_fileScanner->startScan(scanOptions);
+        // CRITICAL FIX: Start the scan on the FileScanner's thread using QMetaObject::invokeMethod
+        // This is necessary because FileScanner has been moved to a background thread
+        QMetaObject::invokeMethod(m_fileScanner, [this, scanOptions]() {
+            m_fileScanner->startScan(scanOptions);
+        }, Qt::QueuedConnection);
         
         // Update UI to show scanning state
         updateScanProgress(0, tr("Scanning..."));
-        LOG_INFO(LogCategories::UI, "Scan initiated successfully");
+        LOG_INFO(LogCategories::UI, "Scan initiated successfully (queued on FileScanner thread)");
     } else {
         LOG_ERROR(LogCategories::UI, "FileScanner not initialized!");
         showError(tr("Error"), tr("File scanner is not initialized. Please restart the application."));
@@ -1458,12 +1471,28 @@ void MainWindow::onScanCompleted()
     
     LOG_INFO(LogCategories::UI, QString("=== Starting Duplicate Detection ==="));
     LOG_INFO(LogCategories::UI, QString("  - Files to analyze: %1").arg(detectorFiles.size()));
-    
+
+    // Update progress dialog to show we're starting duplicate detection
+    if (m_scanProgressDialog) {
+        ScanProgressDialog::ProgressInfo info;
+        info.operationType = tr("Duplicate Detection");
+        info.status = ScanProgressDialog::OperationStatus::Running;
+        info.filesScanned = filesFound;
+        info.bytesScanned = bytesScanned;
+        m_scanProgressDialog->updateProgress(info);
+        m_scanProgressDialog->show();
+        m_scanProgressDialog->raise();
+        m_scanProgressDialog->activateWindow();
+
+        // Force process events to show the message before starting detection
+        QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+    }
+
     // Start duplicate detection if detector is available
     LOG_DEBUG(LogCategories::DUPLICATE, QString("Checking duplicate detector - exists: %1, files: %2")
               .arg(m_duplicateDetector ? "YES" : "NO")
               .arg(detectorFiles.size()));
-    
+
     if (m_duplicateDetector && !detectorFiles.isEmpty()) {
         // Configure detection options based on scan configuration
         DuplicateDetector::DetectionOptions detectionOptions = convertScanConfigToDetectionOptions(m_currentScanConfig);
@@ -1473,11 +1502,13 @@ void MainWindow::onScanCompleted()
                  .arg(detectorFiles.size())
                  .arg(static_cast<int>(detectionOptions.algorithmType)));
 
-        // Invoke findDuplicates on the background thread using Qt::QueuedConnection
-        // This ensures the method executes on the detector's thread, not the main thread
-        QMetaObject::invokeMethod(m_duplicateDetector, "findDuplicates",
-                                   Qt::QueuedConnection,
-                                   Q_ARG(QList<DuplicateDetector::FileInfo>, detectorFiles));
+        // Invoke findDuplicates on the background thread
+        // Call the Q_INVOKABLE version directly instead of using invokeMethod
+        QMetaObject::invokeMethod(m_duplicateDetector,
+                                   [this, detectorFiles]() {
+                                       m_duplicateDetector->findDuplicates(detectorFiles);
+                                   },
+                                   Qt::QueuedConnection);
     } else {
         if (!m_duplicateDetector) {
             LOG_ERROR(LogCategories::DUPLICATE, "DuplicateDetector is NULL!");

@@ -103,6 +103,7 @@ ThemeManager::ThemeManager(QObject* parent)
     , m_enhancedFocusIndicatorsEnabled(true)
     , m_alternativeIndicatorsEnabled(false)
     , m_minimumContrastRatio(4.5)
+    , m_isApplyingTheme(false)
 {
     initializeMinimumSizes();
     setupSystemThemeDetection();
@@ -138,11 +139,12 @@ ThemeManager::ThemeManager(QObject* parent)
         // Now safe to apply theme from main event loop
         applyToApplication();
         
+        // DISABLED: Real-time updates cause performance issues
         // Enable real-time updates AFTER initial application
-        if (m_componentRegistry) {
-            enableRealTimeThemeUpdates(true);
-            enableComponentMonitoring(true);
-        }
+        // if (m_componentRegistry) {
+        //     enableRealTimeThemeUpdates(true);
+        //     enableComponentMonitoring(true);
+        // }
         
         LOG_INFO(LogCategories::UI, QString("ThemeManager initialized with theme: %1 (%2)")
                  .arg(currentThemeString())
@@ -338,9 +340,17 @@ bool ThemeManager::isSystemDarkMode() const
 
 void ThemeManager::onSystemThemeChanged()
 {
+    // Prevent infinite recursion from palette changes
+    if (m_isApplyingTheme) {
+        LOG_DEBUG(LogCategories::UI, "Theme application already in progress, skipping");
+        return;
+    }
+    
     if (m_followSystemTheme && m_currentTheme == SystemDefault) {
         LOG_INFO(LogCategories::UI, "System theme changed, updating application");
+        m_isApplyingTheme = true;
         applyToApplication();
+        m_isApplyingTheme = false;
         emit themeChanged(m_currentTheme, m_currentCustomThemeName);
     }
 }
@@ -1096,19 +1106,22 @@ void ThemeManager::setupSystemThemeDetection()
     });
     themeCheckTimer->start(2000); // Check every 2 seconds for more responsive detection
     
+    // DISABLED: palette change signal causes infinite loop
+    // The timer-based check above is sufficient for system theme detection
+    // 
     // Also connect to application palette change signal for immediate detection
     // Note: paletteChanged is deprecated in Qt 6.0+, but still functional for compatibility
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-    connect(qApp, &QGuiApplication::paletteChanged, this, [this](const QPalette&) {
-        if (m_followSystemTheme && m_currentTheme == SystemDefault) {
-            LOG_DEBUG(LogCategories::UI, "Application palette changed, checking system theme");
-            QTimer::singleShot(100, this, &ThemeManager::onSystemThemeChanged);
-        }
-    });
-#pragma GCC diagnostic pop
+    // #pragma GCC diagnostic push
+    // #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+    //     connect(qApp, &QGuiApplication::paletteChanged, this, [this](const QPalette&) {
+    //         if (m_followSystemTheme && m_currentTheme == SystemDefault) {
+    //             LOG_DEBUG(LogCategories::UI, "Application palette changed, checking system theme");
+    //             QTimer::singleShot(100, this, &ThemeManager::onSystemThemeChanged);
+    //         }
+    //     });
+    // #pragma GCC diagnostic pop
 
-    LOG_INFO(LogCategories::UI, "Enhanced system theme detection initialized");
+    LOG_INFO(LogCategories::UI, "Enhanced system theme detection initialized (palette change signal disabled to prevent loops)");
 }
 
 ThemeManager::Theme ThemeManager::detectSystemTheme() const

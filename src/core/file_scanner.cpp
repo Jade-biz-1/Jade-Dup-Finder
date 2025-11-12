@@ -43,6 +43,10 @@ void FileScanner::startScan(const ScanOptions& options)
     m_isScanning = true;
     m_patternCache.clear();  // Clear pattern cache for new scan
     m_scanErrors.clear();     // Clear error list for new scan
+
+    // CRITICAL: Reset the static variable used for throttling
+    // This ensures progress updates work on subsequent scans
+    resetProgressThrottle();
     
     // Initialize statistics
     m_statistics = ScanStatistics();
@@ -85,17 +89,40 @@ void FileScanner::startScan(const ScanOptions& options)
 
 void FileScanner::cancelScan()
 {
+    LOG_INFO(LogCategories::SCAN, QString("cancelScan() called - isScanning: %1").arg(m_isScanning));
+    qDebug() << "FileScanner::cancelScan() called - isScanning:" << m_isScanning;
+
     if (!m_isScanning) {
+        LOG_WARNING(LogCategories::SCAN, "Cancel requested but scan is not active");
         return;
     }
-    
+
     m_cancelRequested = true;
-    LOG_INFO(LogCategories::SCAN, "Scan cancellation requested");
+    LOG_INFO(LogCategories::SCAN, "Scan cancellation requested - flag set to true");
+    qDebug() << "Cancel flag set to TRUE";
 }
 
 bool FileScanner::isScanning() const
 {
     return m_isScanning;
+}
+
+bool FileScanner::isArchiveFile(const QString& filePath) const
+{
+    // Common archive extensions that can cause hangs
+    static const QStringList archiveExtensions = {
+        ".zip", ".tar", ".gz", ".bz2", ".xz", ".7z",
+        ".rar", ".tar.gz", ".tar.bz2", ".tar.xz", ".tgz", ".tbz2",
+        ".cab", ".iso", ".dmg", ".pkg", ".deb", ".rpm"
+    };
+
+    QString lowerPath = filePath.toLower();
+    for (const QString& ext : archiveExtensions) {
+        if (lowerPath.endsWith(ext)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 void FileScanner::pauseScan()
@@ -206,7 +233,11 @@ void FileScanner::processScanQueue()
             if (!m_scanErrors.isEmpty()) {
                 emit scanErrorSummary(static_cast<int>(m_scanErrors.size()), m_scanErrors);
             }
-            
+
+            // Emit FINAL progress update with complete stats before completing
+            // Force emit by bypassing throttle
+            emitFinalProgress();
+
             LOG_DEBUG(LogCategories::SCAN, "About to emit scanCompleted signal");
             emit scanCompleted();
             LOG_DEBUG(LogCategories::SCAN, "scanCompleted signal emitted");
@@ -336,8 +367,8 @@ void FileScanner::scanDirectory(const QString& directoryPath)
     int iterationsProcessedSinceYield = 0;
     // CRITICAL FIX: Balance between performance and responsiveness
     // For large directory scans, we need to yield more frequently to prevent hanging
-    const int EVENT_YIELD_INTERVAL = 100;  // Process events every 100 files
-    const int ITERATION_YIELD_INTERVAL = 500;  // Process events every 500 iterations
+    const int EVENT_YIELD_INTERVAL = 10;  // Process events every 10 files (for responsive cancellation)
+    const int ITERATION_YIELD_INTERVAL = 100;  // Process events every 100 iterations
 
     while (iterator.hasNext() && !m_cancelRequested && !m_isPaused) {
         QString filePath;
@@ -351,7 +382,27 @@ void FileScanner::scanDirectory(const QString& directoryPath)
             continue;
         }
 
+        // CRITICAL: Check for cancellation BEFORE creating QFileInfo
+        // QFileInfo constructor can block on slow/network filesystems
+        if (m_cancelRequested || m_isPaused) {
+            LOG_INFO(LogCategories::SCAN, "Cancellation detected before processing file");
+            break;
+        }
+
+        // SAFETY: Skip archive files if option is enabled (prevents hanging on large archives)
+        if (m_currentOptions.skipArchiveFiles && isArchiveFile(filePath)) {
+            LOG_DEBUG(LogCategories::SCAN, QString("Skipping archive file: %1").arg(filePath));
+            recordError(ScanError::FileSystemError, filePath, "Archive file skipped (safety option enabled)");
+            continue;
+        }
+
         QFileInfo fileInfo(filePath);
+
+        // Check for cancellation after QFileInfo (which might have blocked)
+        if (m_cancelRequested || m_isPaused) {
+            LOG_INFO(LogCategories::SCAN, "Cancellation detected after QFileInfo");
+            break;
+        }
 
         // Check for file system errors
         if (!fileInfo.exists()) {
@@ -376,6 +427,20 @@ void FileScanner::scanDirectory(const QString& directoryPath)
 
             // Update current file for progress tracking (Task 7)
             m_currentFile = filePath;
+
+            // SAFETY: Skip large files if option is enabled (prevents hanging on huge files)
+            // Check this BEFORE calling fileInfo.size() which can block
+            if (m_currentOptions.skipLargeFiles) {
+                // Quick check: if file system reports size, use it
+                qint64 quickSize = fileInfo.size();
+                if (quickSize > m_currentOptions.largeFileSizeThreshold) {
+                    LOG_DEBUG(LogCategories::SCAN, QString("Skipping large file (%1 bytes): %2")
+                             .arg(quickSize).arg(filePath));
+                    recordError(ScanError::FileSystemError, filePath,
+                               QString("Large file skipped (>%1 GB)").arg(m_currentOptions.largeFileSizeThreshold / 1073741824.0));
+                    continue;
+                }
+            }
 
             // Create FileInfo structure
             FileInfo info;
@@ -407,8 +472,16 @@ void FileScanner::scanDirectory(const QString& directoryPath)
                 }
             } else {
                 // No caching, read directly
+                // Note: These operations can block on slow/network filesystems
+                // Check for cancellation is done before and after this section
                 info.fileSize = fileInfo.size();
                 info.lastModified = fileInfo.lastModified();
+            }
+
+            // Check for cancellation after potentially blocking file operations
+            if (m_cancelRequested || m_isPaused) {
+                LOG_INFO(LogCategories::SCAN, QString("Cancellation detected after processing: %1").arg(filePath));
+                break;
             }
 
             // In streaming mode, emit files immediately without storing
@@ -438,24 +511,24 @@ void FileScanner::scanDirectory(const QString& directoryPath)
             }
         }
 
-        // CRITICAL FIX: Yield to event loop more frequently to prevent UI freezing
-        // This prevents the application from becoming unresponsive during large directory scans
-        // Yield based on either files processed OR total iterations to handle directories with many non-matching files
+        // CRITICAL FIX: Process events on THIS thread only to allow signal delivery
+        // FileScanner runs on a background thread, so this won't block the main UI
         if (filesProcessedSinceYield >= EVENT_YIELD_INTERVAL || iterationsProcessedSinceYield >= ITERATION_YIELD_INTERVAL) {
-            // IMPORTANT: Process ALL events including user input to allow cancellation
-            QCoreApplication::processEvents(QEventLoop::AllEvents);
-            
-            // Also emit progress update to keep UI informed even if no files match criteria
+            // Process events ONLY for this thread - excludes user input to prevent issues
+            // This allows queued signals to be delivered to the main thread
+            QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+
+            // Emit progress update to keep UI informed
             if (iterationsProcessedSinceYield >= ITERATION_YIELD_INTERVAL) {
                 emit scanProgress(m_filesProcessed, -1, filePath);
                 emitDetailedProgress();
             }
-            
+
             // Reset BOTH counters to ensure proper yielding
             filesProcessedSinceYield = 0;
             iterationsProcessedSinceYield = 0;
-            
-            // Check for cancellation or pause after processing events
+
+            // Check for cancellation or pause (flags are thread-safe atomic bools)
             if (m_cancelRequested || m_isPaused) {
                 break;
             }
@@ -684,18 +757,66 @@ void FileScanner::enforceCacheSizeLimit()
     }
 }
 
+void FileScanner::emitFinalProgress()
+{
+    // Force emit final progress without throttle - used at scan completion
+    qint64 elapsedMs = m_elapsedTimer.elapsed();
+
+    double filesPerSecond = 0.0;
+    if (elapsedMs > 0) {
+        double elapsedSeconds = elapsedMs / 1000.0;
+        filesPerSecond = m_filesProcessed / elapsedSeconds;
+    }
+
+    ScanProgress progress;
+    progress.filesScanned = m_filesProcessed;
+    progress.bytesScanned = m_totalBytesScanned;
+    progress.currentFolder = m_currentFolder;
+    progress.currentFile = m_currentFile;
+    progress.elapsedTimeMs = elapsedMs;
+    progress.filesPerSecond = filesPerSecond;
+    progress.directoriesScanned = m_statistics.totalDirectoriesScanned;
+    progress.isPaused = m_isPaused;
+
+    LOG_DEBUG(LogCategories::SCAN, QString("Emitting FINAL progress: %1 files, %2 bytes")
+             .arg(progress.filesScanned).arg(progress.bytesScanned));
+
+    emit detailedProgress(progress);
+}
+
+// Static variable for throttling (shared across all calls)
+static qint64 s_lastEmitTime = 0;
+
+void FileScanner::resetProgressThrottle()
+{
+    // Reset the throttle timer for new scan
+    s_lastEmitTime = 0;
+}
+
 void FileScanner::emitDetailedProgress()
 {
+    // THROTTLE: Only emit progress updates every 50ms to prevent flooding the event queue
+    // For fast scans (~12000 files/sec), this allows ~10-20 updates per second
+    // For normal scans, this ensures smooth UI updates without overwhelming the main thread
+    qint64 currentTime = m_elapsedTimer.elapsed();
+
+    if (currentTime - s_lastEmitTime < 50 && s_lastEmitTime != 0) {
+        // Skip this update - too soon since last emit
+        return;
+    }
+
+    s_lastEmitTime = currentTime;
+
     // Calculate elapsed time
-    qint64 elapsedMs = m_elapsedTimer.elapsed();
-    
+    qint64 elapsedMs = currentTime;
+
     // Calculate files per second
     double filesPerSecond = 0.0;
     if (elapsedMs > 0) {
         double elapsedSeconds = elapsedMs / 1000.0;
         filesPerSecond = m_filesProcessed / elapsedSeconds;
     }
-    
+
     // Create progress structure
     ScanProgress progress;
     progress.filesScanned = m_filesProcessed;
@@ -706,7 +827,7 @@ void FileScanner::emitDetailedProgress()
     progress.filesPerSecond = filesPerSecond;
     progress.directoriesScanned = m_statistics.totalDirectoriesScanned;
     progress.isPaused = m_isPaused;  // Task 9: Include pause state
-    
+
     // Emit the detailed progress signal
     emit detailedProgress(progress);
 }

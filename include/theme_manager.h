@@ -417,6 +417,9 @@ private:
     QString m_focusIndicatorStyle;
     QMap<QWidget*, QString> m_widgetIconIndicators;
     QMap<QWidget*, QString> m_widgetTextIndicators;
+    
+    // Prevent infinite theme application loop
+    bool m_isApplyingTheme;
 };
 
 // Helper macros for theme-aware styling
