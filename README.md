@@ -39,13 +39,15 @@ We believe in building great software together! 🚀
 
 ## 🎯 Key Features
 
-### ⚡ **NEW: High-Performance Optimizations (November 2025)**
+### ⚡ **NEW: High-Performance Optimizations & Modern Build System (November 2025)**
 - **Handles Large File Sets**: Efficiently processes 378,000+ files without hanging or becoming unresponsive
 - **Dramatic Speed Improvements**: File scanning reduced from 30+ minutes to 2-5 minutes
 - **Smart Resource Management**: Single-instance hash calculator eliminates massive overhead
 - **Optimized Batch Processing**: 100x improvement in duplicate detection throughput (5 → 500 files/batch)
 - **Reduced UI Overhead**: 100x fewer cross-thread signals for better responsiveness
 - **Command-Line Testing**: Non-UI test tool for performance validation and troubleshooting
+- **Modern Build System**: Profile-based build orchestrator with automatic packaging for all platforms
+- **Multi-Format Linux Packages**: Automatic generation of DEB, RPM, and TGZ packages
 
 ### Core Functionality
 - **Multi-Level Detection**: Quick scan, deep hash-based analysis, and specialized media detection
@@ -401,8 +403,18 @@ DupFinder prioritizes data safety:
   - Enhanced file scanner performance (30+ min → 2-5 min)
   - Removed artificial delays and reduced cross-thread communication overhead
 - [x] ✅ Command-line test tool for non-UI performance testing
-- [ ] Windows port and native integration (platform files present, needs build testing)
-- [ ] Platform-specific installers for Windows
+- [x] ✅ **MODERN BUILD SYSTEM:** Profile-based build orchestrator with multi-platform support
+  - Unified build.py script with automatic platform detection
+  - Per-target JSON configuration files for easy management
+  - Automatic package generation (DEB/RPM/TGZ for Linux, EXE for Windows, DMG for macOS)
+  - Organized dist/ folder structure with build artifacts
+  - GPU acceleration support (CUDA) with automatic detection
+- [x] ✅ **LINUX PACKAGING:** Complete multi-format package generation
+  - DEB packages for Debian/Ubuntu
+  - RPM packages for RedHat/Fedora/CentOS
+  - TGZ archives for universal compatibility
+- [ ] Windows port and native integration (platform files present, build system ready)
+- [ ] Platform-specific installers for Windows (NSIS configured, needs testing)
 - [ ] Cross-platform testing on all platforms
 
 ### Phase 4: Premium Features (Months 8-10)
