@@ -1,6 +1,7 @@
 #include "scan_progress_dialog.h"
 #include "theme_manager.h"
 #include "operation_manager.h"
+#include "core/logger.h"
 #include <QGridLayout>
 #include <QFrame>
 #include <QGroupBox>
@@ -9,6 +10,7 @@
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QDateTime>
+#include <QDebug>
 #include <cmath>
 
 ScanProgressDialog::ScanProgressDialog(QWidget* parent)
@@ -40,16 +42,21 @@ ScanProgressDialog::ScanProgressDialog(QWidget* parent)
     , m_isPaused(false)
     , m_operationManager(nullptr)
 {
+    qDebug() << "ScanProgressDialog constructor called";
     setupUI();
+    qDebug() << "ScanProgressDialog setupUI completed";
     
     // Register with ThemeManager for automatic theme updates
     ThemeManager::instance()->registerDialog(this);
     m_scanTimer.start();
+    qDebug() << "ScanProgressDialog constructor finished - dialog ready";
 }
 
 void ScanProgressDialog::setupUI() {
+    qDebug() << "ScanProgressDialog::setupUI() called";
     setWindowTitle(tr("Operation Progress"));
-    setModal(true);
+    setModal(false);  // CRITICAL FIX: Must be non-modal to allow background processing
+    qDebug() << "ScanProgressDialog: setModal(false) - dialog is non-modal";
     setMinimumWidth(600);
     setMinimumHeight(450);
 
@@ -327,6 +334,11 @@ void ScanProgressDialog::createButtonSection(QVBoxLayout* mainLayout) {
 }
 
 void ScanProgressDialog::updateProgress(const ProgressInfo& info) {
+    qDebug() << "ScanProgressDialog::updateProgress called - files:" << info.filesScanned 
+             << "bytes:" << info.bytesScanned << "status:" << static_cast<int>(info.status);
+    LOG_DEBUG(LogCategories::UI, QString("updateProgress: files=%1, bytes=%2, status=%3")
+             .arg(info.filesScanned).arg(info.bytesScanned).arg(static_cast<int>(info.status)));
+    
     // Update files count
     if (info.totalFiles > 0) {
         m_filesLabel->setText(tr("%1 / %2")
@@ -413,6 +425,11 @@ void ScanProgressDialog::updateProgress(const ProgressInfo& info) {
         updateOperationQueueProgress(info);
     }
     
+    // REMOVED: Manual update() calls are unnecessary - Qt automatically schedules repaints
+    // REMOVED: processEvents() call - this was causing UI freezing and button unresponsiveness
+    // The file scanner already runs on a background thread, so the main event loop is free
+    // to process user input and repaint events automatically.
+
     // Task 7.1: Update operation status display
     updateOperationStatusDisplay(info.status);
 }

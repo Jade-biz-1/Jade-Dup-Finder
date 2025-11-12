@@ -12,7 +12,12 @@
 **Phase 2: Advanced Features Implementation**  
 **Timeline:** November 2025 - December 2025  
 **Focus:** Advanced Detection Algorithms & GPU Acceleration  
-**Progress:** 90% → 92% Complete (T21, T22, T23, T25, T26, T27.1, T29 ✅ | T27 🔄 | T24, T28, T30 ⏸️)  
+**Progress:** 92% → 95% Complete (T21, T22, T23, T25, T26, T27.1, T29, T31 ✅ | T27 🔄 | T24, T28, T30 ⏸️)
+
+**Phase 3: Cross-Platform Port**  
+**Timeline:** November 2025 - Ongoing  
+**Focus:** Build System Modernization & Linux Packaging  
+**Progress:** 40% Complete (Build system ✅ | Linux packaging ✅ | Windows/macOS testing pending)  
 
 ---
 
@@ -351,6 +356,72 @@
 - [ ] All public APIs documented
 - [ ] Complex algorithms well-commented
 - [ ] Developer documentation available
+
+---
+
+### T31: Modern Build System Implementation (CROSS-PHASE)
+**Priority:** P1 (High)  
+**Status:** ✅ COMPLETE  
+**Estimated Effort:** 2 weeks  
+**Assignee:** Development Team  
+**Completed:** November 12, 2025
+
+#### Subtasks:
+- [x] **T31.1:** Profile-Based Build Orchestrator ✅ COMPLETE
+  - [x] Create unified build.py script with platform detection
+  - [x] Implement multi-file configuration system (per-target JSON files)
+  - [x] Add automatic OS, architecture, and GPU detection
+  - [x] Implement interactive and non-interactive build modes
+  - [x] Add build target listing and selection
+  
+- [x] **T31.2:** Multi-Platform Configuration ✅ COMPLETE
+  - [x] Create Windows MSVC CPU profile
+  - [x] Create Windows MSVC CUDA profile
+  - [x] Create Windows MinGW CPU profile
+  - [x] Create Linux CPU profile (Ninja generator)
+  - [x] Create Linux GPU profile (CUDA support)
+  - [x] Create macOS x86_64 profile
+  - [x] Create macOS ARM64 profile
+  
+- [x] **T31.3:** Linux Multi-Format Packaging ✅ COMPLETE
+  - [x] Configure CPack for DEB package generation
+  - [x] Configure CPack for RPM package generation
+  - [x] Configure CPack for TGZ archive generation
+  - [x] Test all three formats on Linux
+  - [x] Verify package installation and removal
+  
+- [x] **T31.4:** Organized Build Structure ✅ COMPLETE
+  - [x] Implement platform-specific build folders (build/windows/, build/linux/, build/macos/)
+  - [x] Add architecture subfolders (win64, x64, arm64)
+  - [x] Create target-specific build directories
+  - [x] Implement organized dist/ folder structure
+  - [x] Add automatic artifact copying to dist/
+  
+- [x] **T31.5:** Comprehensive Documentation ✅ COMPLETE
+  - [x] Update BUILD_SYSTEM_OVERVIEW.md with complete guide
+  - [x] Add visual flow diagram showing build system layers
+  - [x] Document all 10 requirements and their implementation
+  - [x] Create platform-specific setup guides
+  - [x] Add troubleshooting section
+  - [x] Document migration from old to new build system
+
+**Acceptance Criteria:**
+- [x] Single command builds for all platforms: `python scripts/build.py`
+- [x] Automatic platform and GPU detection with user confirmation
+- [x] Linux builds produce DEB, RPM, and TGZ packages automatically
+- [x] Windows builds support MSVC (CPU/GPU) and MinGW (CPU)
+- [x] macOS builds support both Intel and Apple Silicon
+- [x] Organized dist/ folder with platform-specific subdirectories
+- [x] Configuration managed via JSON files (no hardcoded paths)
+- [x] Comprehensive documentation for all platforms
+- [x] Backward compatibility with legacy build_profiles.json
+
+**Impact:**
+- Dramatically simplified build process across all platforms
+- Eliminated manual CMake configuration for most use cases
+- Enabled CI/CD automation with non-interactive mode
+- Improved developer onboarding with clear configuration templates
+- Standardized package naming and distribution structure
 
 ---
 

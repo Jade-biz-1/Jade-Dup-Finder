@@ -112,6 +112,12 @@ public:
         int progressBatchSize = 100;       // Emit progress every N files (default: 100)
         bool enableMetadataCache = false;  // Cache file metadata for repeated scans
         int metadataCacheSizeLimit = 10000; // Maximum cache entries (default: 10,000)
+
+        // Safety options (prevent hanging on problematic files)
+        int fileOperationTimeoutMs = 5000;  // Timeout for file operations in milliseconds (default: 5 seconds, 0 = no timeout)
+        bool skipLargeFiles = false;        // Skip files larger than maximumFileSize
+        qint64 largeFileSizeThreshold = 1073741824; // 1 GB default threshold for "large files"
+        bool skipArchiveFiles = false;      // Skip common archive file types (.zip, .tar.gz, etc.)
     };
 
     struct FileInfo {
@@ -189,6 +195,7 @@ private:
     bool matchesExcludePatterns(const QString& fileName) const;
     bool matchesPattern(const QString& fileName, const QString& pattern, bool caseSensitive) const;
     QRegularExpression compilePattern(const QString& pattern, bool caseSensitive) const;
+    bool isArchiveFile(const QString& filePath) const;
     
     // Metadata caching methods
     bool getCachedMetadata(const QString& filePath, CachedFileInfo& cachedInfo) const;
@@ -203,7 +210,9 @@ private:
     
     // Progress tracking methods (Task 7)
     void emitDetailedProgress();
-    
+    void emitFinalProgress();  // Emit final progress without throttle
+    void resetProgressThrottle();  // Reset throttle timer for new scan
+
     // Member variables
     ScanOptions m_currentOptions;
     QVector<FileInfo> m_scannedFiles;  // Changed from QList to QVector for better memory locality
