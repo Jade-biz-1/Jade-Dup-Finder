@@ -334,9 +334,10 @@ void FileScanner::scanDirectory(const QString& directoryPath)
 
     int filesProcessedSinceYield = 0;
     int iterationsProcessedSinceYield = 0;
-    // PERFORMANCE FIX: Reduce event loop yields for better scan throughput
-    const int EVENT_YIELD_INTERVAL = 500;  // Process events every 500 files (was 25)
-    const int ITERATION_YIELD_INTERVAL = 2000;  // Process events every 2000 iterations (was 100)
+    // CRITICAL FIX: Balance between performance and responsiveness
+    // For large directory scans, we need to yield more frequently to prevent hanging
+    const int EVENT_YIELD_INTERVAL = 100;  // Process events every 100 files
+    const int ITERATION_YIELD_INTERVAL = 500;  // Process events every 500 iterations
 
     while (iterator.hasNext() && !m_cancelRequested && !m_isPaused) {
         QString filePath;
@@ -422,9 +423,9 @@ void FileScanner::scanDirectory(const QString& directoryPath)
             m_filesProcessed++;
             filesProcessedSinceYield++;
 
-            // PERFORMANCE FIX: Emit progress less frequently for better throughput
-            // Only update UI every 1000 files instead of every 50
-            int batchSize = m_currentOptions.progressBatchSize > 0 ? m_currentOptions.progressBatchSize : 1000;
+            // BALANCED FIX: Emit progress frequently enough for UI updates
+            // Update every 100 files for better user feedback
+            int batchSize = m_currentOptions.progressBatchSize > 0 ? m_currentOptions.progressBatchSize : 100;
             if (m_filesProcessed % batchSize == 0) {
                 emit scanProgress(m_filesProcessed, -1, filePath);
                 // In non-streaming mode, also emit fileFound periodically
@@ -441,7 +442,8 @@ void FileScanner::scanDirectory(const QString& directoryPath)
         // This prevents the application from becoming unresponsive during large directory scans
         // Yield based on either files processed OR total iterations to handle directories with many non-matching files
         if (filesProcessedSinceYield >= EVENT_YIELD_INTERVAL || iterationsProcessedSinceYield >= ITERATION_YIELD_INTERVAL) {
-            QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+            // IMPORTANT: Process ALL events including user input to allow cancellation
+            QCoreApplication::processEvents(QEventLoop::AllEvents);
             
             // Also emit progress update to keep UI informed even if no files match criteria
             if (iterationsProcessedSinceYield >= ITERATION_YIELD_INTERVAL) {
@@ -449,8 +451,14 @@ void FileScanner::scanDirectory(const QString& directoryPath)
                 emitDetailedProgress();
             }
             
+            // Reset BOTH counters to ensure proper yielding
             filesProcessedSinceYield = 0;
             iterationsProcessedSinceYield = 0;
+            
+            // Check for cancellation or pause after processing events
+            if (m_cancelRequested || m_isPaused) {
+                break;
+            }
         }
     }
     
