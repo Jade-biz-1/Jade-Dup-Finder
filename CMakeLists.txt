@@ -211,6 +211,7 @@ set(GUI_SOURCES
     src/gui/scan_dialog.cpp
     # src/gui/results_widget.cpp  # Obsolete stub file - removed
     src/gui/results_window.cpp
+    src/gui/loading_overlay.cpp
     src/gui/settings_dialog.cpp
     src/gui/scan_history_dialog.cpp
     src/gui/restore_dialog.cpp
@@ -283,6 +284,7 @@ set(HEADER_FILES
     include/main_window.h
     include/scan_dialog.h
     include/results_window.h
+    include/loading_overlay.h
     include/settings_dialog.h
     include/scan_history_dialog.h
     include/restore_dialog.h

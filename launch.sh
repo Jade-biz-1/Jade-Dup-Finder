@@ -15,6 +15,6 @@ unset LD_PRELOAD
 export XDG_DATA_DIRS="/usr/local/share:/usr/share"
 export XDG_CONFIG_DIRS="/etc/xdg"
 
-# Run dupfinder with absolute path
-cd /home/deepak/Public/dupfinder/build/linux/x64/linux-ninja-cpu
+# Run dupfinder
+cd "$(dirname "$0")/build/linux/x64/linux-ninja-cpu"
 exec ./dupfinder-1.0.0 "$@"

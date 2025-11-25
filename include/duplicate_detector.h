@@ -289,6 +289,7 @@ private:
     QList<DuplicateGroup> m_duplicateGroups;
     QHash<qint64, QList<FileInfo>> m_sizeGroups;
     QHash<QString, FileInfo> m_pendingHashes;  // Files waiting for hash calculation
+    QHash<QString, QList<FileInfo>> m_hashGroups;  // Files grouped by hash (built incrementally)
     
     // Progress tracking
     DetectionProgress m_progress;
