@@ -1644,10 +1644,21 @@ void MainWindow::onDuplicateDetectionCompleted(int totalGroups)
     
     // Show results if duplicates were found
     if (totalGroups > 0) {
-        showSuccess(tr("Detection Complete"), 
-                   tr("Found %1 duplicate groups with potential savings of %2")
-                   .arg(totalGroups)
-                   .arg(formatFileSize(totalWastedSpace)));
+        // Update progress dialog to show we're building results
+        if (m_scanProgressDialog) {
+            ScanProgressDialog::ProgressInfo info;
+            info.operationType = tr("Building Results");
+            info.status = ScanProgressDialog::OperationStatus::Running;
+            info.filesScanned = totalGroups;
+            info.bytesScanned = totalWastedSpace;
+            m_scanProgressDialog->updateProgress(info);
+            m_scanProgressDialog->show();
+            m_scanProgressDialog->raise();
+            m_scanProgressDialog->activateWindow();
+            
+            // Force process events to show the message before building results
+            QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+        }
         
         // Create results window if needed
         if (!m_resultsWindow) {
@@ -1689,24 +1700,39 @@ void MainWindow::onDuplicateDetectionCompleted(int totalGroups)
                     });
         }
         
-        // Pass results to ResultsWindow and show it
+        // Pass results to ResultsWindow (this is the blocking operation)
         LOG_DEBUG(LogCategories::UI, QString("About to display %1 groups in ResultsWindow").arg(groups.size()));
         LOG_INFO(LogCategories::UI, QString("Displaying %1 duplicate groups in ResultsWindow").arg(groups.size()));
         m_resultsWindow->displayDuplicateGroups(groups);
+        LOG_DEBUG(LogCategories::UI, "Results built successfully");
+        
+        // Hide the scan progress dialog now that results are built
+        if (m_scanProgressDialog) {
+            m_scanProgressDialog->hide();
+            LOG_DEBUG(LogCategories::UI, "Progress dialog hidden after results built");
+        }
+        
+        // Show success message
+        showSuccess(tr("Detection Complete"), 
+                   tr("Found %1 duplicate groups with potential savings of %2")
+                   .arg(totalGroups)
+                   .arg(formatFileSize(totalWastedSpace)));
+        
+        // Show results window
         LOG_DEBUG(LogCategories::UI, "Showing results window");
         m_resultsWindow->show();
         m_resultsWindow->raise();
         m_resultsWindow->activateWindow();
         LOG_DEBUG(LogCategories::UI, "Results window displayed");
     } else {
+        // Hide the scan progress dialog for no results case
+        if (m_scanProgressDialog) {
+            m_scanProgressDialog->hide();
+            LOG_DEBUG(LogCategories::UI, "Progress dialog hidden - no duplicates found");
+        }
+        
         showSuccess(tr("Detection Complete"),
                    tr("No duplicate files found. Your files are unique!"));
-    }
-
-    // Hide the scan progress dialog now that detection is complete
-    if (m_scanProgressDialog) {
-        m_scanProgressDialog->hide();
-        LOG_DEBUG(LogCategories::UI, "Progress dialog hidden after detection completion");
     }
 }
 

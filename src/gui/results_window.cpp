@@ -10,6 +10,7 @@
 #include "selection_history_manager.h"
 #include "file_operation_queue.h"
 #include "file_operation_progress_dialog.h"
+#include "loading_overlay.h"
 #include "logger.h"
 #include "theme_manager.h"
 #include <QtWidgets/QApplication>
@@ -40,6 +41,7 @@ ResultsWindow::ResultsWindow(QWidget* parent)
     : QMainWindow(parent)
     , m_centralWidget(nullptr)
     , m_mainLayout(nullptr)
+    , m_loadingOverlay(nullptr)
     , m_headerPanel(nullptr)
     , m_mainSplitter(nullptr)
     , m_resultsPanel(nullptr)
@@ -107,6 +109,10 @@ void ResultsWindow::initializeUI()
     createMainContent();
     createStatusBar();
     createToolBar();
+    
+    // Create loading overlay (must be created after central widget)
+    m_loadingOverlay = new LoadingOverlay(m_centralWidget);
+    m_loadingOverlay->hide();
     
     // Enforce minimum sizes for all controls
     ThemeManager::instance()->enforceMinimumSizes(this);
@@ -1151,16 +1157,21 @@ void ResultsWindow::displayDuplicateGroups(const QList<DuplicateDetector::Duplic
 {
     LOG_INFO(LogCategories::UI, QString("Displaying %1 duplicate groups").arg(groups.size()));
     
+    // Show loading overlay while building groups
+    if (m_loadingOverlay) {
+        m_loadingOverlay->show(tr("Building duplicate groups..."));
+    }
+    
     // Convert DuplicateDetector groups to ResultsWindow format
     ScanResults results;
     results.duplicateGroups.clear();
     results.duplicateGroups.reserve(groups.size());
     
+    int groupIndex = 0;
     for (const auto& detectorGroup : groups) {
         DuplicateGroup displayGroup;
         convertDetectorGroupToDisplayGroup(detectorGroup, displayGroup);
-        results.duplicateGroups.append(displayGroup);
-    }
+        results.duplicateGro
     
     // Calculate totals
     results.calculateTotals();
@@ -1173,6 +1184,11 @@ void ResultsWindow::displayDuplicateGroups(const QList<DuplicateDetector::Duplic
     
     // Display the results
     displayResults(results);
+    
+    // Hide loading overlay
+    if (m_loadingOverlay) {
+        m_loadingOverlay->hide();
+    }
 }
 
 void ResultsWindow::setFileManager(FileManager* fileManager)
@@ -1262,21 +1278,33 @@ void ResultsWindow::populateResultsTree()
 {
     m_resultsTree->clear();
     
+    // Disable updates during population for better performance
+    m_resultsTree->setUpdatesEnabled(false);
+    
     for (int i = 0; i < m_currentResults.duplicateGroups.size(); ++i) {
         const auto& group = m_currentResults.duplicateGroups[i];
         
-        // Create group item
-        QTreeWidgetItem* groupItem = new QTreeWidgetItem(m_resultsTree);
+        // Create group item using custom class for proper numeric sorting
+        NumericTreeWidgetItem* groupItem = new NumericTreeWidgetItem(m_resultsTree);
         updateGroupItem(groupItem, group);
         
-        // Add file items
+        // Add file items using custom class for proper numeric sorting
         for (const auto& file : group.files) {
-            QTreeWidgetItem* fileItem = new QTreeWidgetItem(groupItem);
+            NumericTreeWidgetItem* fileItem = new NumericTreeWidgetItem(groupItem);
             updateFileItem(fileItem, file);
         }
         
         groupItem->setExpanded(group.isExpanded);
+        
+        // Process events every 10 groups to keep UI responsive
+        if (i % 10 == 0) {
+            QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+        }
     }
+    
+    // Re-enable updates and refresh the tree
+    m_resultsTree->setUpdatesEnabled(true);
+    m_resultsTree->update();
 }
 
 void ResultsWindow::updateGroupItem(QTreeWidgetItem* groupItem, const DuplicateGroup& group)
@@ -1285,6 +1313,12 @@ void ResultsWindow::updateGroupItem(QTreeWidgetItem* groupItem, const DuplicateG
     groupItem->setText(1, formatFileSize(group.totalSize));
     groupItem->setText(2, tr("Waste: %1").arg(formatFileSize(group.getWastedSpace())));
     groupItem->setText(3, tr("%1 duplicates").arg(group.fileCount - 1));
+    
+    // CRITICAL FIX: Set numeric values for proper sorting
+    // Without this, Qt sorts "100 KB" before "2 MB" because it sorts strings alphabetically
+    groupItem->setData(1, Qt::UserRole, group.totalSize);  // Size column - store actual bytes
+    groupItem->setData(2, Qt::UserRole, group.getWastedSpace());  // Waste column - store actual bytes
+    groupItem->setData(3, Qt::UserRole, group.fileCount - 1);  // Duplicates column - store count
     
     // Store group data
     groupItem->setData(0, Qt::UserRole, QVariant::fromValue(group.groupId));
@@ -1325,6 +1359,10 @@ void ResultsWindow::updateFileItem(QTreeWidgetItem* fileItem, const DuplicateFil
     fileItem->setText(2, file.lastModified.toString("yyyy-MM-dd hh:mm"));
     fileItem->setText(3, file.directory);
     
+    // CRITICAL FIX: Set numeric/comparable values for proper sorting
+    fileItem->setData(1, Qt::UserRole, file.fileSize);  // Size column - store actual bytes
+    fileItem->setData(2, Qt::UserRole, file.lastModified);  // Modified column - store QDateTime for proper date sorting
+    
     // Store file data
     fileItem->setData(0, Qt::UserRole, QVariant::fromValue(file.filePath));
     
@@ -1362,6 +1400,194 @@ void ResultsWindow::updateFileItem(QTreeWidgetItem* fileItem, const DuplicateFil
     }
     
     LOG_DEBUG(LogCategories::UI, QString("File item updated with checkbox: %1").arg(file.filePath));
+}
+
+void ResultsWindow::updateFilePreview(const DuplicateFile& file)
+{
+    if (!m_previewLabel) return;
+    
+    QFileInfo fileInfo(file.filePath);
+    
+    // Check if file exists
+    if (!fileInfo.exists()) {
+        m_previewLabel->setText(tr("File not found"));
+        m_previewLabel->setPixmap(QPixmap());
+        return;
+    }
+    
+    QString suffix = fileInfo.suffix().toLower();
+    
+    // Image preview
+    QStringList imageExtensions = {"jpg", "jpeg", "png", "bmp", "gif", "tiff", "tif", "webp", "svg", "ico"};
+    if (imageExtensions.contains(suffix)) {
+        QPixmap pixmap(file.filePath);
+        if (!pixmap.isNull()) {
+            // Scale to fit preview area (max 400x400)
+            QPixmap scaled = pixmap.scaled(400, 400, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+            m_previewLabel->setPixmap(scaled);
+            m_previewLabel->setText("");
+            m_previewLabel->setToolTip(tr("Image: %1x%2 pixels").arg(pixmap.width()).arg(pixmap.height()));
+            return;
+        }
+    }
+    
+    // Text file preview
+    QStringList textExtensions = {"txt", "log", "md", "json", "xml", "html", "htm", "css", "js", 
+                                  "cpp", "h", "c", "py", "java", "cs", "php", "sh", "bat", "ini", "cfg"};
+    if (textExtensions.contains(suffix)) {
+        QFile textFile(file.filePath);
+        if (textFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            QTextStream in(&textFile);
+            QString content = in.read(2048); // Read first 2KB
+            textFile.close();
+            
+            // Truncate if too long
+            if (content.length() >= 2048) {
+                content += "\n\n[Preview truncated...]";
+            }
+            
+            m_previewLabel->setPixmap(QPixmap());
+            m_previewLabel->setText(content);
+            m_previewLabel->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+            m_previewLabel->setWordWrap(true);
+            m_previewLabel->setToolTip(tr("Text file preview (first 2KB)"));
+            return;
+        }
+    }
+    
+    // PDF preview (show icon and info)
+    if (suffix == "pdf") {
+        m_previewLabel->setPixmap(QPixmap());
+        m_previewLabel->setText(tr("📄 PDF Document\n\nSize: %1\n\nDouble-click to open")
+            .arg(formatFileSize(file.fileSize)));
+        m_previewLabel->setAlignment(Qt::AlignCenter);
+        return;
+    }
+    
+    // Video preview (show icon and info)
+    QStringList videoExtensions = {"mp4", "avi", "mkv", "mov", "wmv", "flv", "webm", "m4v", "mpg", "mpeg"};
+    if (videoExtensions.contains(suffix)) {
+        m_previewLabel->setPixmap(QPixmap());
+        m_previewLabel->setText(tr("🎬 Video File\n\nType: %1\nSize: %2\n\nDouble-click to open")
+            .arg(suffix.toUpper())
+            .arg(formatFileSize(file.fileSize)));
+        m_previewLabel->setAlignment(Qt::AlignCenter);
+        return;
+    }
+    
+    // Audio preview (show icon and info)
+    QStringList audioExtensions = {"mp3", "wav", "flac", "ogg", "m4a", "aac", "wma", "opus"};
+    if (audioExtensions.contains(suffix)) {
+        m_previewLabel->setPixmap(QPixmap());
+        m_previewLabel->setText(tr("🎵 Audio File\n\nType: %1\nSize: %2\n\nDouble-click to open")
+            .arg(suffix.toUpper())
+            .arg(formatFileSize(file.fileSize)));
+        m_previewLabel->setAlignment(Qt::AlignCenter);
+        return;
+    }
+    
+    // Archive preview (show icon and info)
+    QStringList archiveExtensions = {"zip", "rar", "7z", "tar", "gz", "bz2", "xz", "tgz"};
+    if (archiveExtensions.contains(suffix)) {
+        m_previewLabel->setPixmap(QPixmap());
+        m_previewLabel->setText(tr("📦 Archive File\n\nType: %1\nSize: %2\n\nDouble-click to open")
+            .arg(suffix.toUpper())
+            .arg(formatFileSize(file.fileSize)));
+        m_previewLabel->setAlignment(Qt::AlignCenter);
+        return;
+    }
+    
+    // Default: No preview available
+    m_previewLabel->setPixmap(QPixmap());
+    m_previewLabel->setText(tr("No preview available\n\nFile type: %1\nSize: %2")
+        .arg(suffix.isEmpty() ? tr("Unknown") : suffix.toUpper())
+        .arg(formatFileSize(file.fileSize)));
+    m_previewLabel->setAlignment(Qt::AlignCenter);
+}
+
+void ResultsWindow::updateGroupInfoDisplay(const QString& groupId)
+{
+    if (!m_groupSummaryLabel || !m_groupFilesTable) return;
+    
+    // Find the group by ID
+    DuplicateGroup selectedGroup;
+    bool groupFound = false;
+    
+    for (const auto& group : m_currentResults.duplicateGroups) {
+        if (group.groupId == groupId) {
+            selectedGroup = group;
+            groupFound = true;
+            break;
+        }
+    }
+    
+    if (!groupFound) {
+        m_groupSummaryLabel->setText(tr("Group not found"));
+        m_groupFilesTable->setRowCount(0);
+        return;
+    }
+    
+    // Update group summary
+    QString summary = tr("📁 Group: %1 files\n"
+                        "Total Size: %2\n"
+                        "Wasted Space: %3 (%4 duplicates)\n"
+                        "Hash: %5")
+        .arg(selectedGroup.fileCount)
+        .arg(formatFileSize(selectedGroup.totalSize))
+        .arg(formatFileSize(selectedGroup.getWastedSpace()))
+        .arg(selectedGroup.fileCount - 1)
+        .arg(selectedGroup.files.isEmpty() ? tr("N/A") : 
+             (selectedGroup.files.first().hash.isEmpty() ? tr("Not available") : 
+              selectedGroup.files.first().hash.left(16) + "..."));
+    
+    m_groupSummaryLabel->setText(summary);
+    
+    // Populate files table
+    m_groupFilesTable->setRowCount(selectedGroup.files.size());
+    
+    QString recommendedFile = getRecommendedFileToKeep(selectedGroup);
+    
+    for (int i = 0; i < selectedGroup.files.size(); ++i) {
+        const DuplicateFile& file = selectedGroup.files[i];
+        
+        // File name column
+        QTableWidgetItem* nameItem = new QTableWidgetItem(file.fileName);
+        nameItem->setToolTip(file.filePath);
+        m_groupFilesTable->setItem(i, 0, nameItem);
+        
+        // Size column
+        QTableWidgetItem* sizeItem = new QTableWidgetItem(formatFileSize(file.fileSize));
+        sizeItem->setData(Qt::UserRole, file.fileSize); // For sorting
+        m_groupFilesTable->setItem(i, 1, sizeItem);
+        
+        // Modified column
+        QTableWidgetItem* modifiedItem = new QTableWidgetItem(
+            file.lastModified.toString("yyyy-MM-dd hh:mm"));
+        modifiedItem->setData(Qt::UserRole, file.lastModified); // For sorting
+        m_groupFilesTable->setItem(i, 2, modifiedItem);
+        
+        // Recommended column
+        QString recommendedText = (file.filePath == recommendedFile) ? 
+            tr("✓ Keep") : tr("Delete");
+        QTableWidgetItem* recommendedItem = new QTableWidgetItem(recommendedText);
+        
+        // Apply theme-aware styling
+        ThemeData currentTheme = ThemeManager::instance()->getCurrentThemeData();
+        if (file.filePath == recommendedFile) {
+            recommendedItem->setForeground(QBrush(currentTheme.colors.success));
+            QFont font = recommendedItem->font();
+            font.setBold(true);
+            recommendedItem->setFont(font);
+        } else {
+            recommendedItem->setForeground(QBrush(currentTheme.colors.warning));
+        }
+        
+        m_groupFilesTable->setItem(i, 3, recommendedItem);
+    }
+    
+    // Resize columns to content
+    m_groupFilesTable->resizeColumnsToContents();
+    m_groupFilesTable->horizontalHeader()->setStretchLastSection(true);
 }
 
 // Utility methods implementation
@@ -1512,27 +1738,81 @@ void ResultsWindow::onFileSelectionChanged()
 {
     QList<QTreeWidgetItem*> selectedItems = m_resultsTree->selectedItems();
     bool hasFileSelected = false;
+    bool hasGroupSelected = false;
     bool hasMultipleSelected = selectedItems.size() > 1;
     QString selectedFilePath;
+    QString selectedGroupId;
     
-    // Check if any files are selected and get the first selected file
+    // Check if any files or groups are selected
     for (QTreeWidgetItem* item : selectedItems) {
         if (item->parent() != nullptr) { // It's a file item, not a group
             hasFileSelected = true;
             if (selectedFilePath.isEmpty()) {
                 selectedFilePath = item->data(0, Qt::UserRole).toString();
             }
-            if (hasMultipleSelected) break; // No need to continue if multiple selected
+            if (hasMultipleSelected) break;
+        } else { // It's a group item
+            hasGroupSelected = true;
+            if (selectedGroupId.isEmpty()) {
+                selectedGroupId = item->data(0, Qt::UserRole).toString();
+            }
+            if (hasMultipleSelected) break;
         }
     }
     
     // Update file info display for single selection
     if (hasFileSelected && !hasMultipleSelected && !selectedFilePath.isEmpty()) {
-        // Basic file info update - simplified for now
-        QFileInfo fileInfo(selectedFilePath);
-        if (m_fileNameLabel) m_fileNameLabel->setText(tr("Name: %1").arg(fileInfo.fileName()));
-        if (m_fileSizeLabel) m_fileSizeLabel->setText(tr("Size: %1").arg(formatFileSize(fileInfo.size())));
-        if (m_filePathLabel) m_filePathLabel->setText(tr("Path: %1").arg(fileInfo.absolutePath()));
+        // Find the DuplicateFile data for the selected file
+        DuplicateFile selectedFile;
+        bool fileFound = false;
+        
+        // Search through all groups to find the file data
+        for (const auto& group : m_currentResults.duplicateGroups) {
+            for (const auto& file : group.files) {
+                if (file.filePath == selectedFilePath) {
+                    selectedFile = file;
+                    fileFound = true;
+                    break;
+                }
+            }
+            if (fileFound) break;
+        }
+        
+        // Update all file info fields
+        if (fileFound) {
+            if (m_fileNameLabel) m_fileNameLabel->setText(tr("Name: %1").arg(selectedFile.fileName));
+            if (m_fileSizeLabel) m_fileSizeLabel->setText(tr("Size: %1 (%2 bytes)")
+                .arg(formatFileSize(selectedFile.fileSize))
+                .arg(selectedFile.fileSize));
+            if (m_filePathLabel) m_filePathLabel->setText(tr("Path: %1").arg(selectedFile.directory));
+            if (m_fileDateLabel) m_fileDateLabel->setText(tr("Modified: %1")
+                .arg(selectedFile.lastModified.toString("yyyy-MM-dd hh:mm:ss")));
+            if (m_fileTypeLabel) {
+                QString typeText = selectedFile.fileType.isEmpty() ? 
+                    QFileInfo(selectedFile.filePath).suffix().toUpper() : 
+                    selectedFile.fileType;
+                m_fileTypeLabel->setText(tr("Type: %1").arg(typeText));
+            }
+            if (m_fileHashLabel) {
+                QString hashDisplay = selectedFile.hash.isEmpty() ? 
+                    tr("Not available") : 
+                    selectedFile.hash;
+                m_fileHashLabel->setText(tr("Hash: %1").arg(hashDisplay));
+            }
+            
+            // Update preview if available
+            updateFilePreview(selectedFile);
+        } else {
+            // Fallback to QFileInfo if file not found in results
+            QFileInfo fileInfo(selectedFilePath);
+            if (m_fileNameLabel) m_fileNameLabel->setText(tr("Name: %1").arg(fileInfo.fileName()));
+            if (m_fileSizeLabel) m_fileSizeLabel->setText(tr("Size: %1").arg(formatFileSize(fileInfo.size())));
+            if (m_filePathLabel) m_filePathLabel->setText(tr("Path: %1").arg(fileInfo.absolutePath()));
+            if (m_fileDateLabel) m_fileDateLabel->setText(tr("Modified: %1")
+                .arg(fileInfo.lastModified().toString("yyyy-MM-dd hh:mm:ss")));
+            if (m_fileTypeLabel) m_fileTypeLabel->setText(tr("Type: %1").arg(fileInfo.suffix().toUpper()));
+            if (m_fileHashLabel) m_fileHashLabel->setText(tr("Hash: Not available"));
+        }
     } else {
         // Clear file info display for no selection or multiple selection
         if (m_fileNameLabel) m_fileNameLabel->setText(tr("Name: %1").arg(
@@ -1542,6 +1822,15 @@ void ResultsWindow::onFileSelectionChanged()
         if (m_fileDateLabel) m_fileDateLabel->setText(tr("Modified: -"));
         if (m_fileTypeLabel) m_fileTypeLabel->setText(tr("Type: -"));
         if (m_fileHashLabel) m_fileHashLabel->setText(tr("Hash: -"));
+    }
+    
+    // Update group info display for single group selection
+    if (hasGroupSelected && !hasMultipleSelected && !hasFileSelected && !selectedGroupId.isEmpty()) {
+        updateGroupInfoDisplay(selectedGroupId);
+    } else {
+        // Clear group info display
+        if (m_groupSummaryLabel) m_groupSummaryLabel->setText(tr("No group selected"));
+        if (m_groupFilesTable) m_groupFilesTable->setRowCount(0);
     }
     
     // Enable single file actions based on tree selection (for preview, open location, copy path)
@@ -1758,31 +2047,68 @@ void ResultsWindow::selectRecommended()
 {
     LOG_INFO(LogCategories::UI, "User clicked 'Select Recommended' button");
     
-    int selectedCount = 0;
-    // Select all non-recommended files (files to delete)
+    // Show loading overlay while processing selection
+    if (m_loadingOverlay) {
+        m_loadingOverlay->show(tr("Selecting recommended files..."));
+    }
+    
+    // Force process events to show overlay
+    QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+    
+    // PERFORMANCE: Build a lookup map of recommended files (O(n) instead of O(n²))
+    QSet<QString> recommendedFiles;
     for (const auto& group : m_currentResults.duplicateGroups) {
         QString recommended = getRecommendedFileToKeep(group);
-        LOG_DEBUG(LogCategories::UI, QString("Group recommended file: %1").arg(recommended));
-        
-        QTreeWidgetItemIterator it(m_resultsTree);
-        while (*it) {
-            QTreeWidgetItem* item = *it;
-            if (item->parent() != nullptr) {
-                QString filePath = item->data(0, Qt::UserRole).toString();
-                if (filePath != recommended && 
-                    group.files.contains(DuplicateFile{filePath, "", "", 0, QDateTime(), QDateTime(), "", QPixmap(), false, false, ""})) {
-                    item->setCheckState(0, Qt::Checked);
-                    selectedCount++;
-                } else if (filePath == recommended) {
-                    item->setCheckState(0, Qt::Unchecked);
-                }
-            }
-            ++it;
+        if (!recommended.isEmpty()) {
+            recommendedFiles.insert(recommended);
+            LOG_DEBUG(LogCategories::UI, QString("Group recommended file: %1").arg(recommended));
         }
     }
     
+    LOG_INFO(LogCategories::UI, QString("Built lookup map with %1 recommended files").arg(recommendedFiles.size()));
+    
+    // Disable tree updates for better performance
+    m_resultsTree->setUpdatesEnabled(false);
+    
+    int selectedCount = 0;
+    int processed = 0;
+    
+    // Single pass through tree items (O(n) instead of O(groups × n))
+    QTreeWidgetItemIterator it(m_resultsTree);
+    while (*it) {
+        QTreeWidgetItem* item = *it;
+        if (item->parent() != nullptr) {  // File item
+            QString filePath = item->data(0, Qt::UserRole).toString();
+            
+            // If this file is NOT in the recommended set, select it for deletion
+            if (!recommendedFiles.contains(filePath)) {
+                item->setCheckState(0, Qt::Checked);
+                selectedCount++;
+            } else {
+                // This is a recommended file, uncheck it
+                item->setCheckState(0, Qt::Unchecked);
+            }
+        }
+        ++it;
+        processed++;
+        
+        // Process events every 100 items to keep UI responsive
+        if (processed % 100 == 0) {
+            QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+        }
+    }
+    
+    // Re-enable tree updates
+    m_resultsTree->setUpdatesEnabled(true);
+    m_resultsTree->update();
+    
     LOG_INFO(LogCategories::UI, QString("Selected %1 recommended files for deletion").arg(selectedCount));
     updateSelectionSummary();
+    
+    // Hide loading overlay
+    if (m_loadingOverlay) {
+        m_loadingOverlay->hide();
+    }
 }
 
 void ResultsWindow::selectBySize(qint64 minSize)

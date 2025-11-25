@@ -69,6 +69,7 @@ void DuplicateDetector::findDuplicates(const QList<FileInfo>& files)
     m_duplicateGroups.clear();
     m_sizeGroups.clear();
     m_pendingHashes.clear();
+    m_hashGroups.clear();  // Clear incremental hash groups
     m_isDetecting = true;
     m_cancelRequested = false;
     
@@ -585,8 +586,13 @@ void DuplicateDetector::calculateSignaturesBatch(const QList<FileInfo>& files, i
             auto it = m_pendingHashes.find(file.filePath);
             if (it != m_pendingHashes.end()) {
                 if (!signature.isEmpty()) {
-                    it.value().hash = QString::fromUtf8(signature);
+                    QString hashStr = QString::fromUtf8(signature);
+                    it.value().hash = hashStr;
                     m_statistics.hashCalculationsPerformed++;
+                    
+                    // PERFORMANCE: Build hash groups incrementally as hashes are computed
+                    // This distributes the grouping work instead of doing it all at once
+                    m_hashGroups[hashStr].append(it.value());
                 } else {
                     LOG_WARNING(LogCategories::DUPLICATE, QString("Failed to calculate signature for %1").arg(file.filePath));
                     m_pendingHashes.erase(it);
@@ -657,10 +663,19 @@ void DuplicateDetector::processHashResults(const QList<FileInfo>& filesWithSigna
     
     updateProgress(DetectionProgress::DuplicateGrouping, 0, static_cast<int>(filesWithSignatures.size()));
     
-    // Group files by signature similarity
-    QHash<QString, QList<FileInfo>> signatureGroups = groupFilesBySignatureSimilarity(filesWithSignatures);
+    // PERFORMANCE: Use pre-built hash groups instead of building from scratch
+    // Groups were built incrementally during hash calculation
+    QHash<QString, QList<FileInfo>> signatureGroups;
+    {
+        QMutexLocker locker(&m_mutex);
+        signatureGroups = m_hashGroups;
+        // Clear for next detection
+        m_hashGroups.clear();
+    }
     
-    // Create duplicate groups
+    Logger::instance()->info(LogCategories::DUPLICATE, QString("Using %1 pre-built hash groups").arg(signatureGroups.size()));
+    
+    // Create duplicate groups (now much faster since grouping is already done)
     QList<DuplicateGroup> duplicateGroups = createDuplicateGroups(signatureGroups);
     
     if (!duplicateGroups.isEmpty()) {
@@ -789,12 +804,23 @@ QList<DuplicateDetector::DuplicateGroup> DuplicateDetector::createDuplicateGroup
                     double totalSimilarity = 0.0;
                     int comparisons = 0;
                     
-                    for (int i = 0; i < files.size() - 1; ++i) {
-                        for (int j = i + 1; j < files.size(); ++j) {
+                    // PERFORMANCE: For large groups, limit similarity calculations to avoid O(n²) explosion
+                    // For groups > 100 files, sample only first 100 files for similarity
+                    int maxFilesForSimilarity = qMin(100, files.size());
+                    
+                    for (int i = 0; i < maxFilesForSimilarity - 1; ++i) {
+                        for (int j = i + 1; j < maxFilesForSimilarity; ++j) {
                             QByteArray sig1 = files[i].hash.toUtf8();
                             QByteArray sig2 = files[j].hash.toUtf8();
                             totalSimilarity += m_currentAlgorithm->similarityScore(sig1, sig2);
                             comparisons++;
+                            
+                            // Process events every 100 comparisons to keep UI responsive
+                            if (comparisons % 100 == 0) {
+                                locker.unlock();
+                                QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+                                locker.relock();
+                            }
                         }
                     }
                     
@@ -821,6 +847,8 @@ QList<DuplicateDetector::DuplicateGroup> DuplicateDetector::createDuplicateGroup
         processed++;
         if (processed % 10 == 0) {
             updateProgress(DetectionProgress::DuplicateGrouping, processed, static_cast<int>(hashGroups.size()));
+            // Process events to keep UI responsive
+            QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
         }
     }
     

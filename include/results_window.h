@@ -47,6 +47,45 @@ class SelectionHistoryManager;
 class FileOperationQueue;
 class FileOperationProgressDialog;
 
+/**
+ * @brief Custom tree widget item that sorts by numeric values instead of text
+ * 
+ * This fixes the issue where "100 KB" sorts before "2 MB" because Qt's default
+ * sorting compares strings alphabetically. We store the actual numeric values
+ * in Qt::UserRole and use those for comparison.
+ */
+class NumericTreeWidgetItem : public QTreeWidgetItem
+{
+public:
+    using QTreeWidgetItem::QTreeWidgetItem;
+    
+    bool operator<(const QTreeWidgetItem& other) const override
+    {
+        int column = treeWidget() ? treeWidget()->sortColumn() : 0;
+        
+        // Try to get numeric data from UserRole
+        QVariant thisData = data(column, Qt::UserRole);
+        QVariant otherData = other.data(column, Qt::UserRole);
+        
+        // If both have numeric data, compare numerically
+        if (thisData.isValid() && otherData.isValid()) {
+            // Handle different types
+            if (thisData.canConvert<qint64>() && otherData.canConvert<qint64>()) {
+                return thisData.toLongLong() < otherData.toLongLong();
+            }
+            if (thisData.canConvert<QDateTime>() && otherData.canConvert<QDateTime>()) {
+                return thisData.toDateTime() < otherData.toDateTime();
+            }
+            if (thisData.canConvert<double>() && otherData.canConvert<double>()) {
+                return thisData.toDouble() < otherData.toDouble();
+            }
+        }
+        
+        // Fall back to default text comparison
+        return QTreeWidgetItem::operator<(other);
+    }
+};
+
 class ResultsWindow : public QMainWindow
 {
     Q_OBJECT
@@ -246,6 +285,8 @@ private:
     void populateResultsTree();
     void updateGroupItem(QTreeWidgetItem* groupItem, const DuplicateGroup& group);
     void updateFileItem(QTreeWidgetItem* fileItem, const DuplicateFile& file);
+    void updateFilePreview(const DuplicateFile& file);
+    void updateGroupInfoDisplay(const QString& groupId);
     void convertDetectorGroupToDisplayGroup(const DuplicateDetector::DuplicateGroup& source, 
                                             DuplicateGroup& target);
     void updateStatisticsDisplay();
@@ -288,6 +329,7 @@ private:
     // UI Components
     QWidget* m_centralWidget;
     QVBoxLayout* m_mainLayout;
+    class LoadingOverlay* m_loadingOverlay;
     
     // Header Panel
     QWidget* m_headerPanel;
