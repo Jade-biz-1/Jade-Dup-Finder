@@ -10,6 +10,7 @@ required dist/ folder hierarchy for easy access.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import platform
@@ -518,6 +519,54 @@ def build_and_package(
     return produced
 
 
+def generate_checksums(file_path: Path) -> Dict[str, str]:
+    """Generate SHA256 and MD5 checksums for a file.
+    
+    Args:
+        file_path: Path to the file to checksum
+        
+    Returns:
+        Dictionary with 'sha256' and 'md5' keys
+    """
+    sha256_hash = hashlib.sha256()
+    md5_hash = hashlib.md5()
+    
+    with open(file_path, "rb") as f:
+        # Read in 64kb chunks for memory efficiency
+        for chunk in iter(lambda: f.read(65536), b""):
+            sha256_hash.update(chunk)
+            md5_hash.update(chunk)
+    
+    return {
+        "sha256": sha256_hash.hexdigest(),
+        "md5": md5_hash.hexdigest()
+    }
+
+
+def write_checksum_files(file_path: Path, checksums: Dict[str, str]) -> None:
+    """Write checksum files in standard formats.
+    
+    Creates:
+    - <filename>.sha256 - SHA256 checksum in standard format
+    - <filename>.md5 - MD5 checksum in standard format
+    
+    Args:
+        file_path: Path to the file that was checksummed
+        checksums: Dictionary with 'sha256' and 'md5' keys
+    """
+    # Write SHA256 file (format: <hash> *<filename>)
+    sha256_file = file_path.parent / f"{file_path.name}.sha256"
+    with open(sha256_file, "w") as f:
+        f.write(f"{checksums['sha256']} *{file_path.name}\n")
+    print(f"  Created checksum: {sha256_file.name}")
+    
+    # Write MD5 file (format: <hash> *<filename>)
+    md5_file = file_path.parent / f"{file_path.name}.md5"
+    with open(md5_file, "w") as f:
+        f.write(f"{checksums['md5']} *{file_path.name}\n")
+    print(f"  Created checksum: {md5_file.name}")
+
+
 def copy_artifacts(artifacts: Iterable[Path], dist_dir: Path) -> List[Path]:
     dist_dir.mkdir(parents=True, exist_ok=True)
     copied: List[Path] = []
@@ -530,6 +579,12 @@ def copy_artifacts(artifacts: Iterable[Path], dist_dir: Path) -> List[Path]:
         shutil.copy2(artifact, destination)
         copied.append(destination)
         print(f"Copied {artifact.name} -> {destination.relative_to(REPO_ROOT)}")
+        
+        # Generate and write checksums for the copied artifact
+        print(f"Generating checksums for {target_name}...")
+        checksums = generate_checksums(destination)
+        write_checksum_files(destination, checksums)
+        
     if not copied:
         print("No new distribution artifacts were detected.")
     return copied

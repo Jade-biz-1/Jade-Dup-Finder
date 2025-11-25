@@ -73,7 +73,29 @@ We believe in building great software together! 🚀
 - **Freemium**: Full features with scanning limitations (10,000 files or 100GB) for free users
 - **Premium**: Unlimited scanning capacity with all advanced features
 
-## 🚀 Quick Start
+## 📥 Download Pre-Built Binaries
+
+**Want to use DupFinder without building from source?** Pre-built packages are available in the `dist/` folder!
+
+### Available Packages
+
+- **Windows:** `.exe` installers (CPU and GPU versions)
+- **Linux:** `.deb`, `.rpm`, and `.tgz` packages
+- **macOS:** `.dmg` disk images (Intel and Apple Silicon)
+
+### Quick Download & Install
+
+1. **Navigate to** [`dist/`](dist/) folder
+2. **Choose your platform** (Windows/Linux/macOS)
+3. **Download** the appropriate package
+4. **Verify checksum** (SHA256/MD5 files included)
+5. **Install** following platform-specific instructions
+
+**📖 Complete installation guide:** See [`dist/README.md`](dist/README.md) for detailed instructions, checksum verification, and troubleshooting.
+
+---
+
+## 🚀 Quick Start (Building from Source)
 
 ### Prerequisites
 - Qt 6.0 or later
