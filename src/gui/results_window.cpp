@@ -59,6 +59,7 @@ ResultsWindow::ResultsWindow(QWidget* parent)
     , m_progressDialog(new FileOperationProgressDialog(this))  // Task 30
     , m_groupingDialog(new GroupingOptionsDialog(this))  // Task 13
     , m_isProcessingBulkOperation(false)
+    , m_isProcessingRecommendation(false)
 {
     setWindowTitle(tr("Duplicate Files Found - DupFinder"));
     setMinimumSize(MIN_WINDOW_SIZE);
@@ -641,8 +642,14 @@ void ResultsWindow::setupConnections()
     // Task 13: Grouping button
     connect(m_groupingButton, &QPushButton::clicked, this, &ResultsWindow::showGroupingOptions);
     
-    // Selection
-    connect(m_selectAllCheckbox, &QCheckBox::toggled, this, &ResultsWindow::selectAllDuplicates);
+    // Selection - handle both check and uncheck
+    connect(m_selectAllCheckbox, &QCheckBox::toggled, this, [this](bool checked) {
+        if (checked) {
+            selectAllDuplicates();
+        } else {
+            selectNoneFiles();
+        }
+    });
     connect(m_selectRecommendedButton, &QPushButton::clicked, this, &ResultsWindow::selectRecommended);
     connect(m_selectByTypeButton, &QPushButton::clicked, this, [this]() {
         selectByType("image"); // Example
@@ -1141,54 +1148,62 @@ void ResultsWindow::loadSampleData()
 void ResultsWindow::displayResults(const ScanResults& results)
 {
     m_currentResults = results;
-    
+
     // Update header
     m_summaryLabel->setText(tr("%1 duplicate groups found, %2 potential savings")
                            .arg(results.duplicateGroups.size())
                            .arg(formatFileSize(results.potentialSavings)));
-    
+
+    // Show loading overlay for large datasets
+    if (results.duplicateGroups.size() > 50 && m_loadingOverlay) {
+        m_loadingOverlay->show(tr("Loading groups..."));
+    }
+
     populateResultsTree();
     updateStatusBar();
-    
+
     // Temporarily disabled for Settings dialog testing
 }
 
 void ResultsWindow::displayDuplicateGroups(const QList<DuplicateDetector::DuplicateGroup>& groups)
 {
     LOG_INFO(LogCategories::UI, QString("Displaying %1 duplicate groups").arg(groups.size()));
-    
+
     // Show loading overlay while building groups
     if (m_loadingOverlay) {
         m_loadingOverlay->show(tr("Building duplicate groups..."));
     }
-    
-    // Convert DuplicateDetector groups to ResultsWindow format
-    ScanResults results;
-    results.duplicateGroups.clear();
-    results.duplicateGroups.reserve(groups.size());
-    
-    int groupIndex = 0;
-    for (const auto& detectorGroup : groups) {
-        DuplicateGroup displayGroup;
-        convertDetectorGroupToDisplayGroup(detectorGroup, displayGroup);
-        results.duplicateGro
-    
-    // Calculate totals
-    results.calculateTotals();
-    results.scanTime = QDateTime::currentDateTime();
-    
-    LOG_INFO(LogCategories::UI, QString("Converted %1 groups, %2 total duplicates, %3 potential savings")
-             .arg(results.duplicateGroups.size())
-             .arg(results.totalDuplicatesFound)
-             .arg(formatFileSize(results.potentialSavings)));
-    
-    // Display the results
-    displayResults(results);
-    
-    // Hide loading overlay
-    if (m_loadingOverlay) {
-        m_loadingOverlay->hide();
-    }
+
+    // Use QTimer to defer the conversion work, allowing the overlay to display
+    QTimer::singleShot(50, this, [this, groups]() {
+        // Convert DuplicateDetector groups to ResultsWindow format
+        ScanResults results;
+        results.duplicateGroups.clear();
+        results.duplicateGroups.reserve(groups.size());
+
+        for (const auto& detectorGroup : groups) {
+            DuplicateGroup displayGroup;
+            convertDetectorGroupToDisplayGroup(detectorGroup, displayGroup);
+            results.duplicateGroups.append(displayGroup);
+        }
+
+        // Calculate totals
+        results.calculateTotals();
+        results.scanTime = QDateTime::currentDateTime();
+
+        LOG_INFO(LogCategories::UI, QString("Converted %1 groups, %2 total duplicates, %3 potential savings")
+                 .arg(results.duplicateGroups.size())
+                 .arg(results.totalDuplicatesFound)
+                 .arg(formatFileSize(results.potentialSavings)));
+
+        // Display the results
+        displayResults(results);
+
+        // Hide loading overlay
+        if (m_loadingOverlay) {
+            m_loadingOverlay->hide();
+        }
+    });
 }
 
 void ResultsWindow::setFileManager(FileManager* fileManager)
@@ -1277,34 +1292,81 @@ void ResultsWindow::removeFilesFromDisplay(const QStringList& filePaths)
 void ResultsWindow::populateResultsTree()
 {
     m_resultsTree->clear();
-    
+
     // Disable updates during population for better performance
     m_resultsTree->setUpdatesEnabled(false);
-    
-    for (int i = 0; i < m_currentResults.duplicateGroups.size(); ++i) {
+
+    // For small datasets, populate directly
+    if (m_currentResults.duplicateGroups.size() <= 50) {
+        for (const auto& group : m_currentResults.duplicateGroups) {
+            // Create group item using custom class for proper numeric sorting
+            NumericTreeWidgetItem* groupItem = new NumericTreeWidgetItem(m_resultsTree);
+            updateGroupItem(groupItem, group);
+
+            // Add file items using custom class for proper numeric sorting
+            for (const auto& file : group.files) {
+                NumericTreeWidgetItem* fileItem = new NumericTreeWidgetItem(groupItem);
+                updateFileItem(fileItem, file);
+            }
+
+            groupItem->setExpanded(group.isExpanded);
+        }
+
+        // Re-enable updates and refresh the tree
+        m_resultsTree->setUpdatesEnabled(true);
+        m_resultsTree->update();
+    } else {
+        // For large datasets, populate in batches using QTimer to avoid blocking
+        populateTreeInBatches(0);
+    }
+}
+
+void ResultsWindow::populateTreeInBatches(int startIndex)
+{
+    const int BATCH_SIZE = 100;  // Process 100 groups at a time for better performance
+    int endIndex = qMin(startIndex + BATCH_SIZE, m_currentResults.duplicateGroups.size());
+
+    // Update loading overlay with progress
+    if (m_loadingOverlay && startIndex > 0) {
+        int progress = (startIndex * 100) / m_currentResults.duplicateGroups.size();
+        m_loadingOverlay->show(tr("Loading groups... %1%").arg(progress));
+    }
+
+    // Process this batch
+    for (int i = startIndex; i < endIndex; ++i) {
         const auto& group = m_currentResults.duplicateGroups[i];
-        
+
         // Create group item using custom class for proper numeric sorting
         NumericTreeWidgetItem* groupItem = new NumericTreeWidgetItem(m_resultsTree);
         updateGroupItem(groupItem, group);
-        
+
         // Add file items using custom class for proper numeric sorting
         for (const auto& file : group.files) {
             NumericTreeWidgetItem* fileItem = new NumericTreeWidgetItem(groupItem);
             updateFileItem(fileItem, file);
         }
-        
+
         groupItem->setExpanded(group.isExpanded);
-        
-        // Process events every 10 groups to keep UI responsive
-        if (i % 10 == 0) {
-            QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
-        }
     }
-    
-    // Re-enable updates and refresh the tree
-    m_resultsTree->setUpdatesEnabled(true);
-    m_resultsTree->update();
+
+    // Check if more batches to process
+    if (endIndex < m_currentResults.duplicateGroups.size()) {
+        // Schedule next batch with minimal delay
+        QTimer::singleShot(1, this, [this, endIndex]() {
+            populateTreeInBatches(endIndex);
+        });
+    } else {
+        // All done - re-enable updates
+        m_resultsTree->setUpdatesEnabled(true);
+        m_resultsTree->update();
+
+        // Hide loading overlay
+        if (m_loadingOverlay) {
+            m_loadingOverlay->hide();
+        }
+
+        LOG_INFO(LogCategories::UI, QString("Tree population completed: %1 groups").arg(m_currentResults.duplicateGroups.size()));
+    }
 }
 
 void ResultsWindow::updateGroupItem(QTreeWidgetItem* groupItem, const DuplicateGroup& group)
@@ -1326,12 +1388,7 @@ void ResultsWindow::updateGroupItem(QTreeWidgetItem* groupItem, const DuplicateG
     // Enable checkbox for group selection
     groupItem->setFlags(groupItem->flags() | Qt::ItemIsUserCheckable | Qt::ItemIsEnabled | Qt::ItemIsUserTristate);
     groupItem->setCheckState(0, group.hasSelection ? Qt::Checked : Qt::Unchecked);
-    
-    // Debug: Force checkbox visibility and ensure proper setup
-    qDebug() << "Creating group item with flags:" << groupItem->flags() 
-             << "CheckState:" << groupItem->checkState(0)
-             << "Text:" << groupItem->text(0);
-    
+
     // Force checkbox visibility by ensuring the item is properly configured
     groupItem->setData(0, Qt::CheckStateRole, Qt::Unchecked);
     
@@ -1794,10 +1851,24 @@ void ResultsWindow::onFileSelectionChanged()
                 m_fileTypeLabel->setText(tr("Type: %1").arg(typeText));
             }
             if (m_fileHashLabel) {
-                QString hashDisplay = selectedFile.hash.isEmpty() ? 
-                    tr("Not available") : 
-                    selectedFile.hash;
-                m_fileHashLabel->setText(tr("Hash: %1").arg(hashDisplay));
+                if (selectedFile.hash.isEmpty()) {
+                    m_fileHashLabel->setText(tr("Hash: Not available"));
+                } else {
+                    // Format hash for better readability - break into chunks
+                    QString hash = selectedFile.hash;
+                    QString formattedHash;
+
+                    // Break hash into chunks of 16 characters for readability
+                    const int chunkSize = 16;
+                    for (int i = 0; i < hash.length(); i += chunkSize) {
+                        if (i > 0) {
+                            formattedHash += "\n       ";  // Indent continuation lines
+                        }
+                        formattedHash += hash.mid(i, chunkSize);
+                    }
+
+                    m_fileHashLabel->setText(tr("Hash: %1").arg(formattedHash));
+                }
             }
             
             // Update preview if available
@@ -1981,12 +2052,12 @@ void ResultsWindow::exportResults()
 void ResultsWindow::selectAllDuplicates()
 {
     LOG_INFO(LogCategories::UI, "User clicked 'Select All' button");
-    
+
     // Record current state before changing selection (Task 17)
     recordSelectionState("Select all files");
-    
+
     int selectedCount = 0;
-    
+
     // Update data model first
     for (auto& group : m_currentResults.duplicateGroups) {
         for (auto& file : group.files) {
@@ -1995,7 +2066,12 @@ void ResultsWindow::selectAllDuplicates()
         }
         group.hasSelection = true;
     }
-    
+
+    // CRITICAL FIX: Block signals to prevent itemChanged from firing thousands of times
+    // This prevents the Force Quit/Wait dialog caused by UI blocking
+    m_resultsTree->blockSignals(true);
+    m_resultsTree->setUpdatesEnabled(false);
+
     // Update tree widget items
     QTreeWidgetItemIterator it(m_resultsTree);
     while (*it) {
@@ -2007,7 +2083,11 @@ void ResultsWindow::selectAllDuplicates()
         }
         ++it;
     }
-    
+
+    // Re-enable updates and signals
+    m_resultsTree->setUpdatesEnabled(true);
+    m_resultsTree->blockSignals(false);
+
     LOG_INFO(LogCategories::UI, QString("Selected all %1 files").arg(selectedCount));
     updateSelectionSummary();
 }
@@ -2015,10 +2095,10 @@ void ResultsWindow::selectAllDuplicates()
 void ResultsWindow::selectNoneFiles()
 {
     LOG_INFO(LogCategories::UI, "User clicked 'Clear Selection' button");
-    
+
     // Record current state before changing selection (Task 17)
     recordSelectionState("Clear all selections");
-    
+
     // Update data model first
     for (auto& group : m_currentResults.duplicateGroups) {
         for (auto& file : group.files) {
@@ -2026,7 +2106,11 @@ void ResultsWindow::selectNoneFiles()
         }
         group.hasSelection = false;
     }
-    
+
+    // CRITICAL FIX: Block signals to prevent itemChanged from firing thousands of times
+    m_resultsTree->blockSignals(true);
+    m_resultsTree->setUpdatesEnabled(false);
+
     // Update tree widget items
     QTreeWidgetItemIterator it(m_resultsTree);
     while (*it) {
@@ -2038,7 +2122,11 @@ void ResultsWindow::selectNoneFiles()
         }
         ++it;
     }
-    
+
+    // Re-enable updates and signals
+    m_resultsTree->setUpdatesEnabled(true);
+    m_resultsTree->blockSignals(false);
+
     LOG_INFO(LogCategories::UI, "Cleared all selections");
     updateSelectionSummary();
 }
@@ -2046,68 +2134,119 @@ void ResultsWindow::selectNoneFiles()
 void ResultsWindow::selectRecommended()
 {
     LOG_INFO(LogCategories::UI, "User clicked 'Select Recommended' button");
-    
+
+    // CRITICAL FIX: Guard against re-entrant calls
+    if (m_isProcessingRecommendation) {
+        LOG_WARNING(LogCategories::UI, "Already processing recommendation, ignoring duplicate call");
+        return;
+    }
+    m_isProcessingRecommendation = true;
+
     // Show loading overlay while processing selection
     if (m_loadingOverlay) {
         m_loadingOverlay->show(tr("Selecting recommended files..."));
     }
-    
-    // Force process events to show overlay
-    QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
-    
-    // PERFORMANCE: Build a lookup map of recommended files (O(n) instead of O(n²))
-    QSet<QString> recommendedFiles;
-    for (const auto& group : m_currentResults.duplicateGroups) {
-        QString recommended = getRecommendedFileToKeep(group);
-        if (!recommended.isEmpty()) {
-            recommendedFiles.insert(recommended);
-            LOG_DEBUG(LogCategories::UI, QString("Group recommended file: %1").arg(recommended));
+
+    // Use QTimer to defer the actual work, allowing the overlay to show
+    QTimer::singleShot(50, this, [this]() {
+        // PERFORMANCE: Build a lookup map of recommended files (O(n) instead of O(n²))
+        QSet<QString> recommendedFiles;
+        for (const auto& group : m_currentResults.duplicateGroups) {
+            QString recommended = getRecommendedFileToKeep(group);
+            if (!recommended.isEmpty()) {
+                recommendedFiles.insert(recommended);
+            }
         }
+
+        LOG_INFO(LogCategories::UI, QString("Built lookup map with %1 recommended files").arg(recommendedFiles.size()));
+
+        // Disable tree updates for better performance
+        m_resultsTree->setUpdatesEnabled(false);
+
+        // Start processing directly without collecting all items first
+        processRecommendedItemsIteratively(recommendedFiles);
+    });
+}
+
+void ResultsWindow::processRecommendedItemsIteratively(const QSet<QString>& recommendedFiles)
+{
+    // Create a shared iterator that persists across timer callbacks
+    static QTreeWidgetItemIterator* iterator = nullptr;
+    static int processedCount = 0;
+    static int totalGroups = 0;
+
+    // Initialize on first call
+    if (iterator == nullptr) {
+        iterator = new QTreeWidgetItemIterator(m_resultsTree);
+        processedCount = 0;
+        totalGroups = m_currentResults.duplicateGroups.size();
+
+        // CRITICAL: Block signals to prevent massive slowdown from itemChanged signals
+        m_resultsTree->blockSignals(true);
+
+        LOG_INFO(LogCategories::UI, "Starting iterative recommendation processing with blocked signals");
     }
-    
-    LOG_INFO(LogCategories::UI, QString("Built lookup map with %1 recommended files").arg(recommendedFiles.size()));
-    
-    // Disable tree updates for better performance
-    m_resultsTree->setUpdatesEnabled(false);
-    
-    int selectedCount = 0;
-    int processed = 0;
-    
-    // Single pass through tree items (O(n) instead of O(groups × n))
-    QTreeWidgetItemIterator it(m_resultsTree);
-    while (*it) {
-        QTreeWidgetItem* item = *it;
+
+    const int BATCH_SIZE = 500;  // Increase batch size since signals are blocked
+    int itemsInBatch = 0;
+
+    // Process batch
+    while (**iterator && itemsInBatch < BATCH_SIZE) {
+        QTreeWidgetItem* item = **iterator;
+
         if (item->parent() != nullptr) {  // File item
             QString filePath = item->data(0, Qt::UserRole).toString();
-            
+
             // If this file is NOT in the recommended set, select it for deletion
             if (!recommendedFiles.contains(filePath)) {
                 item->setCheckState(0, Qt::Checked);
-                selectedCount++;
             } else {
                 // This is a recommended file, uncheck it
                 item->setCheckState(0, Qt::Unchecked);
             }
+        } else {
+            // This is a group item, increment processed count
+            processedCount++;
+
+            // Update progress every 100 groups
+            if (m_loadingOverlay && processedCount % 100 == 0) {
+                int progress = (processedCount * 100) / totalGroups;
+                m_loadingOverlay->show(tr("Selecting recommended... %1%").arg(progress));
+            }
         }
-        ++it;
-        processed++;
-        
-        // Process events every 100 items to keep UI responsive
-        if (processed % 100 == 0) {
-            QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
-        }
+
+        ++(*iterator);
+        itemsInBatch++;
     }
-    
-    // Re-enable tree updates
-    m_resultsTree->setUpdatesEnabled(true);
-    m_resultsTree->update();
-    
-    LOG_INFO(LogCategories::UI, QString("Selected %1 recommended files for deletion").arg(selectedCount));
-    updateSelectionSummary();
-    
-    // Hide loading overlay
-    if (m_loadingOverlay) {
-        m_loadingOverlay->hide();
+
+    // Check if more items to process
+    if (**iterator) {
+        // Schedule next batch with minimal delay
+        QTimer::singleShot(1, this, [this, recommendedFiles]() {
+            processRecommendedItemsIteratively(recommendedFiles);
+        });
+    } else {
+        // All done - cleanup
+        delete iterator;
+        iterator = nullptr;
+
+        // CRITICAL: Unblock signals before re-enabling updates
+        m_resultsTree->blockSignals(false);
+
+        // Re-enable updates
+        m_resultsTree->setUpdatesEnabled(true);
+        m_resultsTree->update();
+
+        LOG_INFO(LogCategories::UI, QString("Recommendation selection completed for %1 groups").arg(processedCount));
+        updateSelectionSummary();
+
+        // Hide loading overlay
+        if (m_loadingOverlay) {
+            m_loadingOverlay->hide();
+        }
+
+        // Reset guard flag
+        m_isProcessingRecommendation = false;
     }
 }
 
