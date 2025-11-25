@@ -15,6 +15,9 @@ unset LD_PRELOAD
 export XDG_DATA_DIRS="/usr/local/share:/usr/share"
 export XDG_CONFIG_DIRS="/etc/xdg"
 
+# Get the directory where this script is located
+SCRIPT_DIR="$( cd "$( /usr/bin/dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+
 # Run dupfinder
-cd "$(dirname "$0")/build/linux/x64/linux-ninja-cpu"
+cd "${SCRIPT_DIR}/build/linux/x64/linux-ninja-cpu"
 exec ./dupfinder-1.0.0 "$@"

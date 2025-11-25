@@ -106,18 +106,35 @@ void WindowStateManager::saveWindowState(QWidget* window)
     }
 
     const WindowInfo& info = m_registeredWindows[window];
-    
-    // Don't save if window is minimized or not visible
-    if (window->isMinimized() || !window->isVisible()) {
+
+    // Don't save if window is minimized
+    if (window->isMinimized()) {
         return;
     }
 
+    // CRITICAL FIX: Allow saving even if window is not visible
+    // During application exit, windows may already be hidden but we still
+    // need to save their geometry. Use cached geometry if window is hidden.
+    if (!window->isVisible()) {
+        // Use cached geometry from last known good state
+        if (!info.lastGeometry.isNull() && !info.lastGeometry.isEmpty()) {
+            LOG_DEBUG(LogCategories::UI, QString("Saving cached state for hidden window: %1").arg(info.identifier));
+            // Save the cached geometry instead of current (which might be invalid)
+            m_settings->beginGroup(m_settingsGroup);
+            m_settings->setValue(info.identifier + "/position", info.lastGeometry.topLeft());
+            m_settings->setValue(info.identifier + "/size", info.lastGeometry.size());
+            m_settings->endGroup();
+            return;
+        }
+        return;  // No valid cached geometry
+    }
+
     saveWindowGeometry(info.identifier, window);
-    
+
     // Update cached geometry
     m_registeredWindows[window].lastGeometry = window->geometry();
     m_registeredWindows[window].lastState = window->windowState();
-    
+
     LOG_DEBUG(LogCategories::UI, QString("Saved state for window: %1").arg(info.identifier));
 }
 
@@ -252,14 +269,24 @@ void WindowStateManager::saveWindowGeometry(const QString& identifier, QWidget* 
 bool WindowStateManager::restoreWindowGeometry(const QString& identifier, QWidget* window)
 {
     m_settings->beginGroup(m_settingsGroup);
-    
+
     bool restored = false;
-    
+
     // Try to restore from saved geometry first (most reliable)
     QByteArray geometry = m_settings->value(identifier + "/geometry").toByteArray();
     if (!geometry.isEmpty()) {
         restored = window->restoreGeometry(geometry);
-        
+
+        // CRITICAL FIX: Validate and fix geometry after restore
+        // Qt's restoreGeometry may restore to invalid positions (e.g., disconnected monitors)
+        QRect currentGeometry = window->geometry();
+        if (!isValidGeometry(currentGeometry)) {
+            LOG_WARNING(LogCategories::UI, QString("Window %1 restored to invalid position (%2, %3), correcting...")
+                       .arg(identifier).arg(currentGeometry.x()).arg(currentGeometry.y()));
+            QRect validGeometry = ensureValidGeometry(currentGeometry);
+            window->setGeometry(validGeometry);
+        }
+
         // Restore window state for main windows
         if (QMainWindow* mainWindow = qobject_cast<QMainWindow*>(window)) {
             QByteArray windowState = m_settings->value(identifier + "/windowState").toByteArray();
@@ -268,33 +295,34 @@ bool WindowStateManager::restoreWindowGeometry(const QString& identifier, QWidge
             }
         }
     }
-    
+
     // Fallback to manual position/size restoration
     if (!restored) {
         QPoint position = m_settings->value(identifier + "/position").toPoint();
         QSize size = m_settings->value(identifier + "/size").toSize();
         bool wasMaximized = m_settings->value(identifier + "/maximized", false).toBool();
-        
+
         if (!position.isNull() && !size.isEmpty()) {
             QRect windowGeometry(position, size);
             windowGeometry = ensureValidGeometry(windowGeometry);
-            
+
             window->setGeometry(windowGeometry);
-            
+
             if (wasMaximized) {
                 window->showMaximized();
             }
-            
+
             restored = true;
         }
     }
-    
+
     m_settings->endGroup();
-    
+
     if (restored) {
-        LOG_DEBUG(LogCategories::UI, QString("Restored state for window: %1").arg(identifier));
+        LOG_DEBUG(LogCategories::UI, QString("Restored state for window: %1 at position (%2, %3)")
+                 .arg(identifier).arg(window->x()).arg(window->y()));
     }
-    
+
     return restored;
 }
 
@@ -304,8 +332,19 @@ bool WindowStateManager::isValidGeometry(const QRect& geometry) const
     QList<QScreen*> screens = QApplication::screens();
     for (QScreen* screen : screens) {
         QRect screenGeometry = screen->availableGeometry();
-        if (screenGeometry.intersects(geometry)) {
-            return true;
+
+        // CRITICAL FIX: Check if the window is substantially visible on screen
+        // A window is considered valid only if at least 50% of it is on screen
+        // This prevents windows from being positioned mostly off-screen
+        QRect intersection = screenGeometry.intersected(geometry);
+        if (!intersection.isEmpty()) {
+            int intersectionArea = intersection.width() * intersection.height();
+            int windowArea = geometry.width() * geometry.height();
+
+            // Window must have at least 50% visible on screen
+            if (windowArea > 0 && intersectionArea >= (windowArea / 2)) {
+                return true;
+            }
         }
     }
     return false;
@@ -384,14 +423,17 @@ bool WindowStateManager::eventFilter(QObject* watched, QEvent* event)
             }
             break;
             
-        case QEvent::Show:
+        case QEvent::Show: {
             // Try to restore state when window is first shown
-            if (!hasSavedState(m_registeredWindows[window].identifier)) {
-                // No saved state, let Qt handle default positioning
-            } else {
+            const QString& identifier = m_registeredWindows[window].identifier;
+            if (hasSavedState(identifier)) {
+                LOG_DEBUG(LogCategories::UI, QString("Restoring state for window on show: %1").arg(identifier));
                 restoreWindowState(window);
+            } else {
+                LOG_DEBUG(LogCategories::UI, QString("No saved state found for window: %1").arg(identifier));
             }
             break;
+        }
             
         case QEvent::Close:
             if (m_autoSaveEnabled) {

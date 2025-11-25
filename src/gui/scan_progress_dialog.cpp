@@ -334,8 +334,6 @@ void ScanProgressDialog::createButtonSection(QVBoxLayout* mainLayout) {
 }
 
 void ScanProgressDialog::updateProgress(const ProgressInfo& info) {
-    qDebug() << "ScanProgressDialog::updateProgress called - files:" << info.filesScanned 
-             << "bytes:" << info.bytesScanned << "status:" << static_cast<int>(info.status);
     LOG_DEBUG(LogCategories::UI, QString("updateProgress: files=%1, bytes=%2, status=%3")
              .arg(info.filesScanned).arg(info.bytesScanned).arg(static_cast<int>(info.status)));
     

@@ -283,6 +283,8 @@ private:
     
     // Utility methods
     void populateResultsTree();
+    void populateTreeInBatches(int startIndex);  // Helper for large datasets
+    void processRecommendedItemsIteratively(const QSet<QString>& recommendedFiles);
     void updateGroupItem(QTreeWidgetItem* groupItem, const DuplicateGroup& group);
     void updateFileItem(QTreeWidgetItem* fileItem, const DuplicateFile& file);
     void updateFilePreview(const DuplicateFile& file);
@@ -435,6 +437,7 @@ private:
 
     // State
     bool m_isProcessingBulkOperation;
+    bool m_isProcessingRecommendation;  // Guard against re-entrant calls
     QString m_lastExportPath;
     GroupingOptionsDialog::GroupingOptions m_currentGroupingOptions;
     

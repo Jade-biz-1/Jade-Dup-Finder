@@ -1644,49 +1644,33 @@ void MainWindow::onDuplicateDetectionCompleted(int totalGroups)
     
     // Show results if duplicates were found
     if (totalGroups > 0) {
-        // Update progress dialog to show we're building results
-        if (m_scanProgressDialog) {
-            ScanProgressDialog::ProgressInfo info;
-            info.operationType = tr("Building Results");
-            info.status = ScanProgressDialog::OperationStatus::Running;
-            info.filesScanned = totalGroups;
-            info.bytesScanned = totalWastedSpace;
-            m_scanProgressDialog->updateProgress(info);
-            m_scanProgressDialog->show();
-            m_scanProgressDialog->raise();
-            m_scanProgressDialog->activateWindow();
-            
-            // Force process events to show the message before building results
-            QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
-        }
-        
         // Create results window if needed
         if (!m_resultsWindow) {
             m_resultsWindow = new ResultsWindow(this);
-            
+
             // Register with WindowStateManager
             WindowStateManager::instance()->registerWindow(m_resultsWindow, "ResultsWindow");
-            
+
             // Set FileManager reference
             if (m_fileManager) {
                 m_resultsWindow->setFileManager(m_fileManager);
             }
-            
+
             // Connect results window signals
             connect(m_resultsWindow, &ResultsWindow::windowClosed,
                     this, [this]() {
                         LOG_DEBUG(LogCategories::UI, "Results window closed");
                     });
-            
+
             connect(m_resultsWindow, &ResultsWindow::fileOperationRequested,
                     this, [this](const QString& operation, const QStringList& files) {
                         LOG_INFO(LogCategories::UI, QString("File operation requested: %1 on %2 files").arg(operation).arg(files.size()));
                     });
-            
+
             connect(m_resultsWindow, &ResultsWindow::resultsUpdated,
                     this, [this](const ResultsWindow::ScanResults& results) {
                         LOG_DEBUG(LogCategories::UI, QString("Results updated: %1 groups").arg(results.duplicateGroups.size()));
-                        
+
                         // Update main window stats
                         if (m_fileCountLabel) {
                             m_fileCountLabel->setText(tr("Files: %1").arg(results.totalFilesScanned));
@@ -1699,31 +1683,30 @@ void MainWindow::onDuplicateDetectionCompleted(int totalGroups)
                         }
                     });
         }
-        
-        // Pass results to ResultsWindow (this is the blocking operation)
-        LOG_DEBUG(LogCategories::UI, QString("About to display %1 groups in ResultsWindow").arg(groups.size()));
-        LOG_INFO(LogCategories::UI, QString("Displaying %1 duplicate groups in ResultsWindow").arg(groups.size()));
-        m_resultsWindow->displayDuplicateGroups(groups);
-        LOG_DEBUG(LogCategories::UI, "Results built successfully");
-        
-        // Hide the scan progress dialog now that results are built
+
+        // Hide the scan progress dialog before starting results display
+        // The ResultsWindow will show its own loading overlay
         if (m_scanProgressDialog) {
             m_scanProgressDialog->hide();
-            LOG_DEBUG(LogCategories::UI, "Progress dialog hidden after results built");
+            LOG_DEBUG(LogCategories::UI, "Progress dialog hidden");
         }
-        
+
         // Show success message
-        showSuccess(tr("Detection Complete"), 
+        showSuccess(tr("Detection Complete"),
                    tr("Found %1 duplicate groups with potential savings of %2")
                    .arg(totalGroups)
                    .arg(formatFileSize(totalWastedSpace)));
-        
-        // Show results window
+
+        // Show results window first (it will show the loading overlay)
         LOG_DEBUG(LogCategories::UI, "Showing results window");
         m_resultsWindow->show();
         m_resultsWindow->raise();
         m_resultsWindow->activateWindow();
-        LOG_DEBUG(LogCategories::UI, "Results window displayed");
+
+        // Now trigger the async display of results (will happen in the background)
+        LOG_INFO(LogCategories::UI, QString("Displaying %1 duplicate groups in ResultsWindow").arg(groups.size()));
+        m_resultsWindow->displayDuplicateGroups(groups);
+        LOG_DEBUG(LogCategories::UI, "Results display initiated (async)");
     } else {
         // Hide the scan progress dialog for no results case
         if (m_scanProgressDialog) {
