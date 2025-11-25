@@ -1,10 +1,12 @@
 # Build directories
 build/
 build_*/
-dist/
+# NOTE: dist/ is NOT ignored - we commit pre-built binaries for easy distribution
+# dist/ folder contains release packages with checksums
 config/build_profiles.json
 *.app/
-*.exe
+# NOTE: *.exe in dist/ folder should be committed, but not in build/
+# Specific exclusions handled below
 
 # Personal local settings (if developers want to keep private notes)
 LOCAL_SETTINGS.local.md
@@ -139,3 +141,22 @@ core.*
 # AI Assistant files
 .claude/
 nul
+# Distr
+ibution folder - ALLOW binaries and checksums
+# We commit pre-built packages to dist/ for easy distribution
+!dist/
+!dist/**/*.exe
+!dist/**/*.deb
+!dist/**/*.rpm
+!dist/**/*.tgz
+!dist/**/*.dmg
+!dist/**/*.pkg
+!dist/**/*.sha256
+!dist/**/*.md5
+!dist/**/README.md
+
+# But still ignore build artifacts in other locations
+build/**/*.exe
+build/**/*.deb
+build/**/*.rpm
+*.app/*.exe
