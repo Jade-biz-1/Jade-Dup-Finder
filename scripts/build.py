@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Unified build and packaging orchestration for DupFinder.
+"""Unified build and packaging orchestration for CloneClean.
 
 This script detects the current platform, selects an appropriate build target
 (based on configuration stored in config/build_profiles.json), and drives the
@@ -153,12 +153,12 @@ class ArtifactSnapshot:
             if ext == ".tar.gz":
                 pattern = "*.tar.gz"
             for path in search_root.glob(pattern):
-                if path.is_file() and path.name.lower().startswith("dupfinder-"):
+                if path.is_file() and path.name.lower().startswith("cloneclean-"):
                     records[path.resolve()] = path.stat().st_mtime
             # Look one level deeper for multi-config outputs (e.g., build/Release)
             for child in subdirs:
                 for path in child.glob(pattern):
-                    if path.is_file() and path.name.lower().startswith("dupfinder-"):
+                    if path.is_file() and path.name.lower().startswith("cloneclean-"):
                         records[path.resolve()] = path.stat().st_mtime
         return cls(records)
 
@@ -487,7 +487,7 @@ def build_and_package(
 
     run_command(configure_cmd, env, REPO_ROOT, setup_scripts, dry_run)
 
-    build_cmd: List[str] = ["cmake", "--build", str(build_dir), "--target", "dupfinder", "--parallel"]
+    build_cmd: List[str] = ["cmake", "--build", str(build_dir), "--target", "cloneclean", "--parallel"]
     if target.multi_config:
         build_cmd.extend(["--config", build_type])
     run_command(build_cmd, env, REPO_ROOT, setup_scripts, dry_run)
@@ -591,7 +591,7 @@ def copy_artifacts(artifacts: Iterable[Path], dist_dir: Path) -> List[Path]:
 
 
 def parse_arguments() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Cross-platform build and packaging helper for DupFinder.")
+    parser = argparse.ArgumentParser(description="Cross-platform build and packaging helper for CloneClean.")
     parser.add_argument("--config", type=Path, help="Path to build profile configuration JSON.")
     parser.add_argument("--target", help="Explicit build target id to use.")
     parser.add_argument("--build-type", choices=DEFAULT_BUILD_TYPES, help="Override build type (Debug or Release).")

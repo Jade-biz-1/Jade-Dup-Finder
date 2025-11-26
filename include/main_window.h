@@ -150,6 +150,7 @@ private:
     
     // Scan results cache
     QList<FileScanner::FileInfo> m_lastScanResults;
+    QList<DuplicateDetector::DuplicateGroup> m_scanResults;
     
     // Current scan configuration for duplicate detection
     ScanSetupDialog::ScanConfiguration m_currentScanConfig;

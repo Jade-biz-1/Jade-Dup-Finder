@@ -19,12 +19,15 @@ int main(int argc, char *argv[])
     QApplication app(argc, argv);
     
     // Set application properties
-    app.setApplicationName("DupFinder");
+    app.setApplicationName("CloneClean");
     app.setApplicationVersion("1.0.0");
-    app.setApplicationDisplayName("DupFinder - Duplicate File Finder");
-    app.setOrganizationName("DupFinder Team");
-    app.setOrganizationDomain("dupfinder.org");
-    
+    app.setApplicationDisplayName("CloneClean - One File. One Place.");
+    app.setOrganizationName("CloneClean");
+    app.setOrganizationDomain("cloneclean.com");
+
+    // Set application icon
+    app.setWindowIcon(QIcon(":/icons/icons/cloneclean.svg"));
+
     // High DPI support is automatically enabled in Qt6
     // No need to set deprecated attributes
     
@@ -37,7 +40,7 @@ int main(int argc, char *argv[])
     // Load application translations (future enhancement)
     QTranslator appTranslator;
     QString translationsPath = QStandardPaths::locate(QStandardPaths::AppDataLocation, "translations", QStandardPaths::LocateDirectory);
-    if (appTranslator.load(QLocale::system(), "dupfinder", "_", translationsPath)) {
+    if (appTranslator.load(QLocale::system(), "cloneclean", "_", translationsPath)) {
         app.installTranslator(&appTranslator);
     }
     
@@ -45,7 +48,7 @@ int main(int argc, char *argv[])
     Logger* logger = Logger::instance();
     logger->setLogLevel(Logger::Info);
     
-    logger->info(LogCategories::SYSTEM, "Starting DupFinder application...");
+    logger->info(LogCategories::SYSTEM, "Starting CloneClean application...");
     logger->debug(LogCategories::SYSTEM, "Logger initialized and configured");
     
     // Initialize theme system - theme preferences are loaded automatically in constructor
@@ -95,7 +98,7 @@ int main(int argc, char *argv[])
     logger->info(LogCategories::UI, "Main window displayed");
     logger->info(LogCategories::SYSTEM, "Application ready for user interaction");
     
-    logger->info(LogCategories::SYSTEM, "DupFinder started successfully");
+    logger->info(LogCategories::SYSTEM, "CloneClean started successfully");
     logger->info(LogCategories::SYSTEM, QString("Qt Version: %1").arg(QT_VERSION_STR));
     logger->info(LogCategories::SYSTEM, QString("Application Directory: %1").arg(app.applicationDirPath()));
     

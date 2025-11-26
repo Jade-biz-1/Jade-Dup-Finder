@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.20)
 
 # Project configuration
-project(DupFinder
+project(CloneClean
     VERSION 1.0.0
-    DESCRIPTION "Cross-platform duplicate file finder"
+    DESCRIPTION "One File. One Place. - Intelligent duplicate file finder and cleaner"
     LANGUAGES CXX
 )
 
@@ -52,12 +52,12 @@ endif()
 # GPU acceleration support
 option(ENABLE_GPU_ACCELERATION "Enable GPU acceleration for hash calculations" ON)
 
-set(DUPFINDER_BUILD_VARIANT "auto" CACHE STRING "Select build variant: auto, cpu, or gpu")
-set_property(CACHE DUPFINDER_BUILD_VARIANT PROPERTY STRINGS auto cpu gpu)
+set(CLONECLEAN_BUILD_VARIANT "auto" CACHE STRING "Select build variant: auto, cpu, or gpu")
+set_property(CACHE CLONECLEAN_BUILD_VARIANT PROPERTY STRINGS auto cpu gpu)
 
-if(DUPFINDER_BUILD_VARIANT STREQUAL "cpu")
+if(CLONECLEAN_BUILD_VARIANT STREQUAL "cpu")
     set(ENABLE_GPU_ACCELERATION OFF CACHE BOOL "Enable GPU acceleration for hash calculations" FORCE)
-elseif(DUPFINDER_BUILD_VARIANT STREQUAL "gpu")
+elseif(CLONECLEAN_BUILD_VARIANT STREQUAL "gpu")
     set(ENABLE_GPU_ACCELERATION ON CACHE BOOL "Enable GPU acceleration for hash calculations" FORCE)
 endif()
 
@@ -115,12 +115,12 @@ elseif(UNIX)
 endif()
 
 # Compiler-specific flags
-option(DUPFINDER_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
+option(CLONECLEAN_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
 
 if(MSVC)
     # Enable all warnings for MSVC (C++ only - CUDA uses its own warning flags)
     add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/W4>)
-    if(DUPFINDER_WARNINGS_AS_ERRORS)
+    if(CLONECLEAN_WARNINGS_AS_ERRORS)
         add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/WX>)
     endif()
     # Enable parallel compilation for C++ only (not CUDA - nvcc doesn't support /MP)
@@ -134,7 +134,7 @@ else()
     add_compile_options(-Wall -Wextra -pedantic)
     # Additional useful warnings
     add_compile_options(-Wconversion -Wsign-conversion -Wunused -Wcast-align)
-    if(DUPFINDER_WARNINGS_AS_ERRORS)
+    if(CLONECLEAN_WARNINGS_AS_ERRORS)
         add_compile_options(-Werror)
     endif()
     # Security features
@@ -318,7 +318,7 @@ if(ENABLE_GPU_ACCELERATION)
 endif()
 
 # Main executable
-add_executable(dupfinder
+add_executable(cloneclean
     src/main.cpp
     ${CORE_SOURCES}
     ${GUI_SOURCES}
@@ -332,9 +332,9 @@ add_executable(dupfinder
 # Add preprocessor definitions for GPU backends
 if(ENABLE_GPU_ACCELERATION)
     if(USE_CUDA)
-        target_compile_definitions(dupfinder PRIVATE HAS_CUDA)
+        target_compile_definitions(cloneclean PRIVATE HAS_CUDA)
     elseif(USE_OPENCL)
-        target_compile_definitions(dupfinder PRIVATE HAS_OPENCL)
+        target_compile_definitions(cloneclean PRIVATE HAS_OPENCL)
     endif()
 endif()
 
@@ -382,14 +382,14 @@ endif()
 
 # Link Qt libraries
 if(QT_VERSION EQUAL 6)
-    target_link_libraries(dupfinder
+    target_link_libraries(cloneclean
         Qt6::Core
         Qt6::Widgets
         Qt6::Concurrent
         Qt6::Network
     )
 else()
-    target_link_libraries(dupfinder
+    target_link_libraries(cloneclean
         Qt5::Core
         Qt5::Widgets
         Qt5::Concurrent
@@ -399,38 +399,38 @@ endif()
 
 # Link GPU libraries
 if(ENABLE_GPU_ACCELERATION)
-    target_link_libraries(dupfinder gpu_acceleration)
+    target_link_libraries(cloneclean gpu_acceleration)
     if(USE_CUDA)
         # Modern CMake CUDA language support - link with CUDA runtime
-        target_link_libraries(dupfinder CUDA::cudart)
+        target_link_libraries(cloneclean CUDA::cudart)
     elseif(USE_OPENCL)
-        target_link_libraries(dupfinder OpenCL::OpenCL)
+        target_link_libraries(cloneclean OpenCL::OpenCL)
     endif()
 endif()
 
 # Platform-specific linking
 if(WIN32)
     # Windows specific libraries
-    target_link_libraries(dupfinder shell32 ole32)
+    target_link_libraries(cloneclean shell32 ole32)
     # Set Windows application properties
-    set_target_properties(dupfinder PROPERTIES
+    set_target_properties(cloneclean PROPERTIES
         WIN32_EXECUTABLE TRUE
     )
 elseif(APPLE)
     # macOS specific libraries
     find_library(FOUNDATION_LIB Foundation)
     find_library(APPKIT_LIB AppKit)
-    target_link_libraries(dupfinder ${FOUNDATION_LIB} ${APPKIT_LIB})
+    target_link_libraries(cloneclean ${FOUNDATION_LIB} ${APPKIT_LIB})
 
     # Set macOS bundle properties
-    set_target_properties(dupfinder PROPERTIES
+    set_target_properties(cloneclean PROPERTIES
         MACOSX_BUNDLE TRUE
         MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/resources/Info.plist
     )
 endif()
 
 # Enable Qt's automatic MOC, UIC, and RCC processing
-set_target_properties(dupfinder PROPERTIES
+set_target_properties(cloneclean PROPERTIES
     AUTOMOC ON
     AUTOUIC ON
     AUTORCC ON
@@ -444,15 +444,15 @@ set_target_properties(dupfinder PROPERTIES
 
 # Resources
 set(RESOURCE_FILES
-    resources/dupfinder.qrc
+    resources/cloneclean.qrc
 )
 
 # Add resources to target
-target_sources(dupfinder PRIVATE ${RESOURCE_FILES})
+target_sources(cloneclean PRIVATE ${RESOURCE_FILES})
 
 
 # Install configuration
-install(TARGETS dupfinder
+install(TARGETS cloneclean
     BUNDLE DESTINATION .
     RUNTIME DESTINATION bin
 )
@@ -469,56 +469,56 @@ if(WIN32)
         message(STATUS "windeployqt found: ${WINDEPLOYQT_EXECUTABLE}")
         
         # Deploy Qt libraries after build
-        add_custom_command(TARGET dupfinder POST_BUILD
+        add_custom_command(TARGET cloneclean POST_BUILD
             COMMAND ${WINDEPLOYQT_EXECUTABLE}
                 --no-translations
                 --no-compiler-runtime
                 --no-system-d3d-compiler
-                --dir $<TARGET_FILE_DIR:dupfinder>
-                $<TARGET_FILE:dupfinder>
-            COMMENT "Deploying Qt libraries for DupFinder"
+                --dir $<TARGET_FILE_DIR:cloneclean>
+                $<TARGET_FILE:cloneclean>
+            COMMENT "Deploying Qt libraries for CloneClean"
             VERBATIM
         )
 
         # Install Qt DLLs deployed by windeployqt
         if(QT_VERSION EQUAL 6)
             install(FILES
-                $<TARGET_FILE_DIR:dupfinder>/Qt6Core.dll
-                $<TARGET_FILE_DIR:dupfinder>/Qt6Gui.dll
-                $<TARGET_FILE_DIR:dupfinder>/Qt6Widgets.dll
-                $<TARGET_FILE_DIR:dupfinder>/Qt6Network.dll
-                $<TARGET_FILE_DIR:dupfinder>/Qt6Svg.dll
-                $<TARGET_FILE_DIR:dupfinder>/opengl32sw.dll
+                $<TARGET_FILE_DIR:cloneclean>/Qt6Core.dll
+                $<TARGET_FILE_DIR:cloneclean>/Qt6Gui.dll
+                $<TARGET_FILE_DIR:cloneclean>/Qt6Widgets.dll
+                $<TARGET_FILE_DIR:cloneclean>/Qt6Network.dll
+                $<TARGET_FILE_DIR:cloneclean>/Qt6Svg.dll
+                $<TARGET_FILE_DIR:cloneclean>/opengl32sw.dll
                 DESTINATION bin
                 OPTIONAL
             )
         else()
             install(FILES
-                $<TARGET_FILE_DIR:dupfinder>/Qt5Core.dll
-                $<TARGET_FILE_DIR:dupfinder>/Qt5Gui.dll
-                $<TARGET_FILE_DIR:dupfinder>/Qt5Widgets.dll
-                $<TARGET_FILE_DIR:dupfinder>/Qt5Network.dll
-                $<TARGET_FILE_DIR:dupfinder>/Qt5Svg.dll
-                $<TARGET_FILE_DIR:dupfinder>/opengl32sw.dll
+                $<TARGET_FILE_DIR:cloneclean>/Qt5Core.dll
+                $<TARGET_FILE_DIR:cloneclean>/Qt5Gui.dll
+                $<TARGET_FILE_DIR:cloneclean>/Qt5Widgets.dll
+                $<TARGET_FILE_DIR:cloneclean>/Qt5Network.dll
+                $<TARGET_FILE_DIR:cloneclean>/Qt5Svg.dll
+                $<TARGET_FILE_DIR:cloneclean>/opengl32sw.dll
                 DESTINATION bin
                 OPTIONAL
             )
         endif()
 
         # Install Qt plugin directories deployed by windeployqt
-        install(DIRECTORY $<TARGET_FILE_DIR:dupfinder>/platforms
+        install(DIRECTORY $<TARGET_FILE_DIR:cloneclean>/platforms
             DESTINATION bin
             OPTIONAL
         )
-        install(DIRECTORY $<TARGET_FILE_DIR:dupfinder>/iconengines
+        install(DIRECTORY $<TARGET_FILE_DIR:cloneclean>/iconengines
             DESTINATION bin
             OPTIONAL
         )
-        install(DIRECTORY $<TARGET_FILE_DIR:dupfinder>/imageformats
+        install(DIRECTORY $<TARGET_FILE_DIR:cloneclean>/imageformats
             DESTINATION bin
             OPTIONAL
         )
-        install(DIRECTORY $<TARGET_FILE_DIR:dupfinder>/styles
+        install(DIRECTORY $<TARGET_FILE_DIR:cloneclean>/styles
             DESTINATION bin
             OPTIONAL
         )
@@ -539,11 +539,11 @@ elseif(APPLE)
 
         # Deploy Qt frameworks into the app bundle after build
         # macdeployqt automatically sets the rpath, so we don't need to do it manually
-        add_custom_command(TARGET dupfinder POST_BUILD
+        add_custom_command(TARGET cloneclean POST_BUILD
             COMMAND ${MACDEPLOYQT_EXECUTABLE}
-                $<TARGET_BUNDLE_DIR:dupfinder>
+                $<TARGET_BUNDLE_DIR:cloneclean>
                 -always-overwrite
-            COMMENT "Deploying Qt frameworks for macOS DupFinder"
+            COMMENT "Deploying Qt frameworks for macOS CloneClean"
             VERBATIM
         )
     else()
@@ -583,28 +583,28 @@ if(WIN32)
     if(NSIS_EXECUTABLE)
         # Windows installer configuration
         set(CPACK_GENERATOR "NSIS")
-        set(CPACK_NSIS_DISPLAY_NAME "DupFinder")
-        set(CPACK_NSIS_PACKAGE_NAME "DupFinder")
+        set(CPACK_NSIS_DISPLAY_NAME "CloneClean")
+        set(CPACK_NSIS_PACKAGE_NAME "CloneClean")
         set(CPACK_NSIS_EXECUTABLE "${NSIS_EXECUTABLE}")
 
         # Create Start menu shortcuts
         set(CPACK_NSIS_MENU_LINKS
-            "bin/dupfinder.exe" "DupFinder"
-            "https://github.com/Jade-biz-1/Jade-Dup-Finder" "DupFinder on GitHub"
+            "bin/cloneclean.exe" "CloneClean"
+            "https://github.com/Jade-biz-1/Jade-Dup-Finder" "CloneClean on GitHub"
         )
 
         # Create desktop shortcut and uninstall shortcut in Start Menu
         set(CPACK_NSIS_CREATE_ICONS_EXTRA
-            "CreateShortCut \\\"$DESKTOP\\\\DupFinder.lnk\\\" \\\"$INSTDIR\\\\bin\\\\dupfinder.exe\\\"
+            "CreateShortCut \\\"$DESKTOP\\\\CloneClean.lnk\\\" \\\"$INSTDIR\\\\bin\\\\cloneclean.exe\\\"
              CreateShortCut \\\"$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\Uninstall.lnk\\\" \\\"$INSTDIR\\\\Uninstall.exe\\\""
         )
         set(CPACK_NSIS_DELETE_ICONS_EXTRA
-            "Delete \\\"$DESKTOP\\\\DupFinder.lnk\\\"
+            "Delete \\\"$DESKTOP\\\\CloneClean.lnk\\\"
              Delete \\\"$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\Uninstall.lnk\\\""
         )
 
         # Installer branding
-        set(CPACK_NSIS_CONTACT "DupFinder Team")
+        set(CPACK_NSIS_CONTACT "CloneClean Team")
         set(CPACK_NSIS_URL_INFO_ABOUT "https://github.com/Jade-biz-1/Jade-Dup-Finder")
         set(CPACK_NSIS_HELP_LINK "https://github.com/Jade-biz-1/Jade-Dup-Finder")
         
@@ -617,9 +617,9 @@ if(WIN32)
 elseif(APPLE)
     # macOS bundle configuration
     set(CPACK_GENERATOR "DragNDrop")
-    set(CPACK_DMG_VOLUME_NAME "DupFinder")
+    set(CPACK_DMG_VOLUME_NAME "CloneClean")
     set(CPACK_DMG_FORMAT "UDZO")  # Compressed DMG
-    set(CPACK_BUNDLE_NAME "DupFinder")
+    set(CPACK_BUNDLE_NAME "CloneClean")
     set(CPACK_BUNDLE_ICON "${CMAKE_CURRENT_SOURCE_DIR}/resources/icon.icns")
     set(CPACK_BUNDLE_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/resources/Info.plist")
 
@@ -629,7 +629,7 @@ elseif(UNIX)
     set(CPACK_GENERATOR "DEB;RPM;TGZ")
 
     # Debian package configuration
-    set(CPACK_DEBIAN_PACKAGE_MAINTAINER "DupFinder Team")
+    set(CPACK_DEBIAN_PACKAGE_MAINTAINER "CloneClean Team")
     set(CPACK_DEBIAN_PACKAGE_SECTION "utils")
     set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
     set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc6, libqt6core6, libqt6gui6, libqt6widgets6")
@@ -643,19 +643,19 @@ elseif(UNIX)
 endif()
 
 # CPack configuration
-set(CPACK_PACKAGE_NAME "DupFinder")
-set(CPACK_PACKAGE_VENDOR "DupFinder Team")
+set(CPACK_PACKAGE_NAME "CloneClean")
+set(CPACK_PACKAGE_VENDOR "CloneClean Team")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Cross-platform duplicate file finder")
 set(CPACK_PACKAGE_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
 set(CPACK_PACKAGE_VERSION_MINOR ${PROJECT_VERSION_MINOR})
 set(CPACK_PACKAGE_VERSION_PATCH ${PROJECT_VERSION_PATCH})
-set(CPACK_PACKAGE_INSTALL_DIRECTORY "DupFinder")
+set(CPACK_PACKAGE_INSTALL_DIRECTORY "CloneClean")
 
-set(DUPFINDER_PACKAGE_SUFFIX "" CACHE STRING "Optional suffix appended to generated package filenames")
-set(_dupfinder_package_suffix "${DUPFINDER_PACKAGE_SUFFIX}")
-if(_dupfinder_package_suffix)
-    string(REGEX REPLACE "[^A-Za-z0-9_\-]" "-" _dupfinder_package_suffix "${_dupfinder_package_suffix}")
-    set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${PROJECT_VERSION}-${PLATFORM_NAME}-${_dupfinder_package_suffix}")
+set(CLONECLEAN_PACKAGE_SUFFIX "" CACHE STRING "Optional suffix appended to generated package filenames")
+set(_cloneclean_package_suffix "${CLONECLEAN_PACKAGE_SUFFIX}")
+if(_cloneclean_package_suffix)
+    string(REGEX REPLACE "[^A-Za-z0-9_\-]" "-" _cloneclean_package_suffix "${_cloneclean_package_suffix}")
+    set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${PROJECT_VERSION}-${PLATFORM_NAME}-${_cloneclean_package_suffix}")
 else()
     set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${PROJECT_VERSION}-${PLATFORM_NAME}")
 endif()
@@ -769,8 +769,8 @@ if(UNIX AND NOT APPLE)
                 --show-reachable=yes
                 --track-origins=yes
                 --error-exitcode=1
-                $<TARGET_FILE:dupfinder>
-            DEPENDS dupfinder
+                $<TARGET_FILE:cloneclean>
+            DEPENDS cloneclean
             COMMENT "Running memory check with valgrind"
             VERBATIM
         )
@@ -833,7 +833,7 @@ add_custom_target(summary
     COMMAND ${CMAKE_COMMAND} -E echo "Build Summary:"
     COMMAND ${CMAKE_COMMAND} -E echo "=============="
     COMMAND ${CMAKE_COMMAND} -E echo "Available targets:"
-    COMMAND ${CMAKE_COMMAND} -E echo "  dupfinder      - Main application"
+    COMMAND ${CMAKE_COMMAND} -E echo "  cloneclean      - Main application"
     COMMAND ${CMAKE_COMMAND} -E echo "  unit_tests     - Unit tests"
     COMMAND ${CMAKE_COMMAND} -E echo "  integration_tests - Integration tests"
     COMMAND ${CMAKE_COMMAND} -E echo "  check          - Run all tests"
@@ -849,7 +849,7 @@ add_custom_target(summary
 
 # Print build configuration summary
 message(STATUS "")
-message(STATUS "DupFinder Build Configuration Summary")
+message(STATUS "CloneClean Build Configuration Summary")
 message(STATUS "=====================================")
 message(STATUS "Version: ${PROJECT_VERSION}")
 message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
@@ -859,7 +859,7 @@ message(STATUS "Compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}
 message(STATUS "Install Prefix: ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "Qt${QT_VERSION} Version: ${Qt${QT_VERSION}_VERSION}")
 message(STATUS "Available Build Targets:")
-message(STATUS "  - dupfinder (main application)")
+message(STATUS "  - cloneclean (main application)")
 message(STATUS "  - check (run all tests)")
 message(STATUS "  - package (create installer)")
 if(CLANG_FORMAT_EXECUTABLE)

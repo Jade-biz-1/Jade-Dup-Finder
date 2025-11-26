@@ -68,7 +68,7 @@ MainWindow::MainWindow(QWidget *parent)
     , m_aboutDialog(nullptr)  // Section 1.5.2
     , m_systemUpdateTimer(new QTimer(this))
 {
-    setWindowTitle(tr("DupFinder - Duplicate File Finder"));
+    setWindowTitle(tr("CloneClean"));
     setMinimumSize(800, 600);
     resize(1024, 768);
     
@@ -332,6 +332,11 @@ void MainWindow::updateScanProgress(int percentage, const QString& status)
 void MainWindow::showScanResults()
 {
     LOG_DEBUG(LogCategories::UI, "showScanResults called - opening results window");
+
+    if (m_scanResults.isEmpty()) {
+        QMessageBox::information(this, tr("No Results"), tr("No scan results to display. Please run a scan first."));
+        return;
+    }
     
     if (!m_resultsWindow) {
         m_resultsWindow = new ResultsWindow(this);
@@ -369,6 +374,7 @@ void MainWindow::showScanResults()
     }
     
     // Show the results window
+    m_resultsWindow->displayDuplicateGroups(m_scanResults);
     m_resultsWindow->show();
     m_resultsWindow->raise();
     m_resultsWindow->activateWindow();
@@ -516,7 +522,8 @@ void MainWindow::onHelpRequested()
     LOG_INFO(LogCategories::UI, "User clicked 'Help' button");
     
     QString helpText = tr(
-        "<h2>DupFinder - Duplicate File Finder</h2>"
+        "<h2>CloneClean</h2>"
+        "<p><i>One File. One Place.</i></p>"
         "<p><b>Quick Start:</b></p>"
         "<ol>"
         "<li>Click 'New Scan' to configure a scan</li>"
@@ -542,7 +549,7 @@ void MainWindow::onHelpRequested()
         "<li><b>Ctrl+Z:</b> Undo/Restore Files</li>"
         "<li><b>Ctrl+,:</b> Settings</li>"
         "<li><b>Ctrl+Shift+S:</b> Safety Features</li>"
-        "<li><b>Ctrl+Shift+A:</b> About DupFinder</li>"
+        "<li><b>Ctrl+Shift+A:</b> About CloneClean</li>"
         "<li><b>Ctrl+Q:</b> Quit Application</li>"
         "<li><b>F1:</b> Help</li>"
         "<li><b>F5 / Ctrl+R:</b> Refresh System Stats</li>"
@@ -561,11 +568,10 @@ void MainWindow::onHelpRequested()
         "<li>Undo functionality</li>"
         "</ul>"
         "<p>For more information and full version details, click 'About' button below.</p>"
-        "<p>Visit: <a href='https://dupfinder.org/docs'>dupfinder.org/docs</a></p>"
     );
-    
+
     QMessageBox msgBox(this);
-    msgBox.setWindowTitle(tr("DupFinder Help"));
+    msgBox.setWindowTitle(tr("CloneClean Help"));
     msgBox.setText(helpText);
     msgBox.setTextFormat(Qt::RichText);
     msgBox.setIcon(QMessageBox::Information);
@@ -1186,31 +1192,22 @@ void MainWindow::applyTheme()
 
 void MainWindow::loadSettings()
 {
-    QSettings settings;
-    settings.beginGroup("MainWindow");
-    
-    // Restore window geometry
-    QByteArray geometry = settings.value("geometry").toByteArray();
-    if (!geometry.isEmpty()) {
-        restoreGeometry(geometry);
-    }
-    
-    // Restore window state
-    QByteArray state = settings.value("state").toByteArray();
-    if (!state.isEmpty()) {
-        restoreState(state);
-    }
-    
-    settings.endGroup();
+    // NOTE: Window geometry and state restoration is now handled by WindowStateManager
+    // This is registered in the constructor via WindowStateManager::instance()->registerWindow()
+    // No need to manually restore geometry here - it creates conflicts
+
+    // Other settings can be loaded here if needed in the future
+    // For example: theme preferences, language settings, etc.
 }
 
 void MainWindow::saveSettings()
 {
-    QSettings settings;
-    settings.beginGroup("MainWindow");
-    settings.setValue("geometry", saveGeometry());
-    settings.setValue("state", saveState());
-    settings.endGroup();
+    // NOTE: Window geometry and state saving is now handled by WindowStateManager
+    // Automatic saving occurs on Move/Resize/Close events and application exit
+    // No need to manually save geometry here - it creates conflicts and redundancy
+
+    // Other settings can be saved here if needed in the future
+    // For example: theme preferences, language settings, etc.
 }
 
 QString MainWindow::formatFileSize(qint64 bytes) const
@@ -1376,6 +1373,12 @@ void QuickActionsWidget::onCustomPresetClicked() {
 void MainWindow::handleScanConfiguration(const ScanSetupDialog::ScanConfiguration& config)
 {
     LOG_INFO(LogCategories::UI, "=== Starting New Scan ===");
+    m_scanResults.clear();
+
+    // Clear previous results from results window if it exists
+    if (m_resultsWindow) {
+        m_resultsWindow->clearResults();
+    }
     
     LOG_INFO(LogCategories::UI, QString("Scan Configuration:"));
     LOG_INFO(LogCategories::UI, QString("  - Target paths (%1): %2").arg(config.targetPaths.size()).arg(config.targetPaths.join(", ")));
@@ -1615,7 +1618,7 @@ void MainWindow::onDuplicateDetectionCompleted(int totalGroups)
     LOG_INFO(LogCategories::UI, QString("  - Duplicate groups found: %1").arg(totalGroups));
     
     // Get results from detector
-    QList<DuplicateDetector::DuplicateGroup> groups = m_duplicateDetector->getDuplicateGroups();
+    m_scanResults = m_duplicateDetector->getDuplicateGroups();
     qint64 totalWastedSpace = m_duplicateDetector->getTotalWastedSpace();
     
     LOG_INFO(LogCategories::UI, QString("  - Total wasted space: %1").arg(formatFileSize(totalWastedSpace)));
@@ -1640,7 +1643,7 @@ void MainWindow::onDuplicateDetectionCompleted(int totalGroups)
     }
     
     // Save scan to history
-    saveScanToHistory(groups);
+    saveScanToHistory(m_scanResults);
     
     // Show results if duplicates were found
     if (totalGroups > 0) {
@@ -1704,8 +1707,8 @@ void MainWindow::onDuplicateDetectionCompleted(int totalGroups)
         m_resultsWindow->activateWindow();
 
         // Now trigger the async display of results (will happen in the background)
-        LOG_INFO(LogCategories::UI, QString("Displaying %1 duplicate groups in ResultsWindow").arg(groups.size()));
-        m_resultsWindow->displayDuplicateGroups(groups);
+        LOG_INFO(LogCategories::UI, QString("Displaying %1 duplicate groups in ResultsWindow").arg(m_scanResults.size()));
+        m_resultsWindow->displayDuplicateGroups(m_scanResults);
         LOG_DEBUG(LogCategories::UI, "Results display initiated (async)");
     } else {
         // Hide the scan progress dialog for no results case

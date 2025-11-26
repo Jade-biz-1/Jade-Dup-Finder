@@ -531,7 +531,7 @@ void SettingsDialog::loadSettings()
 {
     LOG_INFO(LogCategories::CONFIG, "Loading settings");
     
-    QSettings settings("DupFinder Team", "DupFinder");
+    QSettings settings("CloneClean", "CloneClean");
     
     // General
     QString language = settings.value("general/language", "en").toString();
@@ -663,7 +663,7 @@ void SettingsDialog::saveSettings()
 {
     LOG_INFO(LogCategories::CONFIG, "Saving settings");
     
-    QSettings settings("DupFinder Team", "DupFinder");
+    QSettings settings("CloneClean", "CloneClean");
     
     // General
     settings.setValue("general/language", m_languageCombo->currentData());
@@ -808,7 +808,7 @@ void SettingsDialog::onRestoreDefaultsClicked()
         QMessageBox::Yes | QMessageBox::No);
     
     if (reply == QMessageBox::Yes) {
-        QSettings settings("DupFinder Team", "DupFinder");
+        QSettings settings("CloneClean", "CloneClean");
         settings.clear();
         loadSettings();
         LOG_INFO(LogCategories::CONFIG, "Settings restored to defaults");

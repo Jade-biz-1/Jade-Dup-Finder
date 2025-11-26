@@ -422,6 +422,7 @@ private:
     
     // Data
     ScanResults m_currentResults;
+    QList<DuplicateDetector::DuplicateGroup> m_sourceGroups;
     QList<DuplicateFile> m_selectedFiles;
     QTimer* m_thumbnailTimer;
     FileManager* m_fileManager;
@@ -429,17 +430,23 @@ private:
     ThumbnailDelegate* m_thumbnailDelegate;
     DuplicateRelationshipWidget* m_relationshipWidget;
     SmartSelectionDialog* m_smartSelectionDialog;
-    GroupingOptionsDialog* m_groupingDialog;
     SelectionHistoryManager* m_selectionHistory;
     FileOperationQueue* m_operationQueue;
+    GroupingOptionsDialog* m_groupingDialog;
     FileOperationProgressDialog* m_progressDialog;
 
 
     // State
     bool m_isProcessingBulkOperation;
     bool m_isProcessingRecommendation;  // Guard against re-entrant calls
+    bool m_isTreePopulated;  // Track if results tree is already populated (avoids rebuilding on reopen)
     QString m_lastExportPath;
     GroupingOptionsDialog::GroupingOptions m_currentGroupingOptions;
+
+    // Batch processing state
+    int m_batchGroupIndex;
+    int m_batchFileIndex;
+    QTreeWidgetItem* m_currentBatchGroupItem;
     
     // Constants
     static const int THUMBNAIL_SIZE = 64;
