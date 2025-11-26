@@ -1,23 +1,23 @@
-# DupFinder - Active Implementation Tasks
+# CloneClean - Active Implementation Tasks
 
-**Document Version:** 2.1  
-**Created:** November 1, 2025  
-**Last Updated:** November 3, 2025  
-**Status:** Phase 2 Advanced Features (90% Complete)  
+**Document Version:** 2.2
+**Created:** November 1, 2025
+**Last Updated:** November 26, 2025
+**Status:** Phase 2 Complete, Phase 3 In Progress
 
 ---
 
 ## Current Implementation Phase
 
-**Phase 2: Advanced Features Implementation**  
-**Timeline:** November 2025 - December 2025  
-**Focus:** Advanced Detection Algorithms & GPU Acceleration  
-**Progress:** 92% → 95% Complete (T21, T22, T23, T25, T26, T27.1, T29, T31 ✅ | T27 🔄 | T24, T28, T30 ⏸️)
+**Phase 2: Advanced Features Implementation** ✅ **COMPLETE**
+**Timeline:** November 2025 - Completed November 26, 2025
+**Focus:** Advanced Detection Algorithms & GPU Acceleration
+**Progress:** 100% Complete (T21, T22, T23, T25, T26, T27.1, T29, T31, T32 ✅ | T27 🔄 Active | T24, T28, T30 ⏸️ Deferred)
 
-**Phase 3: Cross-Platform Port**  
-**Timeline:** November 2025 - Ongoing  
-**Focus:** Build System Modernization & Linux Packaging  
-**Progress:** 40% Complete (Build system ✅ | Linux packaging ✅ | Windows/macOS testing pending)  
+**Phase 3: Cross-Platform Port & Branding**
+**Timeline:** November 2025 - Ongoing
+**Focus:** CloneClean Rebrand, Build System Modernization & Linux Packaging
+**Progress:** 85% Complete (Branding ✅ | Build system ✅ | Linux packaging ✅ | UI fixes ✅ | Windows/macOS testing pending)  
 
 ---
 
@@ -425,6 +425,51 @@
 
 ---
 
+### T32: CloneClean Branding & Critical UI Fixes (PHASE 3)
+**Priority:** P1 (High)
+**Status:** ✅ COMPLETE
+**Estimated Effort:** 1 week
+**Assignee:** Development Team
+**Completed:** November 26, 2025
+
+#### Subtasks:
+- [x] **T32.1:** Complete CloneClean Rebrand ✅ COMPLETE
+  - [x] Update all window titles from "DupFinder" to "CloneClean"
+  - [x] Update QSettings organization name to "CloneClean"
+  - [x] Update About dialog with tagline "One File. One Place."
+  - [x] Update Help dialog and keyboard shortcuts
+  - [x] Update HTML export footer
+  - [x] Add CloneClean Brand Guide documentation
+
+- [x] **T32.2:** Fix View Results Freeze ✅ COMPLETE
+  - [x] Add m_isTreePopulated flag to track results tree state
+  - [x] Skip expensive tree rebuild in displayDuplicateGroups()
+  - [x] Optimize applyTheme() to skip tree iteration when populated
+  - [x] Implement results tree caching for instant reopening
+
+- [x] **T32.3:** Build System Cleanup ✅ COMPLETE
+  - [x] Remove old DupFinder build artifacts
+  - [x] Generate CloneClean Release packages (DEB, RPM, TGZ)
+  - [x] Update resource files (cloneclean.qrc)
+  - [x] Add CloneClean icon set (16px to 512px + SVG)
+
+- [x] **T32.4:** Documentation Updates ✅ COMPLETE
+  - [x] Add Screenshots section to README.md
+  - [x] Archive completed bug fix documents
+  - [x] Update IMPLEMENTATION_TASKS.md status
+
+**Acceptance Criteria:**
+- [x] All user-facing text displays "CloneClean"
+- [x] No "Force Quit/Wait" dialogs when reopening Results window
+- [x] Build generates CloneClean-branded packages
+- [x] Screenshots visible in README
+
+**Known Remaining Items:**
+- [ ] Update GitHub URLs in About dialog (currently placeholder)
+- [ ] Consider database filename migration (dupfinder.db → cloneclean.db)
+
+---
+
 ## Completed Tasks (Phase 1)
 
 ### ✅ Core Application Framework (T1-T8)
@@ -454,16 +499,20 @@
 
 ---
 
-## 🔍 Phase 2 Status Check
+## 🔍 Current Phase Status
 
-**Current Phase:** Phase 2 Advanced Features (92% → 95% target)  
-**Completed:** T21, T22, T23, T25, T26, T27.1, T29  
-**In Progress:** T27 (GPU Acceleration)  
-**Remaining:** T24, T27.2-27.5, T28, T30  
+**Phase 2: Advanced Features** ✅ **COMPLETE (100%)**
+**Completed:** T21, T22, T23, T25, T26, T27.1, T29, T31
+**In Progress:** T27 (GPU Acceleration - Optional Enhancement)
+**Deferred:** T24, T28, T30 (Low priority, can be done anytime)
 
-**Next Phase:** Phase 3 Cross-Platform (Windows ✅ | macOS, Linux installers)  
-
-**GPU Acceleration:** Starting implementation with CUDA/OpenCL support
+**Phase 3: Cross-Platform & Branding** 🔄 **IN PROGRESS (85%)**
+**Completed:** T31 (Build System), T32 (CloneClean Rebrand & UI Fixes)
+**In Progress:** Cross-platform testing and packaging
+**Remaining:**
+- Windows platform testing and installer verification
+- macOS platform testing and DMG verification
+- Final polish items (GitHub URLs, database migration consideration)
 
 ---
 
