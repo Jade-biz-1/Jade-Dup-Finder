@@ -1,29 +1,32 @@
 <div align="center">
-  <img src="docs/logo.png" alt="DupFinder Logo" width="200"/>
+  <img src="docs/logo.png" alt="CloneClean Logo" width="200"/>
 </div>
 
-# DupFinder - Cross-Platform Duplicate File Finder
+# CloneClean
+## One File. One Place.
+
+**Your intelligent duplicate file finder and cleaner**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)](https://github.com/yourusername/dupfinder)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)](https://github.com/yourusername/cloneclean)
 [![Qt](https://img.shields.io/badge/Qt-6.0%2B-green)](https://www.qt.io/)
 [![C++](https://img.shields.io/badge/C%2B%2B-17-blue)](https://isocpp.org/)
 
-DupFinder is a modern, cross-platform desktop application designed to help users identify and manage duplicate files on their systems. With an intuitive interface, sophisticated duplicate detection algorithms, and comprehensive safety features, DupFinder helps you reclaim disk space while protecting your data.
+CloneClean is a modern, cross-platform desktop application designed to help you keep your files organized—one file, one place. With an intuitive interface, sophisticated duplicate detection algorithms, and comprehensive safety features, CloneClean helps you reclaim disk space while protecting your data.
 
 ## 🚧 **Project Status: Work in Progress**
 
-**DupFinder is actively under development!** While the core functionality is working and the application is usable, we're continuously improving and expanding features. This is an open-source project and **we welcome volunteers and contributors** of all skill levels.
+**CloneClean is actively under development!** While the core functionality is working and the application is usable, we're continuously improving and expanding features. This is an open-source project and **we welcome volunteers and contributors** of all skill levels.
 
 ### 🤝 **Join Our Development Team!**
 
-We're looking for passionate developers, testers, designers, and documentation writers to help make DupFinder even better. Whether you're a seasoned developer or just starting out, there are ways to contribute:
+We're looking for passionate developers, testers, designers, and documentation writers to help make CloneClean even better. Whether you're a seasoned developer or just starting out, there are ways to contribute:
 
 - **Developers**: Help implement new features, fix bugs, or improve performance
 - **Testers**: Help us identify issues and improve reliability across platforms  
 - **UI/UX Designers**: Enhance the user experience and interface design
 - **Technical Writers**: Improve documentation and user guides
-- **Translators**: Help make DupFinder available in more languages
+- **Translators**: Help make CloneClean available in more languages
 
 **Ready to contribute?** Get in touch with the project maintainer or check out our [Contributing Guidelines](#-contributing) below.
 
@@ -75,7 +78,7 @@ We believe in building great software together! 🚀
 
 ## 📥 Download Pre-Built Binaries
 
-**Want to use DupFinder without building from source?** Pre-built packages are available in the `dist/` folder!
+**Want to use CloneClean without building from source?** Pre-built packages are available in the `dist/` folder!
 
 ### Available Packages
 
@@ -109,7 +112,7 @@ We believe in building great software together! 🚀
 
 #### Unified Build Orchestrator (Recommended)
 
-DupFinder uses `scripts/build.py`, an intelligent build orchestrator that selects the
+CloneClean uses `scripts/build.py`, an intelligent build orchestrator that selects the
 correct toolchain (CPU/GPU, OS, architecture) and copies finished installers
 into the standardized `dist/` layout.
 
@@ -148,8 +151,8 @@ python scripts/build.py --target <target-id> --build-type Release --non-interact
 
 #### Clone the Repository
 ```bash
-git clone https://github.com/yourusername/dupfinder.git
-cd dupfinder
+git clone https://github.com/yourusername/cloneclean.git
+cd cloneclean
 ```
 
 #### Manual Build (Alternative to build.py)
@@ -169,7 +172,7 @@ cmake -S . -B build -GNinja -DCMAKE_BUILD_TYPE=Release
 cmake --build build --parallel
 
 # Run
-./build/dupfinder
+./build/cloneclean
 ```
 
 **Windows Build:**
@@ -182,7 +185,7 @@ cmake -S . -B build -G "Visual Studio 17 2022" -A x64
 cmake --build build --config Release
 
 # Run
-build\Release\dupfinder.exe
+build\Release\cloneclean.exe
 ```
 
 **macOS Build:**
@@ -197,15 +200,37 @@ cmake -S . -B build -GNinja -DCMAKE_BUILD_TYPE=Release
 cmake --build build --parallel
 
 # Run
-open ./build/dupfinder.app
+open ./build/cloneclean.app
 ```
 
 **Note:** Manual builds don't automatically copy artifacts to `dist/`. Use `scripts/build.py` for automated packaging and distribution.
 
+## 📸 Screenshots
+
+### Main Window
+The main window provides quick access to scan presets and displays system statistics.
+
+![Main Window](resources/screenshots/MainWindow.png)
+
+### New Scan Dialog
+Configure custom scan options with advanced filters and detection settings.
+
+![New Scan](resources/screenshots/NewScan.png)
+
+### Results View
+Professional 3-panel interface showing duplicate groups with smart selection and file operations.
+
+![Results View](resources/screenshots/ResultsView.png)
+
+### Settings
+Comprehensive settings panel for customizing CloneClean's behavior and appearance.
+
+![Settings](resources/screenshots/Settings.png)
+
 ## 📁 Project Structure
 
 ```
-dupfinder/
+cloneclean/
 ├── src/                   # Source code
 │   ├── core/              # Core duplicate detection algorithms
 │   ├── gui/               # Qt6-based user interface
@@ -338,13 +363,13 @@ python scripts/build.py --target <target-id> --build-type Release
 Automatically creates platform-specific packages and copies them to `dist/`:
 
 - **Windows**: NSIS installer (`.exe`)
-  - `dist/Win64/Release/dupfinder-<version>-win64-<variant>.exe`
+  - `dist/Win64/Release/cloneclean-<version>-win64-<variant>.exe`
 - **Linux**: Multiple package formats
-  - `dist/Linux/Release/dupfinder-<version>-linux-x86_64-<variant>.deb` (Debian/Ubuntu)
-  - `dist/Linux/Release/dupfinder-<version>-linux-x86_64-<variant>.rpm` (RedHat/Fedora)
-  - `dist/Linux/Release/dupfinder-<version>-linux-x86_64-<variant>.tgz` (Universal)
+  - `dist/Linux/Release/cloneclean-<version>-linux-x86_64-<variant>.deb` (Debian/Ubuntu)
+  - `dist/Linux/Release/cloneclean-<version>-linux-x86_64-<variant>.rpm` (RedHat/Fedora)
+  - `dist/Linux/Release/cloneclean-<version>-linux-x86_64-<variant>.tgz` (Universal)
 - **macOS**: Disk image (`.dmg`)
-  - `dist/MacOS/{X64,ARM}/Release/dupfinder-<version>-macos-<arch>.dmg`
+  - `dist/MacOS/{X64,ARM}/Release/cloneclean-<version>-macos-<arch>.dmg`
 
 **Manual packaging:**
 ```bash
@@ -363,7 +388,7 @@ GitHub Actions can automatically build and test on all platforms. Configure with
 
 ## 🛡️ Safety Features
 
-DupFinder prioritizes data safety:
+CloneClean prioritizes data safety:
 - **No Permanent Deletion**: Files are always moved to system trash/recycle bin
 - **Undo Operations**: Recent operations can be undone within the session
 - **System File Protection**: Automatic exclusion of critical system files
@@ -453,7 +478,7 @@ DupFinder prioritizes data safety:
 
 ## 🤝 Contributing
 
-**We actively welcome contributions from developers of all experience levels!** DupFinder is a community-driven project and we believe great software is built together.
+**We actively welcome contributions from developers of all experience levels!** CloneClean is a community-driven project and we believe great software is built together.
 
 ### 🌟 **Ways to Contribute**
 
@@ -468,7 +493,7 @@ DupFinder prioritizes data safety:
 - **Testing**: Manual testing on different platforms and configurations
 - **Documentation**: Improve user guides, API docs, and tutorials
 - **UI/UX**: Design improvements and user experience enhancements
-- **Translation**: Help make DupFinder available in more languages
+- **Translation**: Help make CloneClean available in more languages
 - **Community**: Help other users, answer questions, provide feedback
 
 ### 🚀 **Getting Started as a Contributor**
@@ -509,7 +534,7 @@ DupFinder prioritizes data safety:
 - **Ideas**: Start a discussion in [GitHub Discussions](https://github.com/Jade-biz-1/Jade-Dup-Finder/discussions)
 - **Collaboration**: Reach out if you want to work on larger features together
 
-**We're excited to work with you!** Every contribution, no matter how small, helps make DupFinder better for everyone. 🎉
+**We're excited to work with you!** Every contribution, no matter how small, helps make CloneClean better for everyone. 🎉
 
 ## 📄 License
 
@@ -538,4 +563,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**DupFinder** - Helping you reclaim your disk space, one duplicate at a time! 🚀
+**CloneClean** - Helping you reclaim your disk space, one duplicate at a time! 🚀

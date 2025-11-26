@@ -64,15 +64,19 @@ void WindowStateManager::registerWindow(QWidget* window, const QString& identifi
     info.lastState = window->windowState();
 
     m_registeredWindows[window] = info;
-    
+
     // Connect signals for automatic state tracking
     connectWindowSignals(window);
-    
-    // Try to restore state immediately if window is already visible
-    if (window->isVisible()) {
+
+    // CRITICAL FIX: Always try to restore state immediately upon registration
+    // Don't wait for Show event - restore now so the window opens at the saved position
+    if (hasSavedState(windowId)) {
         restoreWindowState(window);
+        LOG_DEBUG(LogCategories::UI, QString("Restored saved state for registered window: %1").arg(windowId));
+    } else {
+        LOG_DEBUG(LogCategories::UI, QString("No saved state for registered window: %1").arg(windowId));
     }
-    
+
     LOG_DEBUG(LogCategories::UI, QString("Registered window: %1 (ID: %2)").arg(window->objectName()).arg(windowId));
 }
 
@@ -157,12 +161,15 @@ void WindowStateManager::saveAllWindowStates()
     int savedCount = 0;
     for (auto it = m_registeredWindows.begin(); it != m_registeredWindows.end(); ++it) {
         QWidget* window = it.key();
-        if (window && window->isVisible() && !window->isMinimized()) {
+        if (window) {
+            // CRITICAL FIX: Save all registered windows, regardless of visibility
+            // During application exit, windows may already be hidden
+            // saveWindowState() will use cached geometry for hidden windows
             saveWindowState(window);
             savedCount++;
         }
     }
-    
+
     LOG_INFO(LogCategories::UI, QString("Saved states for %1 windows").arg(savedCount));
 }
 
@@ -249,20 +256,33 @@ QString WindowStateManager::getWindowIdentifier(QWidget* window, const QString& 
 void WindowStateManager::saveWindowGeometry(const QString& identifier, QWidget* window)
 {
     m_settings->beginGroup(m_settingsGroup);
-    
+
     // Save geometry
     m_settings->setValue(identifier + "/geometry", window->saveGeometry());
-    
+
     // Save window state for main windows
     if (QMainWindow* mainWindow = qobject_cast<QMainWindow*>(window)) {
         m_settings->setValue(identifier + "/windowState", mainWindow->saveState());
     }
-    
-    // Save additional properties
+
+    // CRITICAL FIX: Use geometry() instead of pos() and size() separately
+    // On some Linux window managers, pos() returns incorrect values
+    // but geometry() is more reliable and consistent
+    QRect geometry = window->geometry();
+    QPoint position = geometry.topLeft();
+    QSize size = geometry.size();
+
+    LOG_INFO(LogCategories::UI, QString("Saving geometry for %1: pos=(%2,%3) size=(%4x%5)")
+            .arg(identifier)
+            .arg(position.x())
+            .arg(position.y())
+            .arg(size.width())
+            .arg(size.height()));
+
     m_settings->setValue(identifier + "/maximized", window->isMaximized());
-    m_settings->setValue(identifier + "/position", window->pos());
-    m_settings->setValue(identifier + "/size", window->size());
-    
+    m_settings->setValue(identifier + "/position", position);
+    m_settings->setValue(identifier + "/size", size);
+
     m_settings->endGroup();
 }
 
@@ -275,7 +295,22 @@ bool WindowStateManager::restoreWindowGeometry(const QString& identifier, QWidge
     // Try to restore from saved geometry first (most reliable)
     QByteArray geometry = m_settings->value(identifier + "/geometry").toByteArray();
     if (!geometry.isEmpty()) {
+        LOG_INFO(LogCategories::UI, QString("Attempting to restore window %1 from saved geometry ByteArray").arg(identifier));
+
         restored = window->restoreGeometry(geometry);
+
+        if (restored) {
+            // Log the restored geometry
+            QRect restoredGeometry = window->geometry();
+            LOG_INFO(LogCategories::UI, QString("Window %1 restoreGeometry() returned true, geometry is now: pos=(%2,%3) size=(%4x%5)")
+                    .arg(identifier)
+                    .arg(restoredGeometry.x())
+                    .arg(restoredGeometry.y())
+                    .arg(restoredGeometry.width())
+                    .arg(restoredGeometry.height()));
+        } else {
+            LOG_WARNING(LogCategories::UI, QString("Window %1 restoreGeometry() returned false").arg(identifier));
+        }
 
         // CRITICAL FIX: Validate and fix geometry after restore
         // Qt's restoreGeometry may restore to invalid positions (e.g., disconnected monitors)
@@ -294,6 +329,8 @@ bool WindowStateManager::restoreWindowGeometry(const QString& identifier, QWidge
                 mainWindow->restoreState(windowState);
             }
         }
+    } else {
+        LOG_INFO(LogCategories::UI, QString("No saved geometry ByteArray found for window %1").arg(identifier));
     }
 
     // Fallback to manual position/size restoration
@@ -417,7 +454,21 @@ bool WindowStateManager::eventFilter(QObject* watched, QEvent* event)
         case QEvent::Move:
         case QEvent::Resize:
             if (m_autoSaveEnabled && window->isVisible() && !window->isMinimized()) {
-                // Schedule delayed save to avoid too frequent saves during dragging
+                // CRITICAL FIX: Update cached geometry immediately on move/resize
+                // This ensures we have the latest geometry when the window is closed
+                QRect newGeometry = window->geometry();
+                m_registeredWindows[window].lastGeometry = newGeometry;
+                m_registeredWindows[window].lastState = window->windowState();
+
+                const QString& identifier = m_registeredWindows[window].identifier;
+                LOG_INFO(LogCategories::UI, QString("Window %1 moved/resized to position (%2, %3) size (%4x%5)")
+                        .arg(identifier)
+                        .arg(newGeometry.x())
+                        .arg(newGeometry.y())
+                        .arg(newGeometry.width())
+                        .arg(newGeometry.height()));
+
+                // Schedule delayed save to avoid too frequent disk writes during dragging
                 m_pendingSaves[window] = true;
                 m_saveTimer->start();
             }
@@ -437,6 +488,32 @@ bool WindowStateManager::eventFilter(QObject* watched, QEvent* event)
             
         case QEvent::Close:
             if (m_autoSaveEnabled) {
+                // CRITICAL FIX: Update cached geometry before the window is hidden
+                // The window is still visible during Close event, capture its geometry now
+                // This is ESSENTIAL on Linux where Move events may not fire during window dragging
+                if (window->isVisible() && !window->isMinimized()) {
+                    // Try multiple methods to get the window position
+                    // On some Linux WMs, geometry() and pos() return (0,0) but frameGeometry() works
+                    QRect geometry = window->geometry();
+                    QRect frameGeometry = window->frameGeometry();
+                    QPoint pos = window->pos();
+
+                    const QString& identifier = m_registeredWindows[window].identifier;
+                    LOG_INFO(LogCategories::UI, QString("Window %1 closing: geometry=(%2,%3 %4x%5) frameGeometry=(%6,%7 %8x%9) pos=(%10,%11)")
+                            .arg(identifier)
+                            .arg(geometry.x()).arg(geometry.y()).arg(geometry.width()).arg(geometry.height())
+                            .arg(frameGeometry.x()).arg(frameGeometry.y()).arg(frameGeometry.width()).arg(frameGeometry.height())
+                            .arg(pos.x()).arg(pos.y()));
+
+                    // Use frameGeometry if geometry returns (0,0)
+                    QRect currentGeometry = (geometry.topLeft() == QPoint(0, 0) && frameGeometry.topLeft() != QPoint(0, 0))
+                                           ? frameGeometry
+                                           : geometry;
+
+                    m_registeredWindows[window].lastGeometry = currentGeometry;
+                    m_registeredWindows[window].lastState = window->windowState();
+                }
+                // Now save the window state (will use cached geometry if needed)
                 saveWindowState(window);
             }
             break;

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Launch dupfinder with clean environment
+# Launch cloneclean with clean environment
 # Run this from a regular terminal, NOT from VS Code's integrated terminal
 
 # Clear all snap-related environment variables
@@ -18,6 +18,6 @@ export XDG_CONFIG_DIRS="/etc/xdg"
 # Get the directory where this script is located
 SCRIPT_DIR="$( cd "$( /usr/bin/dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
-# Run dupfinder
+# Run cloneclean
 cd "${SCRIPT_DIR}/build/linux/x64/linux-ninja-cpu"
-exec ./dupfinder-1.0.0 "$@"
+exec ./cloneclean-1.0.0 "$@"

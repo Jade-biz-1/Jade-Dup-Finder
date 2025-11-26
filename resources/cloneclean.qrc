@@ -1,0 +1,15 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/icons">
+        <!-- CloneClean Application Icons -->
+        <file>icons/cloneclean.svg</file>
+        <file>icons/cloneclean-16.png</file>
+        <file>icons/cloneclean-24.png</file>
+        <file>icons/cloneclean-32.png</file>
+        <file>icons/cloneclean-48.png</file>
+        <file>icons/cloneclean-64.png</file>
+        <file>icons/cloneclean-128.png</file>
+        <file>icons/cloneclean-256.png</file>
+        <file>icons/cloneclean-512.png</file>
+    </qresource>
+</RCC>

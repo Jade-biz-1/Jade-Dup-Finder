@@ -1,0 +1,23 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+<defs>
+    <linearGradient id="fadeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#2E86DE;stop-opacity:0.6"/>
+      <stop offset="100%" style="stop-color:#2E86DE;stop-opacity:0.2"/>
+    </linearGradient>
+</defs>
+<rect x="128" y="128" width="768" height="768" rx="128" fill="#F8F9FA"/>
+<g transform="translate(100, 100) scale(0.8)">
+    <!-- Fading Document (Duplicate) -->
+    <path d="M250 200 H 650 L 650 800 H 250 Z" fill="url(#fadeGradient)" />
+    <path d="M650 200 L 550 300 H 650 Z" fill="rgba(46, 134, 222, 0.1)" />
+    <path d="M550 200 L 650 300 V 200 Z" fill="rgba(255, 255, 255, 0.3)" />
+
+    <!-- Primary Document (Kept) -->
+    <path d="M400 150 H 800 L 800 750 H 400 Z" fill="#2E86DE" stroke="#FFFFFF" stroke-width="20" />
+    <path d="M800 150 L 700 250 H 800 Z" fill="#1E6CB4" />
+    <path d="M700 150 L 800 250 V 150 Z" fill="rgba(255, 255, 255, 0.3)" />
+
+    <!-- Checkmark -->
+    <path d="M550 450 L 650 550 L 800 350" stroke="#26DE81" stroke-width="60" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+</svg>

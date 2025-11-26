@@ -218,7 +218,7 @@ class TestResultAggregator:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DupFinder Test Results</title>
+    <title>CloneClean Test Results</title>
     <style>
         body {{ font-family: Arial, sans-serif; margin: 20px; }}
         .header {{ background: #f5f5f5; padding: 20px; border-radius: 5px; }}
@@ -240,7 +240,7 @@ class TestResultAggregator:
 </head>
 <body>
     <div class="header">
-        <h1>DupFinder Automated Test Results</h1>
+        <h1>CloneClean Automated Test Results</h1>
         <p>Generated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC</p>
         <p>Platforms: {', '.join(self.results['summary']['platforms'])}</p>
         <p>Categories: {', '.join(self.results['summary']['categories'])}</p>

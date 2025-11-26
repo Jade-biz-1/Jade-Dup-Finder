@@ -53,15 +53,15 @@ ResultsWindow::ResultsWindow(QWidget* parent)
     , m_fileManager(nullptr)
     , m_thumbnailCache(new ThumbnailCache(this))
     , m_thumbnailDelegate(nullptr)
-    // Temporarily disabled for Settings dialog testing
     , m_selectionHistory(new SelectionHistoryManager(this))
-    , m_operationQueue(new FileOperationQueue(this))  // Task 30
-    , m_progressDialog(new FileOperationProgressDialog(this))  // Task 30
-    , m_groupingDialog(new GroupingOptionsDialog(this))  // Task 13
+    , m_operationQueue(new FileOperationQueue(this))
+    , m_groupingDialog(new GroupingOptionsDialog(this))
+    , m_progressDialog(new FileOperationProgressDialog(this))
     , m_isProcessingBulkOperation(false)
     , m_isProcessingRecommendation(false)
+    , m_isTreePopulated(false)
 {
-    setWindowTitle(tr("Duplicate Files Found - DupFinder"));
+    setWindowTitle(tr("CloneClean - Results"));
     setMinimumSize(MIN_WINDOW_SIZE);
     resize(DEFAULT_WINDOW_SIZE);
     
@@ -911,7 +911,7 @@ void ResultsWindow::applyTheme()
         
         // Theme-aware checkbox styling
         if (isLightTheme) {
-            treeStyle += ""
+            treeStyle += "" 
                 "QTreeWidget { "
                 "  background-color: #ffffff; "
                 "  color: #000000; "
@@ -955,7 +955,7 @@ void ResultsWindow::applyTheme()
                 "} ";
         } else {
             // Dark theme styling
-            treeStyle += ""
+            treeStyle += "" 
                 "QTreeWidget { "
                 "  background-color: #2b2b2b; "
                 "  color: #ffffff; "
@@ -1020,15 +1020,18 @@ void ResultsWindow::applyTheme()
     // Note: Checkbox styling is already included in the main tree style above
     // No need for additional checkbox styling that might conflict
     
-    // Ensure all tree widget items have proper checkbox styling
-    if (m_resultsTree) {
+    // Skip the expensive tree iteration if tree is already populated and styled
+    // This iteration was causing "Force Quit/Wait" dialogs when reopening results window
+    // The checkbox flags and styling are already set when items are created
+    // Only run this on initial theme application, not on every show event
+    if (m_resultsTree && !m_isTreePopulated) {
         QTreeWidgetItemIterator it(m_resultsTree);
         while (*it) {
             QTreeWidgetItem* item = *it;
             if (item->parent() != nullptr) { // File item with checkbox
                 // Ensure checkbox flags are set
                 item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
-                
+
                 // Update visual styling for recommended files
                 QString filePath = item->data(0, Qt::UserRole).toString();
                 for (const auto& group : m_currentResults.duplicateGroups) {
@@ -1167,43 +1170,87 @@ void ResultsWindow::displayResults(const ScanResults& results)
 
 void ResultsWindow::displayDuplicateGroups(const QList<DuplicateDetector::DuplicateGroup>& groups)
 {
-    LOG_INFO(LogCategories::UI, QString("Displaying %1 duplicate groups").arg(groups.size()));
+    LOG_INFO(LogCategories::UI, QString("=== displayDuplicateGroups called with %1 groups ===").arg(groups.size()));
+    LOG_INFO(LogCategories::UI, QString("  m_isTreePopulated: %1").arg(m_isTreePopulated ? "true" : "false"));
+    LOG_INFO(LogCategories::UI, QString("  m_sourceGroups.size(): %1").arg(m_sourceGroups.size()));
+    LOG_INFO(LogCategories::UI, QString("  groups.size(): %1").arg(groups.size()));
+    LOG_INFO(LogCategories::UI, QString("  m_resultsTree->topLevelItemCount(): %1").arg(m_resultsTree->topLevelItemCount()));
 
-    // Show loading overlay while building groups
-    if (m_loadingOverlay) {
-        m_loadingOverlay->show(tr("Building duplicate groups..."));
+    // If tree is already populated with the same data, just refresh the display
+    // This avoids rebuilding the entire tree when reopening the results window
+    if (m_isTreePopulated && m_sourceGroups.size() == groups.size() && m_resultsTree->topLevelItemCount() > 0) {
+        LOG_INFO(LogCategories::UI, "✓ Tree already populated with same data, skipping rebuild");
+        updateStatusBar();
+        updateStatisticsDisplay();
+        return;
     }
 
-    // Use QTimer to defer the conversion work, allowing the overlay to display
-    QTimer::singleShot(50, this, [this, groups]() {
-        // Convert DuplicateDetector groups to ResultsWindow format
-        ScanResults results;
-        results.duplicateGroups.clear();
-        results.duplicateGroups.reserve(groups.size());
+    // New scan results - rebuild the tree
+    LOG_INFO(LogCategories::UI, "✗ Rebuilding tree with new scan results");
+    m_sourceGroups = groups;
+    m_currentResults = ScanResults();
+    m_resultsTree->clear();
+    m_isTreePopulated = false;  // Mark as not populated until build completes
 
-        for (const auto& detectorGroup : groups) {
-            DuplicateGroup displayGroup;
-            convertDetectorGroupToDisplayGroup(detectorGroup, displayGroup);
-            results.duplicateGroups.append(displayGroup);
+    if (m_loadingOverlay) {
+        m_loadingOverlay->show(tr("Loading results... 0%"));
+    }
+    m_resultsTree->setUpdatesEnabled(false);
+
+    // Start the batch processing
+    QTimer::singleShot(1, this, [this]() {
+        populateTreeInBatches(0);
+    });
+}
+
+void ResultsWindow::populateResultsTree()
+{
+    // This function is now intentionally left empty.
+    // The logic has been moved to populateTreeInBatches, which is initiated by displayDuplicateGroups.
+}
+
+void ResultsWindow::populateTreeInBatches(int startIndex)
+{
+    const int BATCH_SIZE = 50;
+    int endIndex = qMin(startIndex + BATCH_SIZE, m_sourceGroups.size());
+
+    for (int i = startIndex; i < endIndex; ++i) {
+        const auto& detectorGroup = m_sourceGroups[i];
+        
+        DuplicateGroup displayGroup;
+        convertDetectorGroupToDisplayGroup(detectorGroup, displayGroup);
+        m_currentResults.duplicateGroups.append(displayGroup);
+
+        NumericTreeWidgetItem* groupItem = new NumericTreeWidgetItem(m_resultsTree);
+        updateGroupItem(groupItem, displayGroup);
+
+        for (const auto& file : displayGroup.files) {
+            NumericTreeWidgetItem* fileItem = new NumericTreeWidgetItem(groupItem);
+            updateFileItem(fileItem, file);
         }
+        groupItem->setExpanded(displayGroup.isExpanded);
+    }
 
-        // Calculate totals
-        results.calculateTotals();
-        results.scanTime = QDateTime::currentDateTime();
-
-        LOG_INFO(LogCategories::UI, QString("Converted %1 groups, %2 total duplicates, %3 potential savings")
-                 .arg(results.duplicateGroups.size())
-                 .arg(results.totalDuplicatesFound)
-                 .arg(formatFileSize(results.potentialSavings)));
-
-        // Display the results
-        displayResults(results);
-
-        // Hide loading overlay
+    if (endIndex < m_sourceGroups.size()) {
+        if (m_loadingOverlay) {
+            int progress = (endIndex * 100) / m_sourceGroups.size();
+            m_loadingOverlay->show(tr("Loading results... %1%").arg(progress));
+        }
+        QTimer::singleShot(1, this, [this, endIndex]() {
+            populateTreeInBatches(endIndex);
+        });
+    } else {
+        m_resultsTree->setUpdatesEnabled(true);
+        m_resultsTree->update();
         if (m_loadingOverlay) {
             m_loadingOverlay->hide();
         }
-    });
+        m_currentResults.calculateTotals();
+        updateStatusBar();
+        updateStatisticsDisplay();
+        m_isTreePopulated = true;  // Mark tree as fully populated
+        LOG_INFO(LogCategories::UI, "Finished populating results tree.");
+    }
 }
 
 void ResultsWindow::setFileManager(FileManager* fileManager)
@@ -1289,85 +1336,6 @@ void ResultsWindow::removeFilesFromDisplay(const QStringList& filePaths)
     LOG_DEBUG(LogCategories::UI, QString("Remaining groups: %1").arg(m_currentResults.duplicateGroups.size()));
 }
 
-void ResultsWindow::populateResultsTree()
-{
-    m_resultsTree->clear();
-
-    // Disable updates during population for better performance
-    m_resultsTree->setUpdatesEnabled(false);
-
-    // For small datasets, populate directly
-    if (m_currentResults.duplicateGroups.size() <= 50) {
-        for (const auto& group : m_currentResults.duplicateGroups) {
-            // Create group item using custom class for proper numeric sorting
-            NumericTreeWidgetItem* groupItem = new NumericTreeWidgetItem(m_resultsTree);
-            updateGroupItem(groupItem, group);
-
-            // Add file items using custom class for proper numeric sorting
-            for (const auto& file : group.files) {
-                NumericTreeWidgetItem* fileItem = new NumericTreeWidgetItem(groupItem);
-                updateFileItem(fileItem, file);
-            }
-
-            groupItem->setExpanded(group.isExpanded);
-        }
-
-        // Re-enable updates and refresh the tree
-        m_resultsTree->setUpdatesEnabled(true);
-        m_resultsTree->update();
-    } else {
-        // For large datasets, populate in batches using QTimer to avoid blocking
-        populateTreeInBatches(0);
-    }
-}
-
-void ResultsWindow::populateTreeInBatches(int startIndex)
-{
-    const int BATCH_SIZE = 100;  // Process 100 groups at a time for better performance
-    int endIndex = qMin(startIndex + BATCH_SIZE, m_currentResults.duplicateGroups.size());
-
-    // Update loading overlay with progress
-    if (m_loadingOverlay && startIndex > 0) {
-        int progress = (startIndex * 100) / m_currentResults.duplicateGroups.size();
-        m_loadingOverlay->show(tr("Loading groups... %1%").arg(progress));
-    }
-
-    // Process this batch
-    for (int i = startIndex; i < endIndex; ++i) {
-        const auto& group = m_currentResults.duplicateGroups[i];
-
-        // Create group item using custom class for proper numeric sorting
-        NumericTreeWidgetItem* groupItem = new NumericTreeWidgetItem(m_resultsTree);
-        updateGroupItem(groupItem, group);
-
-        // Add file items using custom class for proper numeric sorting
-        for (const auto& file : group.files) {
-            NumericTreeWidgetItem* fileItem = new NumericTreeWidgetItem(groupItem);
-            updateFileItem(fileItem, file);
-        }
-
-        groupItem->setExpanded(group.isExpanded);
-    }
-
-    // Check if more batches to process
-    if (endIndex < m_currentResults.duplicateGroups.size()) {
-        // Schedule next batch with minimal delay
-        QTimer::singleShot(1, this, [this, endIndex]() {
-            populateTreeInBatches(endIndex);
-        });
-    } else {
-        // All done - re-enable updates
-        m_resultsTree->setUpdatesEnabled(true);
-        m_resultsTree->update();
-
-        // Hide loading overlay
-        if (m_loadingOverlay) {
-            m_loadingOverlay->hide();
-        }
-
-        LOG_INFO(LogCategories::UI, QString("Tree population completed: %1 groups").arg(m_currentResults.duplicateGroups.size()));
-    }
-}
 
 void ResultsWindow::updateGroupItem(QTreeWidgetItem* groupItem, const DuplicateGroup& group)
 {
@@ -1461,7 +1429,7 @@ void ResultsWindow::updateFileItem(QTreeWidgetItem* fileItem, const DuplicateFil
 
 void ResultsWindow::updateFilePreview(const DuplicateFile& file)
 {
-    if (!m_previewLabel) return;
+    if (!m_previewLabel) return; 
     
     QFileInfo fileInfo(file.filePath);
     
@@ -1500,7 +1468,7 @@ void ResultsWindow::updateFilePreview(const DuplicateFile& file)
             
             // Truncate if too long
             if (content.length() >= 2048) {
-                content += "\n\n[Preview truncated...]";
+                content += "\n\n[Preview truncated...]\n";
             }
             
             m_previewLabel->setPixmap(QPixmap());
@@ -1564,7 +1532,7 @@ void ResultsWindow::updateFilePreview(const DuplicateFile& file)
 
 void ResultsWindow::updateGroupInfoDisplay(const QString& groupId)
 {
-    if (!m_groupSummaryLabel || !m_groupFilesTable) return;
+    if (!m_groupSummaryLabel || !m_groupFilesTable) return; 
     
     // Find the group by ID
     DuplicateGroup selectedGroup;
@@ -1585,9 +1553,9 @@ void ResultsWindow::updateGroupInfoDisplay(const QString& groupId)
     }
     
     // Update group summary
-    QString summary = tr("📁 Group: %1 files\n"
-                        "Total Size: %2\n"
-                        "Wasted Space: %3 (%4 duplicates)\n"
+    QString summary = tr("📁 Group: %1 files\n" 
+                        "Total Size: %2\n" 
+                        "Wasted Space: %3 (%4 duplicates)\n" 
                         "Hash: %5")
         .arg(selectedGroup.fileCount)
         .arg(formatFileSize(selectedGroup.totalSize))
@@ -1927,7 +1895,6 @@ void ResultsWindow::onFileSelectionChanged()
 }
 
 
-
 void ResultsWindow::updateSelectionSummary()
 {
     QList<DuplicateFile> selectedFiles = getSelectedFiles();
@@ -2204,8 +2171,7 @@ void ResultsWindow::processRecommendedItemsIteratively(const QSet<QString>& reco
                 // This is a recommended file, uncheck it
                 item->setCheckState(0, Qt::Unchecked);
             }
-        } else {
-            // This is a group item, increment processed count
+        } else { // This is a group item
             processedCount++;
 
             // Update progress every 100 groups
@@ -2785,7 +2751,7 @@ void ResultsWindow::onSortChanged()
 
 void ResultsWindow::onGroupExpanded(QTreeWidgetItem* item)
 {
-    if (!item) return;
+    if (!item) return; 
     
     LOG_DEBUG(LogCategories::UI, QString("Group expanded: %1").arg(item->text(0)));
     
@@ -2804,7 +2770,7 @@ void ResultsWindow::onGroupExpanded(QTreeWidgetItem* item)
 
 void ResultsWindow::onGroupCollapsed(QTreeWidgetItem* item)
 {
-    if (!item) return;
+    if (!item) return; 
     
     LOG_DEBUG(LogCategories::UI, QString("Group collapsed: %1").arg(item->text(0)));
     
@@ -2864,7 +2830,9 @@ void ResultsWindow::showEvent(QShowEvent* event)
 void ResultsWindow::clearResults()
 {
     m_currentResults = ScanResults();
+    m_sourceGroups.clear();
     m_resultsTree->clear();
+    m_isTreePopulated = false;  // Reset flag when clearing results
     m_summaryLabel->setText(tr("No results to display"));
     updateStatusBar();
 }
@@ -3241,10 +3209,6 @@ bool ResultsWindow::exportToText(QTextStream& out)
     return true;
 }
 
-// ============================================================================
-// TEMPORARILY DISABLED P3 METHODS FOR SETTINGS DIALOG TESTING
-// ============================================================================
-/*
 bool ResultsWindow::exportToHTML(QTextStream& out, const QString& fileName)
 {
     LOG_INFO(LogCategories::EXPORT, "Exporting to HTML format with thumbnails");
@@ -3268,7 +3232,7 @@ bool ResultsWindow::exportToHTML(QTextStream& out, const QString& fileName)
     out << "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n";
     out << "    <title>Duplicate Files Report</title>\n";
     out << "    <style>\n";
-    out << generateThemeAwareHtmlStyles();
+    // out << generateThemeAwareHtmlStyles();
     out << "        }\n";
     out << "    </style>\n";
     out << "</head>\n";
@@ -3317,8 +3281,8 @@ bool ResultsWindow::exportToHTML(QTextStream& out, const QString& fileName)
                 QString relativeThumbnailPath = QDir(baseDir).relativeFilePath(thumbnailPath);
                 out << "                    <img src=\"" << relativeThumbnailPath << "\" alt=\"Thumbnail\" class=\"file-thumbnail\">\n";
             } else {
-                // Default file icon
-                out << "                    <div class=\"file-thumbnail\" style=\"display: flex; align-items: center; justify-content: center; font-size: 24px;\">📄</div>\n";
+                // Default file icon (using HTML entity instead of emoji)
+                out << "                    <div class=\"file-thumbnail\" style=\"display: flex; align-items: center; justify-content: center; font-size: 24px;\">&#x1F4C4;</div>\n";
             }
             
             out << "                    <div class=\"file-info\">\n";
@@ -3344,7 +3308,7 @@ bool ResultsWindow::exportToHTML(QTextStream& out, const QString& fileName)
     
     // Footer
     out << "        <div class=\"footer\">\n";
-    out << "            <p>Generated by DupFinder on " << QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss") << "</p>\n";
+    out << "            <p>Generated by CloneClean on " << QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss") << "</p>\n";
     out << "            <p>Total groups: " << m_currentResults.duplicateGroups.size() << " | ";
     out << "Total files: " << m_currentResults.totalDuplicatesFound << " | ";
     out << "Potential savings: " << formatFileSize(m_currentResults.potentialSavings) << "</p>\n";
@@ -3359,8 +3323,8 @@ bool ResultsWindow::exportToHTML(QTextStream& out, const QString& fileName)
 
 QString ResultsWindow::generateThumbnailForExport(const QString& filePath, const QString& thumbnailDir, const QString& baseName)
 {
-    if (!isImageFile(filePath)) {
-        return QString(); // Only generate thumbnails for images
+    if (!isImageFile(filePath)) { // Only generate thumbnails for images
+        return QString();
     }
     
     QFileInfo fileInfo(filePath);
@@ -3494,1083 +3458,6 @@ void ResultsWindow::previewTextFile(const QString& filePath)
     }
     
     QLabel* infoLabel = new QLabel(infoText);
-    infoLabel->setAlignment(Qt::AlignCenter);
-    layout->addWidget(infoLabel);
-    
-    // Add close button
-    QPushButton* closeButton = new QPushButton(tr("Close"));
-    connect(closeButton, &QPushButton::clicked, previewDialog, &QDialog::accept);
-    layout->addWidget(closeButton);
-    
-    previewDialog->exec();
-    delete previewDialog;
-}
-
-void ResultsWindow::showFileInfo(const QString& filePath)
-{
-    LOG_DEBUG(LogCategories::PREVIEW, QString("Showing file info: %1").arg(filePath));
-    
-    QFileInfo fileInfo(filePath);
-    
-    QString info;
-    info += tr("File Information\n");
-    info += tr("================\n\n");
-    info += tr("Name: %1\n").arg(fileInfo.fileName());
-    info += tr("Path: %1\n").arg(fileInfo.absolutePath());
-    info += tr("Size: %1 (%2 bytes)\n").arg(formatFileSize(fileInfo.size())).arg(fileInfo.size());
-    info += tr("Type: %1\n").arg(fileInfo.suffix().toUpper());
-    info += tr("Created: %1\n").arg(fileInfo.birthTime().toString("yyyy-MM-dd hh:mm:ss"));
-    info += tr("Modified: %1\n").arg(fileInfo.lastModified().toString("yyyy-MM-dd hh:mm:ss"));
-    info += tr("Accessed: %1\n").arg(fileInfo.lastRead().toString("yyyy-MM-dd hh:mm:ss"));
-    info += tr("\nPermissions: ");
-    
-    if (fileInfo.isReadable()) info += tr("Read ");
-    if (fileInfo.isWritable()) info += tr("Write ");
-    if (fileInfo.isExecutable()) info += tr("Execute");
-    
-    info += tr("\n\nPreview not available for this file type.");
-    
-    QMessageBox::information(this, tr("File Information"), info);
-}
-
-bool ResultsWindow::isTextFile(const QString& filePath) const
-{
-    QFileInfo fileInfo(filePath);
-    QString suffix = fileInfo.suffix().toLower();
-    
-    // Common text file extensions
-    QStringList textExtensions = {
-        "txt", "log", "md", "markdown", "rst",
-        "c", "cpp", "h", "hpp", "cc", "cxx",
-        "java", "py", "js", "ts", "html", "htm", "css",
-        "xml", "json", "yaml", "yml", "toml", "ini", "cfg", "conf",
-        "sh", "bash", "bat", "cmd", "ps1",
-        "sql", "csv", "tsv"
-    };
-    
-    return textExtensions.contains(suffix);
-}
-
-// Thumbnail support methods
-
-void ResultsWindow::enableThumbnails(bool enable)
-{
-    if (m_thumbnailDelegate) {
-        m_thumbnailDelegate->setThumbnailsEnabled(enable);
-        m_resultsTree->viewport()->update();
-        
-        if (enable) {
-            preloadVisibleThumbnails();
-        }
-        
-        LOG_INFO(LogCategories::UI, QString("Thumbnails %1").arg(enable ? "enabled" : "disabled"));
-    }
-}
-
-void ResultsWindow::setThumbnailSize(int size)
-{
-    if (m_thumbnailDelegate) {
-        m_thumbnailDelegate->setThumbnailSize(size);
-        m_resultsTree->viewport()->update();
-        
-        // Reload thumbnails with new size
-        if (m_thumbnailDelegate->thumbnailsEnabled()) {
-            m_thumbnailCache->clearCache();
-            preloadVisibleThumbnails();
-        }
-        
-        LOG_INFO(LogCategories::UI, QString("Thumbnail size set to %1").arg(size));
-    }
-}
-
-void ResultsWindow::preloadVisibleThumbnails()
-{
-    if (!m_thumbnailDelegate || !m_thumbnailDelegate->thumbnailsEnabled()) {
-        return;
-    }
-    
-    // Get visible items in the tree
-    QStringList visibleFilePaths;
-    
-    // Iterate through top-level items (groups)
-    for (int i = 0; i < m_resultsTree->topLevelItemCount(); ++i) {
-        QTreeWidgetItem* groupItem = m_resultsTree->topLevelItem(i);
-        
-        // Check if group is expanded and visible
-        if (groupItem->isExpanded() && !m_resultsTree->visualItemRect(groupItem).isEmpty()) {
-            // Get all child items (files)
-            for (int j = 0; j < groupItem->childCount(); ++j) {
-                QTreeWidgetItem* fileItem = groupItem->child(j);
-                
-                // Check if file item is visible
-                if (!m_resultsTree->visualItemRect(fileItem).isEmpty()) {
-                    // Get file path from item data
-                    QVariant pathData = fileItem->data(0, Qt::UserRole);
-                    if (pathData.isValid()) {
-                        QString filePath = pathData.toString();
-                        if (!filePath.isEmpty()) {
-                            visibleFilePaths.append(filePath);
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    // Preload thumbnails for visible files
-    if (!visibleFilePaths.isEmpty()) {
-        QSize thumbSize(m_thumbnailDelegate->thumbnailSize(), 
-                       m_thumbnailDelegate->thumbnailSize());
-        m_thumbnailCache->preloadThumbnails(visibleFilePaths, thumbSize);
-        
-        LOG_DEBUG(LogCategories::UI, QString("Preloading %1 thumbnails").arg(visibleFilePaths.size()));
-    }
-}
-
-// Relationship visualization methods (Task 14)
-
-void ResultsWindow::showRelationshipVisualization(bool show)
-{
-    if (!m_relationshipWidget) {
-        return;
-    }
-    
-    // Find the relationship tab and show/hide it
-    int tabIndex = m_detailsTabs->indexOf(m_relationshipWidget);
-    if (tabIndex >= 0) {
-        m_detailsTabs->setTabVisible(tabIndex, show);
-        
-        if (show) {
-            updateRelationshipVisualization();
-        }
-    }
-}
-
-void ResultsWindow::updateRelationshipVisualization()
-{
-    if (!m_relationshipWidget) {
-        return;
-    }
-    
-    // Convert current results to relationship widget format
-    QList<DuplicateRelationshipWidget::DuplicateGroup> relationshipGroups;
-    
-    for (const auto& group : m_currentResults.duplicateGroups) {
-        DuplicateRelationshipWidget::DuplicateGroup relGroup;
-        relGroup.groupId = group.groupId;
-        relGroup.hash = group.files.isEmpty() ? QString() : group.files.first().hash;
-        relGroup.totalFiles = group.fileCount;
-        relGroup.totalSize = group.totalSize;
-        
-        // Convert files
-        for (const auto& file : group.files) {
-            DuplicateRelationshipWidget::FileNode node;
-            node.filePath = file.filePath;
-            node.fileName = file.fileName;
-            node.fileSize = file.fileSize;
-            node.hash = file.hash;
-            node.isRecommended = (file.filePath == group.primaryFile);
-            
-            relGroup.files.append(node);
-        }
-        
-        relationshipGroups.append(relGroup);
-    }
-    
-    m_relationshipWidget->setDuplicateGroups(relationshipGroups);
-}
-
-void ResultsWindow::highlightFileInVisualization(const QString& filePath)
-{
-    if (m_relationshipWidget) {
-        m_relationshipWidget->highlightFile(filePath);
-    }
-}
-
-// Smart selection methods (Task 19)
-
-void ResultsWindow::showSmartSelectionDialog()
-{
-    if (!m_smartSelectionDialog) {
-        m_smartSelectionDialog = new SmartSelectionDialog(this);
-        
-        connect(m_smartSelectionDialog, &SmartSelectionDialog::selectionRequested,
-                this, &ResultsWindow::applySmartSelection);
-    }
-    
-    // Prepare file data for the dialog
-    QStringList filePaths;
-    QList<qint64> fileSizes;
-    QList<QDateTime> fileDates;
-    
-    for (const auto& group : m_currentResults.duplicateGroups) {
-        for (const auto& file : group.files) {
-            filePaths << file.filePath;
-            fileSizes << file.fileSize;
-            fileDates << file.lastModified;
-        }
-    }
-    
-    m_smartSelectionDialog->setAvailableFiles(filePaths, fileSizes, fileDates);
-    m_smartSelectionDialog->show();
-}
-
-void ResultsWindow::applySmartSelection(const SmartSelectionDialog::SelectionCriteria& criteria)
-{
-    // Record current state before changing selection
-    recordSelectionState("Smart selection applied");
-    
-    // Clear current selection
-    QTreeWidgetItemIterator it(m_resultsTree);
-    while (*it) {
-        QTreeWidgetItem* item = *it;
-        if (item->parent() != nullptr) { // File item
-            item->setCheckState(0, Qt::Unchecked);
-        }
-        ++it;
-    }
-    
-    // Get files to select based on criteria
-    QStringList filesToSelect = selectFilesByCriteria(criteria);
-    
-    // Apply selection to tree
-    int selectedCount = 0;
-    QTreeWidgetItemIterator selectIt(m_resultsTree);
-    while (*selectIt) {
-        QTreeWidgetItem* item = *selectIt;
-        if (item->parent() != nullptr) { // File item
-            QVariant pathData = item->data(0, Qt::UserRole);
-            if (pathData.isValid()) {
-                QString filePath = pathData.toString();
-                if (filesToSelect.contains(filePath)) {
-                    item->setCheckState(0, Qt::Checked);
-                    selectedCount++;
-                }
-            }
-        }
-        ++selectIt;
-    }
-    
-    // Update selection summary
-    updateSelectionSummary();
-    
-    LOG_INFO(LogCategories::UI, QString("Smart selection applied: %1 files selected").arg(selectedCount));
-}
-
-QStringList ResultsWindow::selectFilesByCriteria(const SmartSelectionDialog::SelectionCriteria& criteria)
-{
-    QStringList allFiles;
-    QList<QPair<QString, qint64>> fileSizePairs;
-    QList<QPair<QString, QDateTime>> fileDatePairs;
-    
-    // Collect all files with their metadata
-    for (const auto& group : m_currentResults.duplicateGroups) {
-        for (const auto& file : group.files) {
-            allFiles << file.filePath;
-            fileSizePairs << qMakePair(file.filePath, file.fileSize);
-            fileDatePairs << qMakePair(file.filePath, file.lastModified);
-        }
-    }
-    
-    QStringList selectedFiles;
-    
-    switch (criteria.mode) {
-        case SmartSelectionDialog::OldestFiles:
-            selectedFiles = selectOldestFiles(fileDatePairs, criteria.maxFiles);
-            break;
-        case SmartSelectionDialog::NewestFiles:
-            selectedFiles = selectNewestFiles(fileDatePairs, criteria.maxFiles);
-            break;
-        case SmartSelectionDialog::LargestFiles:
-            selectedFiles = selectLargestFiles(fileSizePairs, criteria.maxFiles);
-            break;
-        case SmartSelectionDialog::SmallestFiles:
-            selectedFiles = selectSmallestFiles(fileSizePairs, criteria.maxFiles);
-            break;
-        case SmartSelectionDialog::ByPath:
-            selectedFiles = selectByPathPattern(allFiles, criteria.pathPattern);
-            break;
-        case SmartSelectionDialog::ByCriteria:
-            selectedFiles = selectByCombinedCriteria(allFiles, criteria);
-            break;
-        case SmartSelectionDialog::ByFileType:
-            selectedFiles = selectByFileType(allFiles, criteria.fileTypes);
-            break;
-        case SmartSelectionDialog::ByLocation:
-            selectedFiles = selectByLocationPattern(allFiles, criteria.locationPatterns);
-            break;
-    }
-    
-    // Apply additional filters if specified
-    if (criteria.useDateRange || criteria.useSizeRange || criteria.useFileTypes || criteria.useLocationPatterns) {
-        selectedFiles = applyAdditionalFilters(selectedFiles, criteria);
-    }
-    
-    // Limit results
-    if (selectedFiles.size() > criteria.maxFiles) {
-        selectedFiles = selectedFiles.mid(0, criteria.maxFiles);
-    }
-    
-    return selectedFiles;
-}
-
-// Selection helper methods
-
-QStringList ResultsWindow::selectOldestFiles(const QList<QPair<QString, QDateTime>>& fileDatePairs, int maxFiles)
-{
-    auto sortedFiles = fileDatePairs;
-    std::sort(sortedFiles.begin(), sortedFiles.end(), 
-              [](const QPair<QString, QDateTime>& a, const QPair<QString, QDateTime>& b) {
-                  return a.second < b.second; // Older files first
-              });
-    
-    QStringList result;
-    for (int i = 0; i < qMin(maxFiles, sortedFiles.size()); ++i) {
-        result << sortedFiles[i].first;
-    }
-    return result;
-}
-
-QStringList ResultsWindow::selectNewestFiles(const QList<QPair<QString, QDateTime>>& fileDatePairs, int maxFiles)
-{
-    auto sortedFiles = fileDatePairs;
-    std::sort(sortedFiles.begin(), sortedFiles.end(), 
-              [](const QPair<QString, QDateTime>& a, const QPair<QString, QDateTime>& b) {
-                  return a.second > b.second; // Newer files first
-              });
-    
-    QStringList result;
-    for (int i = 0; i < qMin(maxFiles, sortedFiles.size()); ++i) {
-        result << sortedFiles[i].first;
-    }
-    return result;
-}
-
-QStringList ResultsWindow::selectLargestFiles(const QList<QPair<QString, qint64>>& fileSizePairs, int maxFiles)
-{
-    auto sortedFiles = fileSizePairs;
-    std::sort(sortedFiles.begin(), sortedFiles.end(), 
-              [](const QPair<QString, qint64>& a, const QPair<QString, qint64>& b) {
-                  return a.second > b.second; // Larger files first
-              });
-    
-    QStringList result;
-    for (int i = 0; i < qMin(maxFiles, sortedFiles.size()); ++i) {
-        result << sortedFiles[i].first;
-    }
-    return result;
-}
-
-QStringList ResultsWindow::selectSmallestFiles(const QList<QPair<QString, qint64>>& fileSizePairs, int maxFiles)
-{
-    auto sortedFiles = fileSizePairs;
-    std::sort(sortedFiles.begin(), sortedFiles.end(), 
-              [](const QPair<QString, qint64>& a, const QPair<QString, qint64>& b) {
-                  return a.second < b.second; // Smaller files first
-              });
-    
-    QStringList result;
-    for (int i = 0; i < qMin(maxFiles, sortedFiles.size()); ++i) {
-        result << sortedFiles[i].first;
-    }
-    return result;
-}
-
-QStringList ResultsWindow::selectByPathPattern(const QStringList& files, const QString& pattern)
-{
-    QStringList result;
-    QRegularExpression regex(QRegularExpression::wildcardToRegularExpression(pattern),
-                            QRegularExpression::CaseInsensitiveOption);
-    
-    for (const QString& file : files) {
-        if (regex.match(file).hasMatch()) {
-            result << file;
-        }
-    }
-    return result;
-}
-
-QStringList ResultsWindow::selectByFileType(const QStringList& files, const QStringList& fileTypes)
-{
-    QStringList result;
-    
-    for (const QString& file : files) {
-        QFileInfo fileInfo(file);
-        QString extension = fileInfo.suffix().toLower();
-        
-        for (const QString& type : fileTypes) {
-            if (extension == type.toLower()) {
-                result << file;
-                break;
-            }
-        }
-    }
-    return result;
-}
-
-QStringList ResultsWindow::selectByLocationPattern(const QStringList& files, const QStringList& patterns)
-{
-    QStringList result;
-    
-    for (const QString& file : files) {
-        for (const QString& pattern : patterns) {
-            QRegularExpression regex(QRegularExpression::wildcardToRegularExpression(pattern),
-                                    QRegularExpression::CaseInsensitiveOption);
-            if (regex.match(file).hasMatch()) {
-                result << file;
-                break;
-            }
-        }
-    }
-    return result;
-}
-
-QStringList ResultsWindow::selectByCombinedCriteria(const QStringList& files, const SmartSelectionDialog::SelectionCriteria& criteria)
-{
-    QStringList result;
-    
-    for (const QString& file : files) {
-        bool matches = true;
-        
-        if (criteria.useAnd) {
-            // AND logic - all criteria must match
-            if (criteria.useDateRange && !matchesDateRange(file, criteria)) {
-                matches = false;
-            }
-            if (matches && criteria.useSizeRange && !matchesSizeRange(file, criteria)) {
-                matches = false;
-            }
-            if (matches && criteria.useFileTypes && !matchesFileTypes(file, criteria)) {
-                matches = false;
-            }
-            if (matches && criteria.useLocationPatterns && !matchesLocationPatterns(file, criteria)) {
-                matches = false;
-            }
-        } else {
-            // OR logic - any criteria can match
-            matches = false;
-            if (criteria.useDateRange && matchesDateRange(file, criteria)) {
-                matches = true;
-            }
-            if (!matches && criteria.useSizeRange && matchesSizeRange(file, criteria)) {
-                matches = true;
-            }
-            if (!matches && criteria.useFileTypes && matchesFileTypes(file, criteria)) {
-                matches = true;
-            }
-            if (!matches && criteria.useLocationPatterns && matchesLocationPatterns(file, criteria)) {
-                matches = true;
-            }
-        }
-        
-        if (matches) {
-            result << file;
-        }
-    }
-    
-    return result;
-}
-
-QStringList ResultsWindow::applyAdditionalFilters(const QStringList& files, const SmartSelectionDialog::SelectionCriteria& criteria)
-{
-    QStringList result;
-    
-    for (const QString& file : files) {
-        bool passes = true;
-        
-        if (criteria.useDateRange && !matchesDateRange(file, criteria)) {
-            passes = false;
-        }
-        if (passes && criteria.useSizeRange && !matchesSizeRange(file, criteria)) {
-            passes = false;
-        }
-        if (passes && criteria.useFileTypes && !matchesFileTypes(file, criteria)) {
-            passes = false;
-        }
-        if (passes && criteria.useLocationPatterns && !matchesLocationPatterns(file, criteria)) {
-            passes = false;
-        }
-        
-        if (passes) {
-            result << file;
-        }
-    }
-    
-    return result;
-}
-
-// Helper methods for criteria matching
-
-bool ResultsWindow::matchesDateRange(const QString& filePath, const SmartSelectionDialog::SelectionCriteria& criteria)
-{
-    // Find the file in our results to get its date
-    for (const auto& group : m_currentResults.duplicateGroups) {
-        for (const auto& file : group.files) {
-            if (file.filePath == filePath) {
-                return file.lastModified >= criteria.dateFrom && file.lastModified <= criteria.dateTo;
-            }
-        }
-    }
-    return false;
-}
-
-bool ResultsWindow::matchesSizeRange(const QString& filePath, const SmartSelectionDialog::SelectionCriteria& criteria)
-{
-    // Find the file in our results to get its size
-    for (const auto& group : m_currentResults.duplicateGroups) {
-        for (const auto& file : group.files) {
-            if (file.filePath == filePath) {
-                qint64 sizeInMB = file.fileSize / (1024 * 1024);
-                return sizeInMB >= criteria.minSize && sizeInMB <= criteria.maxSize;
-            }
-        }
-    }
-    return false;
-}
-
-bool ResultsWindow::matchesFileTypes(const QString& filePath, const SmartSelectionDialog::SelectionCriteria& criteria)
-{
-    QFileInfo fileInfo(filePath);
-    QString extension = fileInfo.suffix().toLower();
-    
-    for (const QString& type : criteria.fileTypes) {
-        if (extension == type.toLower()) {
-            return true;
-        }
-    }
-    return false;
-}
-
-bool ResultsWindow::matchesLocationPatterns(const QString& filePath, const SmartSelectionDialog::SelectionCriteria& criteria)
-{
-    for (const QString& pattern : criteria.locationPatterns) {
-        QRegularExpression regex(QRegularExpression::wildcardToRegularExpression(pattern),
-                                QRegularExpression::CaseInsensitiveOption);
-        if (regex.match(filePath).hasMatch()) {
-            return true;
-        }
-    }
-    return false;
-}
-
-// Selection History Implementation (Task 17)
-
-void ResultsWindow::undoSelection()
-{
-    if (!m_selectionHistory->canUndo()) {
-        return;
-    }
-    
-    SelectionHistoryManager::SelectionState previousState = m_selectionHistory->undo();
-    if (!previousState.selectedFiles.isEmpty() || previousState.description == "Initial state") {
-        applySelectionState(previousState);
-        updateUndoRedoButtons();
-        LOG_INFO(LogCategories::UI, QString("Undo selection: %1").arg(previousState.description));
-    }
-}
-
-void ResultsWindow::redoSelection()
-{
-    if (!m_selectionHistory->canRedo()) {
-        return;
-    }
-    
-    SelectionHistoryManager::SelectionState nextState = m_selectionHistory->redo();
-    if (!nextState.selectedFiles.isEmpty()) {
-        applySelectionState(nextState);
-        updateUndoRedoButtons();
-        LOG_INFO(LogCategories::UI, QString("Redo selection: %1").arg(nextState.description));
-    }
-}
-
-bool ResultsWindow::canUndo() const
-{
-    return m_selectionHistory->canUndo();
-}
-
-bool ResultsWindow::canRedo() const
-{
-    return m_selectionHistory->canRedo();
-}
-
-void ResultsWindow::onUndoRequested()
-{
-    undoSelection();
-}
-
-void ResultsWindow::onRedoRequested()
-{
-    redoSelection();
-}
-
-void ResultsWindow::onInvertSelection()
-{
-    // Record current state before inverting
-    recordSelectionState("Invert selection");
-    
-    // Get all file paths
-    QStringList allFilePaths;
-    QStringList currentlySelected = getCurrentSelectedFilePaths();
-    
-    // Collect all file paths from all groups
-    for (const auto& group : m_currentResults.duplicateGroups) {
-        for (const auto& file : group.files) {
-            allFilePaths.append(file.filePath);
-        }
-    }
-    
-    // Create inverted selection (files that are not currently selected)
-    QStringList invertedSelection;
-    for (const QString& filePath : allFilePaths) {
-        if (!currentlySelected.contains(filePath)) {
-            invertedSelection.append(filePath);
-        }
-    }
-    
-    // Apply inverted selection
-    setSelectedFilePaths(invertedSelection);
-    updateSelectionSummary();
-    
-    LOG_INFO(LogCategories::UI, QString("Inverted selection: %1 files now selected").arg(invertedSelection.size()));
-}
-
-void ResultsWindow::recordSelectionState(const QString& description)
-{
-    QStringList selectedFiles = getCurrentSelectedFilePaths();
-    m_selectionHistory->pushState(selectedFiles, description);
-    updateUndoRedoButtons();
-}
-
-void ResultsWindow::applySelectionState(const SelectionHistoryManager::SelectionState& state)
-{
-    setSelectedFilePaths(state.selectedFiles);
-    updateSelectionSummary();
-}
-
-QStringList ResultsWindow::getCurrentSelectedFilePaths() const
-{
-    QStringList selectedPaths;
-    
-    // Iterate through all items in the tree to find selected ones
-    QTreeWidgetItemIterator it(m_resultsTree);
-    while (*it) {
-        QTreeWidgetItem* item = *it;
-        
-        // Check if this is a file item (has parent) and is selected
-        if (item->parent() && item->checkState(0) == Qt::Checked) {
-            QVariant pathData = item->data(0, Qt::UserRole);
-            if (pathData.isValid()) {
-                QString filePath = pathData.toString();
-                if (!filePath.isEmpty()) {
-                    selectedPaths.append(filePath);
-                }
-            }
-        }
-        ++it;
-    }
-    
-    return selectedPaths;
-}
-
-void ResultsWindow::setSelectedFilePaths(const QStringList& filePaths)
-{
-    // Clear all selections first
-    QTreeWidgetItemIterator it(m_resultsTree);
-    while (*it) {
-        QTreeWidgetItem* item = *it;
-        if (item->parent()) { // File item
-            item->setCheckState(0, Qt::Unchecked);
-        }
-        ++it;
-    }
-    
-    // Set selections for specified files
-    QTreeWidgetItemIterator it2(m_resultsTree);
-    while (*it2) {
-        QTreeWidgetItem* item = *it2;
-        if (item->parent()) { // File item
-            QVariant pathData = item->data(0, Qt::UserRole);
-            if (pathData.isValid()) {
-                QString filePath = pathData.toString();
-                if (filePaths.contains(filePath)) {
-                    item->setCheckState(0, Qt::Checked);
-                }
-            }
-        }
-        ++it2;
-    }
-}
-
-void ResultsWindow::updateUndoRedoButtons()
-{
-    if (m_undoButton) {
-        m_undoButton->setEnabled(m_selectionHistory->canUndo());
-        if (m_selectionHistory->canUndo()) {
-            m_undoButton->setToolTip(tr("Undo: %1").arg(m_selectionHistory->getUndoDescription()));
-        } else {
-            m_undoButton->setToolTip(tr("Undo last selection change (Ctrl+Z)"));
-        }
-    }
-    
-    if (m_redoButton) {
-        m_redoButton->setEnabled(m_selectionHistory->canRedo());
-        if (m_selectionHistory->canRedo()) {
-            m_redoButton->setToolTip(tr("Redo: %1").arg(m_selectionHistory->getRedoDescription()));
-        } else {
-            m_redoButton->setToolTip(tr("Redo last undone selection change (Ctrl+Y)"));
-        }
-    }
-}
-
-// File Operation Queue methods (Task 30)
-
-void ResultsWindow::setupOperationQueue()
-{
-    if (!m_operationQueue || !m_progressDialog) {
-        return;
-    }
-    
-    // Set the operation queue for the progress dialog
-    m_progressDialog->setOperationQueue(m_operationQueue);
-    
-    // Connect operation queue signals
-    connect(m_operationQueue, &FileOperationQueue::operationStarted,
-            this, &ResultsWindow::showOperationProgress);
-    
-    connect(m_operationQueue, &FileOperationQueue::operationCompleted,
-            this, &ResultsWindow::onOperationCompleted);
-    
-    connect(m_operationQueue, &FileOperationQueue::operationCancelled,
-            this, [this](const QString& operationId) {
-                onOperationCompleted(operationId, false, "Operation was cancelled");
-            });
-    
-    // Connect progress dialog cancel signal to operation queue
-    connect(m_progressDialog, &FileOperationProgressDialog::cancelRequested,
-            m_operationQueue, &FileOperationQueue::cancelOperation);
-}
-
-void ResultsWindow::showOperationProgress(const QString& operationId)
-{
-    if (m_progressDialog) {
-        m_progressDialog->showForOperation(operationId);
-    }
-}
-
-void ResultsWindow::onOperationCompleted(const QString& operationId, bool success, const QString& errorMessage)
-{
-    Q_UNUSED(operationId)
-    
-    if (success) {
-        // Refresh the results to remove deleted files
-        refreshResults();
-        
-        // Show success message in status bar
-        if (m_statusLabel) {
-            m_statusLabel->setText(tr("Operation completed successfully"));
-        }
-    } else {
-        // Show error message
-        if (m_statusLabel) {
-            m_statusLabel->setText(tr("Operation failed: %1").arg(errorMessage));
-        }
-    }
-}
-
-// Grouping methods (Task 13)
-
-void ResultsWindow::showGroupingOptions()
-{
-    if (m_groupingDialog) {
-        m_groupingDialog->setGroupingOptions(m_currentGroupingOptions);
-        m_groupingDialog->show();
-    }
-}
-
-void ResultsWindow::applyGrouping(const GroupingOptionsDialog::GroupingOptions& options)
-{
-    m_currentGroupingOptions = options;
-    regroupResults();
-    
-    // Update status
-    QString description = GroupingOptionsDialog::getGroupingDescription(options);
-    if (m_statusLabel) {
-        m_statusLabel->setText(tr("Regrouped: %1").arg(description));
-    }
-}
-
-void ResultsWindow::regroupResults()
-{
-    if (m_currentResults.duplicateGroups.isEmpty()) {
-        return;
-    }
-    
-    // Collect all files from current groups
-    QList<DuplicateFile> allFiles;
-    for (const DuplicateGroup& group : m_currentResults.duplicateGroups) {
-        allFiles.append(group.files);
-    }
-    
-    // Regroup files using new criteria
-    QList<DuplicateGroup> newGroups = groupFilesByCriteria(allFiles, m_currentGroupingOptions);
-    
-    // Update current results
-    m_currentResults.duplicateGroups = newGroups;
-    
-    // Refresh the display
-    populateResultsTree();
-    updateStatisticsDisplay();
-}
-
-QList<ResultsWindow::DuplicateGroup> ResultsWindow::groupFilesByCriteria(
-    const QList<DuplicateFile>& files, 
-    const GroupingOptionsDialog::GroupingOptions& options) const
-{
-    QHash<QString, QList<DuplicateFile>> primaryGroups;
-    
-    // Group by primary criteria
-    for (const DuplicateFile& file : files) {
-        QString primaryKey = getGroupKey(file, options.primaryCriteria, options);
-        primaryGroups[primaryKey].append(file);
-    }
-    
-    QList<DuplicateGroup> result;
-    
-    // Process each primary group
-    for (auto it = primaryGroups.begin(); it != primaryGroups.end(); ++it) {
-        const QString& primaryKey = it.key();
-        const QList<DuplicateFile>& primaryFiles = it.value();
-        
-        if (options.useSecondaryCriteria && primaryFiles.size() > 1) {
-            // Further group by secondary criteria
-            QHash<QString, QList<DuplicateFile>> secondaryGroups;
-            
-            for (const DuplicateFile& file : primaryFiles) {
-                QString secondaryKey = getGroupKey(file, options.secondaryCriteria, options);
-                QString combinedKey = primaryKey + "|" + secondaryKey;
-                secondaryGroups[combinedKey].append(file);
-            }
-            
-            // Create groups from secondary grouping
-            for (auto secIt = secondaryGroups.begin(); secIt != secondaryGroups.end(); ++secIt) {
-                const QList<DuplicateFile>& groupFiles = secIt.value();
-                if (groupFiles.size() > 1) { // Only create groups with multiple files
-                    DuplicateGroup group;
-                    group.groupId = secIt.key();
-                    group.files = groupFiles;
-                    result.append(group);
-                }
-            }
-        } else {
-            // Create group from primary criteria only
-            if (primaryFiles.size() > 1) { // Only create groups with multiple files
-                DuplicateGroup group;
-                group.groupId = primaryKey;
-                group.files = primaryFiles;
-                result.append(group);
-            }
-        }
-    }
-    
-    return result;
-}
-
-QString ResultsWindow::getGroupKey(const DuplicateFile& file, 
-                                  GroupingOptionsDialog::GroupingCriteria criteria,
-                                  const GroupingOptionsDialog::GroupingOptions& options) const
-{
-    switch (criteria) {
-        case GroupingOptionsDialog::GroupingCriteria::Hash:
-            return file.hash;
-            
-        case GroupingOptionsDialog::GroupingCriteria::Size:
-            return QString::number(file.fileSize);
-            
-        case GroupingOptionsDialog::GroupingCriteria::Type: {
-            QFileInfo fileInfo(file.filePath);
-            QString extension = fileInfo.suffix();
-            if (!options.caseSensitiveTypes) {
-                extension = extension.toLower();
-            }
-            return extension;
-        }
-        
-        case GroupingOptionsDialog::GroupingCriteria::CreationDate: {
-            QDateTime dateTime = file.created;
-            switch (options.dateGrouping) {
-                case GroupingOptionsDialog::DateGrouping::ExactDate:
-                    return dateTime.toString(Qt::ISODate);
-                case GroupingOptionsDialog::DateGrouping::SameDay:
-                    return dateTime.date().toString(Qt::ISODate);
-                case GroupingOptionsDialog::DateGrouping::SameWeek:
-                    return QString("%1-W%2").arg(dateTime.date().year()).arg(dateTime.date().weekNumber());
-                case GroupingOptionsDialog::DateGrouping::SameMonth:
-                    return dateTime.date().toString("yyyy-MM");
-                case GroupingOptionsDialog::DateGrouping::SameYear:
-                    return QString::number(dateTime.date().year());
-            }
-            break;
-        }
-        
-        case GroupingOptionsDialog::GroupingCriteria::ModificationDate: {
-            QDateTime dateTime = file.lastModified;
-            switch (options.dateGrouping) {
-                case GroupingOptionsDialog::DateGrouping::ExactDate:
-                    return dateTime.toString(Qt::ISODate);
-                case GroupingOptionsDialog::DateGrouping::SameDay:
-                    return dateTime.date().toString(Qt::ISODate);
-                case GroupingOptionsDialog::DateGrouping::SameWeek:
-                    return QString("%1-W%2").arg(dateTime.date().year()).arg(dateTime.date().weekNumber());
-                case GroupingOptionsDialog::DateGrouping::SameMonth:
-                    return dateTime.date().toString("yyyy-MM");
-                case GroupingOptionsDialog::DateGrouping::SameYear:
-                    return QString::number(dateTime.date().year());
-            }
-            break;
-        }
-        
-        case GroupingOptionsDialog::GroupingCriteria::Location: {
-            QFileInfo fileInfo(file.filePath);
-            QString directory = fileInfo.absolutePath();
-            
-            if (options.groupByParentDirectory) {
-                QDir dir(directory);
-                if (dir.cdUp()) {
-                    directory = dir.absolutePath();
-                }
-            }
-            
-            return directory;
-        }
-*/
-// ============================================================================
-// END OF TEMPORARILY DISABLED P3 METHODS
-// ============================================================================
-// Missing method implementations (stubs for now)
-
-
-void ResultsWindow::setupOperationQueue()
-{
-    LOG_INFO(LogCategories::UI, "Setting up operation queue");
-    // TODO: hook operation queue to actual background worker once available.
-}
-
-void ResultsWindow::preloadVisibleThumbnails()
-{
-    LOG_DEBUG(LogCategories::UI, "Preloading visible thumbnails");
-    // TODO: trigger thumbnail preload when thumbnail cache integration is ready.
-}
-
-bool ResultsWindow::isTextFile(const QString& filePath) const
-{
-    // Simple text file detection based on extension
-    QFileInfo fileInfo(filePath);
-    QString extension = fileInfo.suffix().toLower();
-    QStringList textExtensions = {"txt", "log", "md", "cpp", "h", "py", "js", "html", "css", "xml", "json"};
-    return textExtensions.contains(extension);
-}
-
-void ResultsWindow::previewTextFile(const QString& filePath)
-{
-    LOG_DEBUG(LogCategories::PREVIEW, QString("Previewing text file: %1").arg(filePath));
-    
-    QFile file(filePath);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        QMessageBox::warning(this, tr("Preview Error"), 
-                           tr("Failed to open file: %1").arg(filePath));
-        return;
-    }
-    
-    // Read first 1000 lines or 1MB, whichever comes first
-    QTextStream in(&file);
-    QString content;
-    int lineCount = 0;
-    const int maxLines = 1000;
-    const qint64 maxBytes = 1024 * 1024; // 1MB
-    
-    while (!in.atEnd() && lineCount < maxLines && content.size() < maxBytes) {
-        content += in.readLine() + "\n";
-        lineCount++;
-    }
-    
-    bool truncated = !in.atEnd();
-    file.close();
-    
-    // Create a dialog to show the text
-    QDialog* previewDialog = new QDialog(this);
-    previewDialog->setWindowTitle(tr("Text Preview - %1").arg(QFileInfo(filePath).fileName()));
-    previewDialog->resize(800, 600);
-    
-    QVBoxLayout* layout = new QVBoxLayout(previewDialog);
-    
-    // Add text edit
-    QTextEdit* textEdit = new QTextEdit();
-    textEdit->setPlainText(content);
-    textEdit->setReadOnly(true);
-    textEdit->setFont(QFont("Monospace", 10));
-    layout->addWidget(textEdit);
-    
-    // Add info label
-    QString infoText = tr("Size: %1 | Lines shown: %2")
-                      .arg(formatFileSize(QFileInfo(filePath).size()))
-                      .arg(lineCount);
-    if (truncated) {
-        infoText += tr(" (truncated)");
-    }
-    
-    QLabel* infoLabel = new QLabel(infoText);
-    infoLabel->setAlignment(Qt::AlignCenter);
-    layout->addWidget(infoLabel);
-    
-    // Add close button
-    QPushButton* closeButton = new QPushButton(tr("Close"));
-    connect(closeButton, &QPushButton::clicked, previewDialog, &QDialog::accept);
-    layout->addWidget(closeButton);
-    
-    previewDialog->exec();
-    delete previewDialog;
-}
-
-void ResultsWindow::previewImageFile(const QString& filePath)
-{
-    LOG_DEBUG(LogCategories::PREVIEW, QString("Previewing image file: %1").arg(filePath));
-    
-    QPixmap pixmap(filePath);
-    if (pixmap.isNull()) {
-        QMessageBox::warning(this, tr("Preview Error"), 
-                           tr("Failed to load image: %1").arg(filePath));
-        return;
-    }
-    
-    // Create a dialog to show the image
-    QDialog* previewDialog = new QDialog(this);
-    previewDialog->setWindowTitle(tr("Image Preview - %1").arg(QFileInfo(filePath).fileName()));
-    previewDialog->resize(800, 600);
-    
-    QVBoxLayout* layout = new QVBoxLayout(previewDialog);
-    
-    // Add image label with scroll area
-    QScrollArea* scrollArea = new QScrollArea(previewDialog);
-    QLabel* imageLabel = new QLabel();
-    
-    // Scale image if too large
-    QPixmap scaledPixmap = pixmap;
-    if (pixmap.width() > 1200 || pixmap.height() > 900) {
-        scaledPixmap = pixmap.scaled(1200, 900, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-    }
-    
-    imageLabel->setPixmap(scaledPixmap);
-    imageLabel->setAlignment(Qt::AlignCenter);
-    scrollArea->setWidget(imageLabel);
-    scrollArea->setWidgetResizable(true);
-    
-    layout->addWidget(scrollArea);
-    
-    // Add file info
-    QLabel* infoLabel = new QLabel(tr("Size: %1 | Dimensions: %2x%3")
-                                   .arg(formatFileSize(QFileInfo(filePath).size()))
-                                   .arg(pixmap.width())
-                                   .arg(pixmap.height()));
     infoLabel->setAlignment(Qt::AlignCenter);
     layout->addWidget(infoLabel);
     
@@ -4817,4 +3704,23 @@ void ResultsWindow::recordSelectionState(const QString& description)
         LOG_DEBUG(LogCategories::UI, QString("Recorded %1 selected files").arg(selectedFiles.size()));
     }
 }
+void ResultsWindow::setupOperationQueue()
+{
+    LOG_INFO(LogCategories::UI, "Setting up operation queue");
+    // TODO: hook operation queue to actual background worker once available.
+}
 
+void ResultsWindow::preloadVisibleThumbnails()
+{
+    LOG_DEBUG(LogCategories::UI, "Preloading visible thumbnails");
+    // TODO: trigger thumbnail preload when thumbnail cache integration is ready.
+}
+
+bool ResultsWindow::isTextFile(const QString& filePath) const
+{
+    // Simple text file detection based on extension
+    QFileInfo fileInfo(filePath);
+    QString extension = fileInfo.suffix().toLower();
+    QStringList textExtensions = {"txt", "log", "md", "cpp", "h", "py", "js", "html", "css", "xml", "json"};
+    return textExtensions.contains(extension);
+}

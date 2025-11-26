@@ -24,7 +24,7 @@ AboutDialog::AboutDialog(QWidget* parent)
     , m_creditsTab(nullptr)
     , m_closeButton(nullptr)
 {
-    setWindowTitle(tr("About DupFinder"));
+    setWindowTitle(tr("About CloneClean"));
     setMinimumSize(500, 400);
     resize(600, 500);
     
@@ -67,7 +67,7 @@ void AboutDialog::initializeUI()
     
     QVBoxLayout* titleLayout = new QVBoxLayout();
     
-    m_titleLabel = new QLabel(tr("DupFinder"), this);
+    m_titleLabel = new QLabel(tr("CloneClean"), this);
     QFont titleFont = m_titleLabel->font();
     titleFont.setPointSize(titleFont.pointSize() + 8);
     titleFont.setBold(true);
@@ -95,8 +95,8 @@ void AboutDialog::initializeUI()
     m_aboutTab = new QTextBrowser(this);
     m_aboutTab->setOpenExternalLinks(true);
     m_aboutTab->setHtml(
-        "<p><b>" + tr("Duplicate File Finder and Manager") + "</b></p>"
-        "<p>" + tr("DupFinder helps you find and remove duplicate files on your system, "
+        "<p><b>" + tr("One File. One Place.") + "</b></p>"
+        "<p>" + tr("CloneClean helps you find and remove duplicate files on your system, "
                    "freeing up valuable disk space.") + "</p>"
         "<p><b>" + tr("Features:") + "</b></p>"
         "<ul>"
@@ -108,8 +108,8 @@ void AboutDialog::initializeUI()
         "<li>" + tr("Comprehensive scan history") + "</li>"
         "<li>" + tr("Theme support (Light/Dark modes)") + "</li>"
         "</ul>"
-        "<p><b>" + tr("Copyright:") + "</b> © 2024-2025 DupFinder Project</p>"
-        "<p><b>" + tr("Website:") + "</b> <a href='https://dupfinder.org'>dupfinder.org</a></p>"
+        "<p><b>" + tr("Copyright:") + "</b> © 2024-2025 CloneClean Project</p>"
+        "<p><b>" + tr("Website:") + "</b> <a href='https://cloneclean.com'>cloneclean.com</a></p>"
     );
     m_tabWidget->addTab(m_aboutTab, tr("About"));
     
@@ -172,11 +172,11 @@ QString AboutDialog::getLicenseInfo() const
 {
     return 
         "<h3>" + tr("License") + "</h3>"
-        "<p>" + tr("DupFinder is released under the MIT License.") + "</p>"
+        "<p>" + tr("CloneClean is released under the MIT License.") + "</p>"
         "<pre>"
         "MIT License\n"
         "\n"
-        "Copyright (c) 2024-2025 DupFinder Project\n"
+        "Copyright (c) 2024-2025 CloneClean Project\n"
         "\n"
         "Permission is hereby granted, free of charge, to any person obtaining a copy\n"
         "of this software and associated documentation files (the \"Software\"), to deal\n"
@@ -210,7 +210,7 @@ QString AboutDialog::getAuthorsInfo() const
         "<ul>"
         "<li>" + tr("Community contributors on GitHub") + "</li>"
         "</ul>"
-        "<p>" + tr("Special thanks to all contributors and testers who helped make DupFinder better.") + "</p>"
+        "<p>" + tr("Special thanks to all contributors and testers who helped make CloneClean better.") + "</p>"
         "<p><b>" + tr("Contact:") + "</b></p>"
         "<ul>"
         "<li>" + tr("GitHub: <a href='https://github.com/dupfinder/dupfinder'>github.com/dupfinder/dupfinder</a>") + "</li>"
@@ -249,7 +249,7 @@ QString AboutDialog::getLibrariesInfo() const
 {
     return
         "<h3>" + tr("Third-Party Libraries and Credits") + "</h3>"
-        "<p>" + tr("DupFinder uses the following open-source libraries:") + "</p>"
+        "<p>" + tr("CloneClean uses the following open-source libraries:") + "</p>"
         "<ul>"
         "<li><b>Qt " + QString(qVersion()) + "</b> - " + tr("Cross-platform application framework") + "<br>"
         "   " + tr("License: LGPL / GPL / Commercial") + "<br>"
