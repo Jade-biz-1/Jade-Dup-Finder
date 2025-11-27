@@ -30,7 +30,7 @@
       ],
       "cmake_args": [
         "-DDUPFINDER_BUILD_VARIANT=cpu",
-        "-DDUPFINDER_PACKAGE_SUFFIX=win64-mingw-cpu",
+        "-DCLONECLEAN_PACKAGE_SUFFIX=win64-mingw-cpu",
         "-DENABLE_GPU_ACCELERATION=OFF"
       ],
       "default_build_type": "Release",

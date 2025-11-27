@@ -19,7 +19,7 @@
       "path": [],
       "cmake_args": [
         "-DDUPFINDER_BUILD_VARIANT=cpu",
-        "-DDUPFINDER_PACKAGE_SUFFIX=win64-msvc-cpu",
+        "-DCLONECLEAN_PACKAGE_SUFFIX=win64-msvc-cpu",
         "-DENABLE_GPU_ACCELERATION=OFF"
       ],
       "default_build_type": "Release",
@@ -51,7 +51,7 @@
       ],
       "cmake_args": [
         "-DDUPFINDER_BUILD_VARIANT=gpu",
-        "-DDUPFINDER_PACKAGE_SUFFIX=win64-msvc-cuda",
+        "-DCLONECLEAN_PACKAGE_SUFFIX=win64-msvc-cuda",
         "-DENABLE_GPU_ACCELERATION=ON"
       ],
       "default_build_type": "Release",
@@ -79,7 +79,7 @@
       ],
       "cmake_args": [
         "-DDUPFINDER_BUILD_VARIANT=cpu",
-        "-DDUPFINDER_PACKAGE_SUFFIX=win64-mingw-cpu",
+        "-DCLONECLEAN_PACKAGE_SUFFIX=win64-mingw-cpu",
         "-DENABLE_GPU_ACCELERATION=OFF"
       ],
       "default_build_type": "Release",
@@ -105,7 +105,7 @@
       "path": [],
       "cmake_args": [
         "-DDUPFINDER_BUILD_VARIANT=cpu",
-        "-DDUPFINDER_PACKAGE_SUFFIX=linux-x86_64-cpu",
+        "-DCLONECLEAN_PACKAGE_SUFFIX=linux-x86_64-cpu",
         "-DENABLE_GPU_ACCELERATION=OFF"
       ],
       "default_build_type": "Release",
@@ -134,7 +134,7 @@
       ],
       "cmake_args": [
         "-DDUPFINDER_BUILD_VARIANT=gpu",
-        "-DDUPFINDER_PACKAGE_SUFFIX=linux-x86_64-gpu",
+        "-DCLONECLEAN_PACKAGE_SUFFIX=linux-x86_64-gpu",
         "-DENABLE_GPU_ACCELERATION=ON"
       ],
       "default_build_type": "Release",
@@ -161,7 +161,7 @@
       "cmake_args": [
         "-DCMAKE_OSX_ARCHITECTURES=x86_64",
         "-DDUPFINDER_BUILD_VARIANT=cpu",
-        "-DDUPFINDER_PACKAGE_SUFFIX=macos-x86_64",
+        "-DCLONECLEAN_PACKAGE_SUFFIX=macos-x86_64",
         "-DENABLE_GPU_ACCELERATION=OFF"
       ],
       "default_build_type": "Release",
@@ -188,7 +188,7 @@
       "cmake_args": [
         "-DCMAKE_OSX_ARCHITECTURES=arm64",
         "-DDUPFINDER_BUILD_VARIANT=cpu",
-        "-DDUPFINDER_PACKAGE_SUFFIX=macos-arm64",
+        "-DCLONECLEAN_PACKAGE_SUFFIX=macos-arm64",
         "-DENABLE_GPU_ACCELERATION=OFF"
       ],
       "default_build_type": "Release",

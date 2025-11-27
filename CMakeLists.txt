@@ -481,24 +481,37 @@ if(WIN32)
         )
 
         # Install Qt DLLs deployed by windeployqt
+        # Handle both Debug (d suffix) and Release builds
         if(QT_VERSION EQUAL 6)
+            # Try both debug and release variants
             install(FILES
                 $<TARGET_FILE_DIR:cloneclean>/Qt6Core.dll
+                $<TARGET_FILE_DIR:cloneclean>/Qt6Cored.dll
                 $<TARGET_FILE_DIR:cloneclean>/Qt6Gui.dll
+                $<TARGET_FILE_DIR:cloneclean>/Qt6Guid.dll
                 $<TARGET_FILE_DIR:cloneclean>/Qt6Widgets.dll
+                $<TARGET_FILE_DIR:cloneclean>/Qt6Widgetsd.dll
                 $<TARGET_FILE_DIR:cloneclean>/Qt6Network.dll
+                $<TARGET_FILE_DIR:cloneclean>/Qt6Networkd.dll
                 $<TARGET_FILE_DIR:cloneclean>/Qt6Svg.dll
+                $<TARGET_FILE_DIR:cloneclean>/Qt6Svgd.dll
                 $<TARGET_FILE_DIR:cloneclean>/opengl32sw.dll
                 DESTINATION bin
                 OPTIONAL
             )
         else()
+            # Try both debug and release variants
             install(FILES
                 $<TARGET_FILE_DIR:cloneclean>/Qt5Core.dll
+                $<TARGET_FILE_DIR:cloneclean>/Qt5Cored.dll
                 $<TARGET_FILE_DIR:cloneclean>/Qt5Gui.dll
+                $<TARGET_FILE_DIR:cloneclean>/Qt5Guid.dll
                 $<TARGET_FILE_DIR:cloneclean>/Qt5Widgets.dll
+                $<TARGET_FILE_DIR:cloneclean>/Qt5Widgetsd.dll
                 $<TARGET_FILE_DIR:cloneclean>/Qt5Network.dll
+                $<TARGET_FILE_DIR:cloneclean>/Qt5Networkd.dll
                 $<TARGET_FILE_DIR:cloneclean>/Qt5Svg.dll
+                $<TARGET_FILE_DIR:cloneclean>/Qt5Svgd.dll
                 $<TARGET_FILE_DIR:cloneclean>/opengl32sw.dll
                 DESTINATION bin
                 OPTIONAL
@@ -507,6 +520,10 @@ if(WIN32)
 
         # Install Qt plugin directories deployed by windeployqt
         install(DIRECTORY $<TARGET_FILE_DIR:cloneclean>/platforms
+            DESTINATION bin
+            OPTIONAL
+        )
+        install(DIRECTORY $<TARGET_FILE_DIR:cloneclean>/generic
             DESTINATION bin
             OPTIONAL
         )
@@ -519,6 +536,14 @@ if(WIN32)
             OPTIONAL
         )
         install(DIRECTORY $<TARGET_FILE_DIR:cloneclean>/styles
+            DESTINATION bin
+            OPTIONAL
+        )
+        install(DIRECTORY $<TARGET_FILE_DIR:cloneclean>/networkinformation
+            DESTINATION bin
+            OPTIONAL
+        )
+        install(DIRECTORY $<TARGET_FILE_DIR:cloneclean>/tls
             DESTINATION bin
             OPTIONAL
         )
@@ -665,7 +690,8 @@ include(CPack)
 # Custom target to copy installers to dist folder
 if(WIN32)
     # Windows: Copy NSIS installer or ZIP to dist folder
-    set(_dist_dir "${CMAKE_SOURCE_DIR}/dist/${PLATFORM_NAME}/${CMAKE_BUILD_TYPE}")
+    # Use Win64 for Windows to match build system structure
+    set(_dist_dir "${CMAKE_SOURCE_DIR}/dist/Win64/${CMAKE_BUILD_TYPE}")
     if(NSIS_EXECUTABLE)
         set(_package_ext "exe")
     else()
@@ -677,7 +703,7 @@ if(WIN32)
             "${CMAKE_BINARY_DIR}/${CPACK_PACKAGE_FILE_NAME}.${_package_ext}"
             "${_dist_dir}/${CPACK_PACKAGE_FILE_NAME}.${_package_ext}"
         DEPENDS package
-        COMMENT "Copying Windows installer to dist/${PLATFORM_NAME}/${CMAKE_BUILD_TYPE}/"
+        COMMENT "Copying Windows installer to dist/Win64/${CMAKE_BUILD_TYPE}/"
         VERBATIM
     )
     message(STATUS "Installer will be copied to: ${_dist_dir}")

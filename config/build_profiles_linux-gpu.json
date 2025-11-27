@@ -20,7 +20,7 @@
       ],
       "cmake_args": [
         "-DDUPFINDER_BUILD_VARIANT=gpu",
-        "-DDUPFINDER_PACKAGE_SUFFIX=linux-x86_64-gpu",
+        "-DCLONECLEAN_PACKAGE_SUFFIX=linux-x86_64-gpu",
         "-DENABLE_GPU_ACCELERATION=ON"
       ],
       "default_build_type": "Release",

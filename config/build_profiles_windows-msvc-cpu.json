@@ -33,7 +33,7 @@
       "path": [],
       "cmake_args": [
         "-DDUPFINDER_BUILD_VARIANT=cpu",
-        "-DDUPFINDER_PACKAGE_SUFFIX=win64-msvc-cpu",
+        "-DCLONECLEAN_PACKAGE_SUFFIX=win64-msvc-cpu",
         "-DENABLE_GPU_ACCELERATION=OFF",
         "-DDUPFINDER_WARNINGS_AS_ERRORS=OFF"
       ],

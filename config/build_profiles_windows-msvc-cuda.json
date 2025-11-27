@@ -39,7 +39,7 @@
       ],
       "cmake_args": [
         "-DDUPFINDER_BUILD_VARIANT=gpu",
-        "-DDUPFINDER_PACKAGE_SUFFIX=win64-msvc-cuda",
+        "-DCLONECLEAN_PACKAGE_SUFFIX=win64-msvc-cuda",
         "-DENABLE_GPU_ACCELERATION=ON",
         "-DDUPFINDER_WARNINGS_AS_ERRORS=OFF",
         "-DQT_FORCE_MIN_CMAKE_VERSION_FOR_USING_QT=3.20",
