@@ -5,13 +5,13 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
     <key>CFBundleExecutable</key>
-    <string>DupFinder</string>
+    <string>cloneclean</string>
     <key>CFBundleIdentifier</key>
-    <string>com.jade.dupfinder</string>
+    <string>com.jade.cloneclean</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>DupFinder</string>
+    <string>CloneClean</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
@@ -31,7 +31,7 @@
     <key>NSRequiresIPhoneOS</key>
     <false/>
     <key>NSLocalizedDescription</key>
-    <string>DupFinder - Cross-platform duplicate file finder</string>
+    <string>CloneClean - One File. One Place.</string>
     <key>CFBundleDocumentTypes</key>
     <array/>
     <key>UTExportedTypeDeclarations</key>

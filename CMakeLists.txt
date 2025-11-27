@@ -426,6 +426,7 @@ elseif(APPLE)
     set_target_properties(cloneclean PROPERTIES
         MACOSX_BUNDLE TRUE
         MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/resources/Info.plist
+        OUTPUT_NAME "cloneclean"
     )
 endif()
 
@@ -709,14 +710,27 @@ if(WIN32)
     message(STATUS "Installer will be copied to: ${_dist_dir}")
 elseif(APPLE)
     # macOS: Copy DMG to dist folder
-    set(_dist_dir "${CMAKE_SOURCE_DIR}/dist/macOS/${CMAKE_BUILD_TYPE}")
+    # Detect architecture for proper dist folder structure
+    if(CMAKE_OSX_ARCHITECTURES STREQUAL "arm64")
+        set(_macos_arch_dir "ARM")
+    elseif(CMAKE_OSX_ARCHITECTURES STREQUAL "x86_64")
+        set(_macos_arch_dir "X64")
+    else()
+        # Fallback to system processor
+        if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
+            set(_macos_arch_dir "ARM")
+        else()
+            set(_macos_arch_dir "X64")
+        endif()
+    endif()
+    set(_dist_dir "${CMAKE_SOURCE_DIR}/dist/MacOS/${_macos_arch_dir}/${CMAKE_BUILD_TYPE}")
     add_custom_target(copy_installer
         COMMAND ${CMAKE_COMMAND} -E make_directory "${_dist_dir}"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_BINARY_DIR}/${CPACK_PACKAGE_FILE_NAME}.dmg"
             "${_dist_dir}/${CPACK_PACKAGE_FILE_NAME}.dmg"
         DEPENDS package
-        COMMENT "Copying macOS DMG to dist/macOS/${CMAKE_BUILD_TYPE}/"
+        COMMENT "Copying macOS DMG to dist/MacOS/${_macos_arch_dir}/${CMAKE_BUILD_TYPE}/"
         VERBATIM
     )
     message(STATUS "DMG installer will be copied to: ${_dist_dir}")
