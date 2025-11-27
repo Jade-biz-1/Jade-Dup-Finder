@@ -286,7 +286,7 @@ private:
     void populateTreeInBatches(int startIndex);  // Helper for large datasets
     void processRecommendedItemsIteratively(const QSet<QString>& recommendedFiles);
     void updateGroupItem(QTreeWidgetItem* groupItem, const DuplicateGroup& group);
-    void updateFileItem(QTreeWidgetItem* fileItem, const DuplicateFile& file);
+    void updateFileItem(QTreeWidgetItem* fileItem, const DuplicateFile& file, const QString& recommendedFile = QString());
     void updateFilePreview(const DuplicateFile& file);
     void updateGroupInfoDisplay(const QString& groupId);
     void convertDetectorGroupToDisplayGroup(const DuplicateDetector::DuplicateGroup& source, 

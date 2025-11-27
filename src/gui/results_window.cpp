@@ -1216,7 +1216,7 @@ void ResultsWindow::populateTreeInBatches(int startIndex)
 
     for (int i = startIndex; i < endIndex; ++i) {
         const auto& detectorGroup = m_sourceGroups[i];
-        
+
         DuplicateGroup displayGroup;
         convertDetectorGroupToDisplayGroup(detectorGroup, displayGroup);
         m_currentResults.duplicateGroups.append(displayGroup);
@@ -1224,9 +1224,12 @@ void ResultsWindow::populateTreeInBatches(int startIndex)
         NumericTreeWidgetItem* groupItem = new NumericTreeWidgetItem(m_resultsTree);
         updateGroupItem(groupItem, displayGroup);
 
+        // Get recommended file once for the entire group
+        QString recommendedFile = getRecommendedFileToKeep(displayGroup);
+
         for (const auto& file : displayGroup.files) {
             NumericTreeWidgetItem* fileItem = new NumericTreeWidgetItem(groupItem);
-            updateFileItem(fileItem, file);
+            updateFileItem(fileItem, file, recommendedFile);
         }
         groupItem->setExpanded(displayGroup.isExpanded);
     }
@@ -1377,38 +1380,26 @@ void ResultsWindow::updateGroupItem(QTreeWidgetItem* groupItem, const DuplicateG
     LOG_DEBUG(LogCategories::UI, QString("Group item updated with checkbox: %1").arg(group.groupId));
 }
 
-void ResultsWindow::updateFileItem(QTreeWidgetItem* fileItem, const DuplicateFile& file)
+void ResultsWindow::updateFileItem(QTreeWidgetItem* fileItem, const DuplicateFile& file, const QString& recommendedFile)
 {
     fileItem->setText(0, file.fileName);
     fileItem->setText(1, formatFileSize(file.fileSize));
     fileItem->setText(2, file.lastModified.toString("yyyy-MM-dd hh:mm"));
     fileItem->setText(3, file.directory);
-    
+
     // CRITICAL FIX: Set numeric/comparable values for proper sorting
     fileItem->setData(1, Qt::UserRole, file.fileSize);  // Size column - store actual bytes
     fileItem->setData(2, Qt::UserRole, file.lastModified);  // Modified column - store QDateTime for proper date sorting
-    
+
     // Store file data
     fileItem->setData(0, Qt::UserRole, QVariant::fromValue(file.filePath));
-    
+
     // Enable checkbox for file selection
     fileItem->setFlags(fileItem->flags() | Qt::ItemIsUserCheckable | Qt::ItemIsEnabled);
     fileItem->setCheckState(0, file.isSelected ? Qt::Checked : Qt::Unchecked);
-    
-    // Find the group this file belongs to for recommendation check
-    QString recommended;
-    for (const auto& group : m_currentResults.duplicateGroups) {
-        for (const auto& groupFile : group.files) {
-            if (groupFile.filePath == file.filePath) {
-                recommended = getRecommendedFileToKeep(group);
-                break;
-            }
-        }
-        if (!recommended.isEmpty()) break;
-    }
-    
-    // Style recommended file differently
-    if (file.filePath == recommended) {
+
+    // Style recommended file differently (now using passed parameter instead of O(n²) search)
+    if (file.filePath == recommendedFile) {
         QFont font = fileItem->font(0);
         font.setItalic(true);
         fileItem->setFont(0, font);
