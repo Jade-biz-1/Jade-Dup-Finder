@@ -226,11 +226,11 @@ cloneclean --scan /path/to/folder
 
 ### Linux
 
-**Issue:** `dupfinder: command not found`  
+**Issue:** `cloneclean: command not found`
 **Solution:** Ensure `/usr/local/bin` is in your PATH, or use full path
 
-**Issue:** Permission denied  
-**Solution:** Make executable: `chmod +x /usr/local/bin/dupfinder`
+**Issue:** Permission denied
+**Solution:** Make executable: `chmod +x /usr/local/bin/cloneclean`
 
 **Issue:** Missing Qt libraries  
 **Solution:** Install Qt6 base packages:
