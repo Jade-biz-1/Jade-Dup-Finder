@@ -205,7 +205,7 @@ void Logger::rotateLogFiles()
     // Rename current log file with timestamp
     if (QFile::exists(m_currentLogFileName)) {
         QString timestamp = QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss");
-        QString rotatedName = QString("%1/dupfinder_%2.log")
+        QString rotatedName = QString("%1/cloneclean_%2.log")
                              .arg(m_logDirectory)
                              .arg(timestamp);
         
@@ -227,7 +227,7 @@ void Logger::clearOldLogs()
 {
     QDir logDir(m_logDirectory);
     QStringList filters;
-    filters << "dupfinder_*.log";
+    filters << "cloneclean_*.log";
     
     QFileInfoList logFiles = logDir.entryInfoList(filters, QDir::Files, QDir::Time | QDir::Reversed);
     
@@ -307,7 +307,7 @@ void Logger::openLogFile()
         closeLogFile();
     }
     
-    m_currentLogFileName = QDir(m_logDirectory).filePath("dupfinder.log");
+    m_currentLogFileName = QDir(m_logDirectory).filePath("cloneclean.log");
     m_logFile = new QFile(m_currentLogFileName);
     
     if (m_logFile->open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {

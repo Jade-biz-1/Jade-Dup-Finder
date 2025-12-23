@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document summarizes the complete deployment of the automated testing infrastructure for the DupFinder application, implementing task 10.3 "Final integration and deployment" from the automated testing suite specification.
+This document summarizes the complete deployment of the automated testing infrastructure for the CloneClean application, implementing task 10.3 "Final integration and deployment" from the automated testing suite specification.
 
 ## Deployed Components
 
@@ -59,7 +59,7 @@ This document summarizes the complete deployment of the automated testing infras
 ## Deployment Architecture
 
 ```
-DupFinder Testing Infrastructure
+CloneClean Testing Infrastructure
 ├── Core Test Framework
 │   ├── Unit Tests (70% of test pyramid)
 │   ├── Integration Tests (20% of test pyramid)

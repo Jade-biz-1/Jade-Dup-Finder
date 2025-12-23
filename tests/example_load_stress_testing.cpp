@@ -9,7 +9,7 @@
 #include "test_data_generator.h"
 
 /**
- * @brief Example load and stress testing for DupFinder
+ * @brief Example load and stress testing for CloneClean
  * 
  * This class demonstrates how to use the LoadStressTesting framework
  * to validate system performance under various load conditions and
@@ -45,7 +45,7 @@ private slots:
     void testThreadScalability();
     void testComprehensiveScalability();
     
-    // DupFinder-specific load tests
+    // CloneClean-specific load tests
     void testDuplicateDetectionLoad();
     void testHashCalculationLoad();
     void testFileScanningLoad();

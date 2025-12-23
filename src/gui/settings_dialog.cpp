@@ -595,7 +595,7 @@ void SettingsDialog::loadSettings()
     m_maxLogSizeSpin->setValue(settings.value("logging/maxSize", 10).toInt());
     
     // Advanced
-    QString defaultDb = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/dupfinder.db";
+    QString defaultDb = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/cloneclean.db";
     m_databaseLocationEdit->setText(settings.value("advanced/databaseLocation", defaultDb).toString());
     
     QString defaultCache = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);

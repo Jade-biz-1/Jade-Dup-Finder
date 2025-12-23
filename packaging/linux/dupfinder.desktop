@@ -1,24 +1,24 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=DupFinder
+Name=CloneClean
 GenericName=Duplicate File Finder
 Comment=Find and remove duplicate files on your system
-Exec=dupfinder %F
-Icon=dupfinder
+Exec=cloneclean %F
+Icon=cloneclean
 Terminal=false
 Categories=Utility;FileTools;Qt;
 MimeType=inode/directory;
 Keywords=duplicate;finder;cleanup;files;hash;
 StartupNotify=true
-StartupWMClass=dupfinder
+StartupWMClass=cloneclean
 
 [Desktop Action Scan]
 Name=Scan for Duplicates
-Exec=dupfinder --scan %F
+Exec=cloneclean --scan %F
 
 [Desktop Action QuickScan]
 Name=Quick Scan
-Exec=dupfinder --quick-scan %F
+Exec=cloneclean --quick-scan %F
 
 Actions=Scan;QuickScan;

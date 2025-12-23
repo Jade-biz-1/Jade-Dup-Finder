@@ -18,7 +18,7 @@ class QWidget;
 class TestDataGenerator;
 
 /**
- * @brief Comprehensive performance benchmarking framework for DupFinder testing
+ * @brief Comprehensive performance benchmarking framework for CloneClean testing
  * 
  * Provides advanced performance measurement, analysis, and reporting capabilities
  * including CPU usage, memory consumption, I/O operations, and UI responsiveness.

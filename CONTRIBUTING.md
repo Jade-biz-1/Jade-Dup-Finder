@@ -1,12 +1,12 @@
-# Contributing to DupFinder
+# Contributing to CloneClean
 
-Welcome to DupFinder! 🎉 We're thrilled that you're interested in contributing to our project. DupFinder is a community-driven open-source project, and we believe that great software is built together by passionate people like you.
+Welcome to CloneClean! 🎉 We're thrilled that you're interested in contributing to our project. CloneClean is a community-driven open-source project, and we believe that great software is built together by passionate people like you.
 
 ## 🌟 **We Want YOU to Join Our Team!**
 
 Whether you're a seasoned developer, a curious beginner, a designer, a tester, or someone who just wants to help make software better - **there's a place for you here!** We welcome contributors of all backgrounds and experience levels.
 
-### Why Contribute to DupFinder?
+### Why Contribute to CloneClean?
 
 - **Learn Modern Technologies**: Work with Qt6, C++17, CMake, and modern development practices
 - **Real-World Impact**: Help users worldwide reclaim disk space and organize their files
@@ -61,14 +61,14 @@ Whether you're a seasoned developer, a curious beginner, a designer, a tester, o
 - **User Documentation**: Create guides, tutorials, and help content
 - **API Documentation**: Document code interfaces and usage
 - **Technical Writing**: Architecture docs, design decisions, and specifications
-- **Translation**: Help make DupFinder available in multiple languages
+- **Translation**: Help make CloneClean available in multiple languages
 - **Blog Posts**: Write about features, development process, or use cases
 
 ### 🌍 **For Community Builders**
 
 - **User Support**: Help other users in discussions and issues
 - **Community Management**: Foster a welcoming and inclusive environment
-- **Outreach**: Spread the word about DupFinder
+- **Outreach**: Spread the word about CloneClean
 - **Event Organization**: Organize virtual meetups or coding sessions
 - **Mentorship**: Help guide new contributors
 
@@ -225,7 +225,7 @@ We're excited to have you join our community! Here's what to do next:
 
 ## 🙏 **Thank You!**
 
-Thank you for considering contributing to DupFinder! Every contribution, no matter how small, helps make the project better for everyone. We're looking forward to working with you and building something amazing together.
+Thank you for considering contributing to CloneClean! Every contribution, no matter how small, helps make the project better for everyone. We're looking forward to working with you and building something amazing together.
 
 **Let's make file management better for everyone, one contribution at a time!** 🚀
 

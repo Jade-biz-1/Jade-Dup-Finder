@@ -1,6 +1,6 @@
-# DupFinder - Distribution Packages
+# CloneClean - Distribution Packages
 
-Welcome to DupFinder! This directory contains pre-built binaries for Windows, Linux, and macOS.
+Welcome to CloneClean! This directory contains pre-built binaries for Windows, Linux, and macOS.
 
 ## 📦 Available Packages
 
@@ -8,9 +8,9 @@ Welcome to DupFinder! This directory contains pre-built binaries for Windows, Li
 - **Location:** `Win64/Release/` or `Win64/Debug/`
 - **Format:** `.exe` (NSIS Installer)
 - **Variants:**
-  - `dupfinder-*-win64-msvc-cpu.exe` - CPU-only version (recommended for most users)
-  - `dupfinder-*-win64-msvc-cuda.exe` - GPU-accelerated version (requires NVIDIA GPU)
-  - `dupfinder-*-win64-mingw-cpu.exe` - MinGW build (alternative toolchain)
+  - `cloneclean-*-win64-msvc-cpu.exe` - CPU-only version (recommended for most users)
+  - `cloneclean-*-win64-msvc-cuda.exe` - GPU-accelerated version (requires NVIDIA GPU)
+  - `cloneclean-*-win64-mingw-cpu.exe` - MinGW build (alternative toolchain)
 
 ### Linux
 - **Location:** `Linux/Release/` or `Linux/Debug/`
@@ -19,15 +19,15 @@ Welcome to DupFinder! This directory contains pre-built binaries for Windows, Li
   - `.rpm` - RedHat/Fedora/CentOS packages
   - `.tgz` - Universal tarball (portable)
 - **Variants:**
-  - `dupfinder-*-linux-x86_64-cpu.*` - CPU-only version
-  - `dupfinder-*-linux-x86_64-gpu.*` - GPU-accelerated version (requires NVIDIA GPU)
+  - `cloneclean-*-linux-x86_64-cpu.*` - CPU-only version
+  - `cloneclean-*-linux-x86_64-gpu.*` - GPU-accelerated version (requires NVIDIA GPU)
 
 ### macOS
 - **Location:** `MacOS/X64/Release/` (Intel) or `MacOS/ARM/Release/` (Apple Silicon)
 - **Format:** `.dmg` (Disk Image)
 - **Architectures:**
-  - `dupfinder-*-macos-x86_64.dmg` - Intel Macs
-  - `dupfinder-*-macos-arm64.dmg` - Apple Silicon (M1/M2/M3/M4)
+  - `cloneclean-*-macos-x86_64.dmg` - Intel Macs
+  - `cloneclean-*-macos-arm64.dmg` - Apple Silicon (M1/M2/M3/M4)
 
 ---
 
@@ -68,7 +68,7 @@ md5sum -c dupfinder-1.0.0-linux-x86_64-cpu.deb.md5
 4. **Follow** the installation wizard
 5. **Launch** from Start Menu or Desktop shortcut
 
-**Default Installation Path:** `C:\Program Files\DupFinder\`
+**Default Installation Path:** `C:\Program Files\CloneClean\`
 
 **Uninstall:** Use "Add/Remove Programs" in Windows Settings
 
@@ -76,11 +76,11 @@ md5sum -c dupfinder-1.0.0-linux-x86_64-cpu.deb.md5
 
 ```bash
 # Download and verify
-wget https://github.com/yourusername/dupfinder/releases/download/v1.0.0/dupfinder-1.0.0-linux-x86_64-cpu.deb
-sha256sum -c dupfinder-1.0.0-linux-x86_64-cpu.deb.sha256
+wget https://github.com/yourusername/cloneclean/releases/download/v1.0.0/cloneclean-1.0.0-linux-x86_64-cpu.deb
+sha256sum -c cloneclean-1.0.0-linux-x86_64-cpu.deb.sha256
 
 # Install
-sudo dpkg -i dupfinder-1.0.0-linux-x86_64-cpu.deb
+sudo dpkg -i cloneclean-1.0.0-linux-x86_64-cpu.deb
 
 # If dependencies are missing, run:
 sudo apt-get install -f
@@ -91,7 +91,7 @@ dupfinder
 
 **Uninstall:**
 ```bash
-sudo apt remove dupfinder
+sudo apt remove cloneclean
 ```
 
 ### Linux - RedHat/Fedora/CentOS (.rpm)
