@@ -426,6 +426,7 @@ elseif(APPLE)
     set_target_properties(cloneclean PROPERTIES
         MACOSX_BUNDLE TRUE
         MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/resources/Info.plist
+        OUTPUT_NAME "cloneclean"
     )
 endif()
 
@@ -481,24 +482,37 @@ if(WIN32)
         )
 
         # Install Qt DLLs deployed by windeployqt
+        # Handle both Debug (d suffix) and Release builds
         if(QT_VERSION EQUAL 6)
+            # Try both debug and release variants
             install(FILES
                 $<TARGET_FILE_DIR:cloneclean>/Qt6Core.dll
+                $<TARGET_FILE_DIR:cloneclean>/Qt6Cored.dll
                 $<TARGET_FILE_DIR:cloneclean>/Qt6Gui.dll
+                $<TARGET_FILE_DIR:cloneclean>/Qt6Guid.dll
                 $<TARGET_FILE_DIR:cloneclean>/Qt6Widgets.dll
+                $<TARGET_FILE_DIR:cloneclean>/Qt6Widgetsd.dll
                 $<TARGET_FILE_DIR:cloneclean>/Qt6Network.dll
+                $<TARGET_FILE_DIR:cloneclean>/Qt6Networkd.dll
                 $<TARGET_FILE_DIR:cloneclean>/Qt6Svg.dll
+                $<TARGET_FILE_DIR:cloneclean>/Qt6Svgd.dll
                 $<TARGET_FILE_DIR:cloneclean>/opengl32sw.dll
                 DESTINATION bin
                 OPTIONAL
             )
         else()
+            # Try both debug and release variants
             install(FILES
                 $<TARGET_FILE_DIR:cloneclean>/Qt5Core.dll
+                $<TARGET_FILE_DIR:cloneclean>/Qt5Cored.dll
                 $<TARGET_FILE_DIR:cloneclean>/Qt5Gui.dll
+                $<TARGET_FILE_DIR:cloneclean>/Qt5Guid.dll
                 $<TARGET_FILE_DIR:cloneclean>/Qt5Widgets.dll
+                $<TARGET_FILE_DIR:cloneclean>/Qt5Widgetsd.dll
                 $<TARGET_FILE_DIR:cloneclean>/Qt5Network.dll
+                $<TARGET_FILE_DIR:cloneclean>/Qt5Networkd.dll
                 $<TARGET_FILE_DIR:cloneclean>/Qt5Svg.dll
+                $<TARGET_FILE_DIR:cloneclean>/Qt5Svgd.dll
                 $<TARGET_FILE_DIR:cloneclean>/opengl32sw.dll
                 DESTINATION bin
                 OPTIONAL
@@ -507,6 +521,10 @@ if(WIN32)
 
         # Install Qt plugin directories deployed by windeployqt
         install(DIRECTORY $<TARGET_FILE_DIR:cloneclean>/platforms
+            DESTINATION bin
+            OPTIONAL
+        )
+        install(DIRECTORY $<TARGET_FILE_DIR:cloneclean>/generic
             DESTINATION bin
             OPTIONAL
         )
@@ -519,6 +537,14 @@ if(WIN32)
             OPTIONAL
         )
         install(DIRECTORY $<TARGET_FILE_DIR:cloneclean>/styles
+            DESTINATION bin
+            OPTIONAL
+        )
+        install(DIRECTORY $<TARGET_FILE_DIR:cloneclean>/networkinformation
+            DESTINATION bin
+            OPTIONAL
+        )
+        install(DIRECTORY $<TARGET_FILE_DIR:cloneclean>/tls
             DESTINATION bin
             OPTIONAL
         )
@@ -665,7 +691,8 @@ include(CPack)
 # Custom target to copy installers to dist folder
 if(WIN32)
     # Windows: Copy NSIS installer or ZIP to dist folder
-    set(_dist_dir "${CMAKE_SOURCE_DIR}/dist/${PLATFORM_NAME}/${CMAKE_BUILD_TYPE}")
+    # Use Win64 for Windows to match build system structure
+    set(_dist_dir "${CMAKE_SOURCE_DIR}/dist/Win64/${CMAKE_BUILD_TYPE}")
     if(NSIS_EXECUTABLE)
         set(_package_ext "exe")
     else()
@@ -677,20 +704,33 @@ if(WIN32)
             "${CMAKE_BINARY_DIR}/${CPACK_PACKAGE_FILE_NAME}.${_package_ext}"
             "${_dist_dir}/${CPACK_PACKAGE_FILE_NAME}.${_package_ext}"
         DEPENDS package
-        COMMENT "Copying Windows installer to dist/${PLATFORM_NAME}/${CMAKE_BUILD_TYPE}/"
+        COMMENT "Copying Windows installer to dist/Win64/${CMAKE_BUILD_TYPE}/"
         VERBATIM
     )
     message(STATUS "Installer will be copied to: ${_dist_dir}")
 elseif(APPLE)
     # macOS: Copy DMG to dist folder
-    set(_dist_dir "${CMAKE_SOURCE_DIR}/dist/macOS/${CMAKE_BUILD_TYPE}")
+    # Detect architecture for proper dist folder structure
+    if(CMAKE_OSX_ARCHITECTURES STREQUAL "arm64")
+        set(_macos_arch_dir "ARM")
+    elseif(CMAKE_OSX_ARCHITECTURES STREQUAL "x86_64")
+        set(_macos_arch_dir "X64")
+    else()
+        # Fallback to system processor
+        if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
+            set(_macos_arch_dir "ARM")
+        else()
+            set(_macos_arch_dir "X64")
+        endif()
+    endif()
+    set(_dist_dir "${CMAKE_SOURCE_DIR}/dist/MacOS/${_macos_arch_dir}/${CMAKE_BUILD_TYPE}")
     add_custom_target(copy_installer
         COMMAND ${CMAKE_COMMAND} -E make_directory "${_dist_dir}"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_BINARY_DIR}/${CPACK_PACKAGE_FILE_NAME}.dmg"
             "${_dist_dir}/${CPACK_PACKAGE_FILE_NAME}.dmg"
         DEPENDS package
-        COMMENT "Copying macOS DMG to dist/macOS/${CMAKE_BUILD_TYPE}/"
+        COMMENT "Copying macOS DMG to dist/MacOS/${_macos_arch_dir}/${CMAKE_BUILD_TYPE}/"
         VERBATIM
     )
     message(STATUS "DMG installer will be copied to: ${_dist_dir}")
