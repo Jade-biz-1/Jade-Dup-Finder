@@ -465,8 +465,8 @@
 - [x] Screenshots visible in README
 
 **Known Remaining Items:**
-- [ ] Update GitHub URLs in About dialog (currently placeholder)
-- [ ] Consider database filename migration (dupfinder.db → cloneclean.db)
+- [x] Update GitHub URLs in About dialog (already correct - points to Jade-biz-1/Jade-Dup-Finder)
+- [x] Consider database filename migration (handled automatically by Qt organization name change)
 
 ---
 

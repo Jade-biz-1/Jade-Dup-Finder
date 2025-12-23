@@ -20,7 +20,7 @@
     "smtp_server": "smtp.gmail.com",
     "smtp_port": 587,
     "use_tls": true,
-    "subject_prefix": "[DupFinder CI]"
+    "subject_prefix": "[CloneClean CI]"
   },
   "teams": {
     "enabled": false,

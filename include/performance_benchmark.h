@@ -7,8 +7,8 @@
 #include <QMap>
 
 /**
- * @brief Performance benchmarking framework for DupFinder
- * 
+ * @brief Performance benchmarking framework for CloneClean
+ *
  * Provides comprehensive performance testing for:
  * - Hash calculation
  * - File scanning

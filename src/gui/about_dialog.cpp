@@ -213,8 +213,8 @@ QString AboutDialog::getAuthorsInfo() const
         "<p>" + tr("Special thanks to all contributors and testers who helped make CloneClean better.") + "</p>"
         "<p><b>" + tr("Contact:") + "</b></p>"
         "<ul>"
-        "<li>" + tr("GitHub: <a href='https://github.com/dupfinder/dupfinder'>github.com/dupfinder/dupfinder</a>") + "</li>"
-        "<li>" + tr("Issues: <a href='https://github.com/dupfinder/dupfinder/issues'>Report bugs or request features</a>") + "</li>"
+        "<li>" + tr("GitHub: <a href='https://github.com/Jade-biz-1/Jade-Dup-Finder'>github.com/Jade-biz-1/Jade-Dup-Finder</a>") + "</li>"
+        "<li>" + tr("Issues: <a href='https://github.com/Jade-biz-1/Jade-Dup-Finder/issues'>Report bugs or request features</a>") + "</li>"
         "</ul>";
 }
 

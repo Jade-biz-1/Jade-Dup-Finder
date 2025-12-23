@@ -1,6 +1,6 @@
-# Test configuration for DupFinder
+# Test configuration for CloneClean
 cmake_minimum_required(VERSION 3.16)
-project(DupFinderTests)
+project(CloneCleanTests)
 
 find_package(Qt6 REQUIRED COMPONENTS Test Core Widgets Concurrent Sql)
 
@@ -295,7 +295,6 @@ set(TEST_COMMON_HEADERS
     ../include/safety_manager.h
     ../include/app_config.h
     ../include/main_window.h
-    ../src/gui/results_window.h
     ../include/thumbnail_cache.h
 )
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# DupFinder Testing Infrastructure Deployment Script
+# CloneClean Testing Infrastructure Deployment Script
 # This script deploys the complete testing infrastructure to production CI/CD environment
 
 set -e  # Exit on any error
@@ -429,7 +429,7 @@ create_rollback_procedures() {
     cat > "$rollback_script" << 'EOF'
 #!/bin/bash
 
-# DupFinder Testing Infrastructure Rollback Script
+# CloneClean Testing Infrastructure Rollback Script
 # This script rolls back testing infrastructure changes
 
 set -e
@@ -636,7 +636,7 @@ pkill -f "performance_scalability_validator"
 
 ```bash
 # Navigate to project root
-cd /path/to/dupfinder
+cd /path/to/cloneclean
 
 # Restore tests directory
 rm -rf tests
@@ -811,11 +811,11 @@ EOF
 
 # Main deployment function
 main() {
-    log "Starting DupFinder Testing Infrastructure Deployment"
+    log "Starting CloneClean Testing Infrastructure Deployment"
     log "=================================================="
     
     # Initialize log file
-    echo "DupFinder Testing Infrastructure Deployment Log" > "$LOG_FILE"
+    echo "CloneClean Testing Infrastructure Deployment Log" > "$LOG_FILE"
     echo "Started: $(date)" >> "$LOG_FILE"
     echo "=================================================" >> "$LOG_FILE"
     
@@ -867,7 +867,7 @@ main() {
     # Generate deployment report
     generate_deployment_report
     
-    log_success "DupFinder Testing Infrastructure Deployment Completed Successfully"
+    log_success "CloneClean Testing Infrastructure Deployment Completed Successfully"
     log "Deployment log: $LOG_FILE"
     log "Deployment report: $PROJECT_ROOT/deployment_report.json"
     
@@ -878,7 +878,7 @@ main() {
 while [[ $# -gt 0 ]]; do
     case $1 in
         --help|-h)
-            echo "DupFinder Testing Infrastructure Deployment Script"
+            echo "CloneClean Testing Infrastructure Deployment Script"
             echo ""
             echo "Usage: $0 [options]"
             echo ""

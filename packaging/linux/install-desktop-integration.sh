@@ -1,13 +1,13 @@
 #!/bin/bash
 #
-# DupFinder Desktop Integration Installer
+# CloneClean Desktop Integration Installer
 # Installs .desktop file and file manager integrations for Linux
 #
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-APP_NAME="dupfinder"
+APP_NAME="cloneclean"
 
 # Colors for output
 RED='\033[0;31m'
@@ -78,8 +78,8 @@ if command -v nautilus &> /dev/null; then
     print_info "Installing Nautilus extension..."
     if [ -f "$SCRIPT_DIR/nautilus-dupfinder.py" ]; then
         cp "$SCRIPT_DIR/nautilus-dupfinder.py" "$NAUTILUS_EXT_DIR/"
-        chmod 644 "$NAUTILUS_EXT_DIR/nautilus-dupfinder.py"
-        print_info "Installed: $NAUTILUS_EXT_DIR/nautilus-dupfinder.py"
+        chmod 644 "$NAUTILUS_EXT_DIR/nautilus-cloneclean.py"
+        print_info "Installed: $NAUTILUS_EXT_DIR/nautilus-cloneclean.py"
         print_info "Restart Nautilus to activate: nautilus -q"
     else
         print_warn "Nautilus extension file not found"
@@ -112,9 +112,9 @@ print_info "Desktop integration installed successfully!"
 print_info "============================================"
 print_info ""
 print_info "You can now:"
-print_info "  1. Launch DupFinder from your application menu"
+print_info "  1. Launch CloneClean from your application menu"
 print_info "  2. Right-click folders in Nautilus to find duplicates"
-print_info "  3. Use 'dupfinder' command from terminal"
+print_info "  3. Use 'cloneclean' command from terminal"
 print_info ""
 
 if [ "$INSTALL_MODE" = "user" ]; then
