@@ -578,6 +578,120 @@ elseif(APPLE)
         message(WARNING "  - Install Qt via Homebrew: brew install qt@6")
         message(WARNING "  - Or install Qt from qt.io with the macOS deployment tools")
     endif()
+elseif(UNIX AND NOT APPLE)
+    # Qt deployment for Linux
+    # Since linuxdeployqt is not reliably available, we bundle Qt dependencies manually
+    message(STATUS "Configuring Linux Qt6 deployment...")
+    
+    # Set RPATH to look for Qt libraries in lib/ directory relative to executable
+    set_target_properties(cloneclean PROPERTIES
+        INSTALL_RPATH "\$ORIGIN/../lib"
+        BUILD_WITH_INSTALL_RPATH FALSE
+        INSTALL_RPATH_USE_LINK_PATH TRUE
+    )
+    
+    # Find Qt6 library directory from actual Qt6 targets
+    if(QT_VERSION EQUAL 6)
+        # Get the actual library location from Qt6::Core target
+        get_target_property(QT6_CORE_LOCATION Qt6::Core LOCATION)
+        if(NOT QT6_CORE_LOCATION)
+            # Fallback: try IMPORTED_LOCATION
+            get_target_property(QT6_CORE_LOCATION Qt6::Core IMPORTED_LOCATION_RELEASE)
+        endif()
+        if(NOT QT6_CORE_LOCATION)
+            get_target_property(QT6_CORE_LOCATION Qt6::Core IMPORTED_LOCATION)
+        endif()
+        
+        if(QT6_CORE_LOCATION)
+            get_filename_component(QT_LIB_DIR "${QT6_CORE_LOCATION}" DIRECTORY)
+            message(STATUS "Qt6 library directory (from Qt6::Core): ${QT_LIB_DIR}")
+        else()
+            # Last resort fallback: use qmake query
+            get_target_property(QT_QMAKE_EXECUTABLE Qt6::qmake IMPORTED_LOCATION)
+            execute_process(
+                COMMAND ${QT_QMAKE_EXECUTABLE} -query QT_INSTALL_LIBS
+                OUTPUT_VARIABLE QT_LIB_DIR
+                OUTPUT_STRIP_TRAILING_WHITESPACE
+            )
+            message(STATUS "Qt6 library directory (from qmake): ${QT_LIB_DIR}")
+        endif()
+        
+        # Get plugins directory from qmake
+        get_target_property(QT_QMAKE_EXECUTABLE Qt6::qmake IMPORTED_LOCATION)
+        execute_process(
+            COMMAND ${QT_QMAKE_EXECUTABLE} -query QT_INSTALL_PLUGINS
+            OUTPUT_VARIABLE QT_PLUGINS_DIR
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+        )
+        
+        message(STATUS "Qt6 plugins directory: ${QT_PLUGINS_DIR}")
+        
+        # Install Qt6 shared libraries
+        # Note: Using wildcards to match versioned .so files (.so.6, .so.6.x.x)
+        install(FILES
+            "${QT_LIB_DIR}/libQt6Core.so.6"
+            "${QT_LIB_DIR}/libQt6Gui.so.6"
+            "${QT_LIB_DIR}/libQt6Widgets.so.6"
+            "${QT_LIB_DIR}/libQt6Concurrent.so.6"
+            "${QT_LIB_DIR}/libQt6Network.so.6"
+            "${QT_LIB_DIR}/libQt6DBus.so.6"
+            DESTINATION lib
+            OPTIONAL
+        )
+        
+        # Install additional Qt6 libraries that might be needed
+        install(FILES
+            "${QT_LIB_DIR}/libQt6XcbQpa.so.6"
+            DESTINATION lib
+            OPTIONAL
+        )
+        
+        # Install ICU libraries (required by Qt6 on some systems)
+        file(GLOB ICU_I18N_LIBS "${QT_LIB_DIR}/libicui18n.so.*")
+        file(GLOB ICU_UC_LIBS "${QT_LIB_DIR}/libicuuc.so.*")
+        file(GLOB ICU_DATA_LIBS "${QT_LIB_DIR}/libicudata.so.*")
+        if(ICU_I18N_LIBS OR ICU_UC_LIBS OR ICU_DATA_LIBS)
+            install(FILES ${ICU_I18N_LIBS} ${ICU_UC_LIBS} ${ICU_DATA_LIBS} DESTINATION lib OPTIONAL)
+            message(STATUS "Found ICU libraries to bundle")
+        endif()
+        
+        # Install Qt6 plugins
+        if(EXISTS "${QT_PLUGINS_DIR}/platforms")
+            install(DIRECTORY "${QT_PLUGINS_DIR}/platforms"
+                DESTINATION plugins
+                FILES_MATCHING PATTERN "*.so"
+            )
+            message(STATUS "Will bundle Qt6 platforms plugins")
+        endif()
+        
+        if(EXISTS "${QT_PLUGINS_DIR}/platformthemes")
+            install(DIRECTORY "${QT_PLUGINS_DIR}/platformthemes"
+                DESTINATION plugins
+                FILES_MATCHING PATTERN "*.so"
+            )
+            message(STATUS "Will bundle Qt6 platformthemes plugins")
+        endif()
+        
+        if(EXISTS "${QT_PLUGINS_DIR}/xcbglintegrations")
+            install(DIRECTORY "${QT_PLUGINS_DIR}/xcbglintegrations"
+                DESTINATION plugins
+                FILES_MATCHING PATTERN "*.so"
+            )
+            message(STATUS "Will bundle Qt6 xcbglintegrations plugins")
+        endif()
+        
+        # Create qt.conf to help Qt find plugins
+        file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/qt.conf"
+            "[Paths]\nPlugins = ../plugins\n"
+        )
+        install(FILES "${CMAKE_CURRENT_BINARY_DIR}/qt.conf"
+            DESTINATION bin
+        )
+        
+        message(STATUS "Linux Qt6 deployment configured: Libraries and plugins will be bundled")
+    else()
+        message(WARNING "Qt5 Linux deployment not fully implemented. Qt6 is recommended.")
+    endif()
 endif()
 
 # Platform-specific install configuration
@@ -658,12 +772,14 @@ elseif(UNIX)
     set(CPACK_DEBIAN_PACKAGE_MAINTAINER "CloneClean Team")
     set(CPACK_DEBIAN_PACKAGE_SECTION "utils")
     set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
-    set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc6, libqt6core6, libqt6gui6, libqt6widgets6")
+    # Qt6 libraries are bundled, so only require basic system libraries
+    set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc6, libstdc++6, libgcc1, libx11-6, libxcb1, libxkbcommon0")
 
     # RPM package configuration
     set(CPACK_RPM_PACKAGE_LICENSE "MIT")
     set(CPACK_RPM_PACKAGE_GROUP "Applications/File")
-    set(CPACK_RPM_PACKAGE_REQUIRES "qt6-qtbase >= 6.0")
+    # Qt6 libraries are bundled, so only require basic system libraries
+    set(CPACK_RPM_PACKAGE_REQUIRES "glibc, libstdc++, libgcc, libX11, libxcb, libxkbcommon")
 
     message(STATUS "Linux packaging configured: DEB, RPM, TGZ installers")
 endif()
