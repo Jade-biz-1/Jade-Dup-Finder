@@ -1,6 +1,6 @@
 # Testing Framework Training Materials
 
-Welcome to the DupFinder Testing Framework training program! This comprehensive training suite is designed to help developers at all levels master our automated testing infrastructure.
+Welcome to the CloneClean Testing Framework training program! This comprehensive training suite is designed to help developers at all levels master our automated testing infrastructure.
 
 ## Training Program Overview
 
@@ -55,14 +55,14 @@ Our training program follows a progressive learning path, from basic concepts to
 Before starting the training program, ensure you have:
 - Basic C++ programming knowledge
 - Qt development environment set up
-- DupFinder project cloned and building successfully
+- CloneClean project cloned and building successfully
 - Familiarity with command-line tools
 
 ### Setup Instructions
 1. **Clone the training repository**:
    ```bash
    git clone <repository-url>
-   cd dupfinder/docs/testing/training
+   cd cloneclean/docs/testing/training
    ```
 
 2. **Set up the training environment**:
@@ -116,7 +116,7 @@ Practical test writing:
 - Setup and teardown methods
 - Common testing patterns
 
-**Hands-on**: Write tests for a simple DupFinder component
+**Hands-on**: Write tests for a simple CloneClean component
 
 ### Module 4: Test Data Management
 **Duration**: 2-3 hours | **Level**: Beginner
@@ -160,7 +160,7 @@ Automated UI testing:
 - Visual regression testing
 - Accessibility testing
 
-**Hands-on**: Automate UI testing for DupFinder dialogs
+**Hands-on**: Automate UI testing for CloneClean dialogs
 
 ### Module 8: Performance Testing
 **Duration**: 3-4 hours | **Level**: Intermediate
@@ -337,7 +337,7 @@ Ready to begin your testing journey? Here's how to start:
 4. **Start Learning**: Begin with your first module
 5. **Join Community**: Connect with other learners
 
-**Questions?** Contact our training team at testing-training@dupfinder.dev
+**Questions?** Contact our training team at testing-training@cloneclean.dev
 
 ---
 

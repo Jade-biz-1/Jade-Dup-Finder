@@ -1,6 +1,6 @@
 # Test Examples
 
-This directory contains comprehensive working examples for each category of tests in the DupFinder testing suite. These examples demonstrate best practices, common patterns, and proper usage of the testing framework.
+This directory contains comprehensive working examples for each category of tests in the CloneClean testing suite. These examples demonstrate best practices, common patterns, and proper usage of the testing framework.
 
 ## Example Categories
 

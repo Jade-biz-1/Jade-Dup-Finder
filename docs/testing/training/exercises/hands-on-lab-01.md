@@ -4,7 +4,7 @@
 
 ## Lab Overview
 
-In this hands-on lab, you'll write your very first test for a DupFinder component. You'll learn the basic structure of a test, how to set up test data, and how to verify expected behavior.
+In this hands-on lab, you'll write your very first test for a CloneClean component. You'll learn the basic structure of a test, how to set up test data, and how to verify expected behavior.
 
 ## Learning Objectives
 
@@ -20,13 +20,13 @@ By completing this lab, you will:
 - Completed Module 1: Testing Fundamentals
 - Basic C++ knowledge
 - Qt development environment set up
-- DupFinder project accessible
+- CloneClean project accessible
 
 ## Lab Setup
 
 ### Step 1: Create Lab Directory
 ```bash
-cd dupfinder/tests
+cd cloneclean/tests
 mkdir lab01
 cd lab01
 ```
@@ -276,7 +276,7 @@ Totals: 6 passed, 0 failed, 0 skipped, 0 blacklisted, Xms
 
 ### Exercise 2: File Utility Test (25 minutes)
 
-Now let's test something more relevant to DupFinder - a file utility class.
+Now let's test something more relevant to CloneClean - a file utility class.
 
 #### Step 2.1: Create File Utility Class
 
@@ -738,7 +738,7 @@ Congratulations! You've successfully:
 ## Next Steps
 
 1. **Practice**: Try writing tests for other simple classes
-2. **Explore**: Look at existing DupFinder tests for more examples
+2. **Explore**: Look at existing CloneClean tests for more examples
 3. **Continue**: Proceed to the next module or lab
 4. **Share**: Discuss your experience with other learners
 

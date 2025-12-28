@@ -551,23 +551,23 @@ QStringList TestUtilities::listFiles(const QString& directory, const QStringList
 
 // Configuration and settings utilities
 void TestUtilities::saveTestSettings(const QString& key, const QVariant& value) {
-    QSettings settings("DupFinderTests", "TestUtilities");
+    QSettings settings("CloneCleanTests", "TestUtilities");
     settings.setValue(key, value);
 }
 
 QVariant TestUtilities::loadTestSettings(const QString& key, const QVariant& defaultValue) {
-    QSettings settings("DupFinderTests", "TestUtilities");
+    QSettings settings("CloneCleanTests", "TestUtilities");
     return settings.value(key, defaultValue);
 }
 
 void TestUtilities::clearTestSettings() {
-    QSettings settings("DupFinderTests", "TestUtilities");
+    QSettings settings("CloneCleanTests", "TestUtilities");
     settings.clear();
 }
 
 void TestUtilities::backupSettings(const QString& backupName) {
-    QSettings settings("DupFinderTests", "TestUtilities");
-    QSettings backup("DupFinderTests", "TestUtilities_" + backupName);
+    QSettings settings("CloneCleanTests", "TestUtilities");
+    QSettings backup("CloneCleanTests", "TestUtilities_" + backupName);
     
     // Copy all settings to backup
     for (const QString& key : settings.allKeys()) {
@@ -576,8 +576,8 @@ void TestUtilities::backupSettings(const QString& backupName) {
 }
 
 void TestUtilities::restoreSettings(const QString& backupName) {
-    QSettings settings("DupFinderTests", "TestUtilities");
-    QSettings backup("DupFinderTests", "TestUtilities_" + backupName);
+    QSettings settings("CloneCleanTests", "TestUtilities");
+    QSettings backup("CloneCleanTests", "TestUtilities_" + backupName);
     
     // Clear current settings
     settings.clear();

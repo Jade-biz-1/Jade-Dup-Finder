@@ -159,7 +159,7 @@ Test architecture improvements deferred to allow focus on feature development. W
 
 - [x] **Code Comment Updates**
   - Found and updated: `tests/performance_benchmark.h`, `tests/CMakeLists.txt`, `tests/example_load_stress_testing.cpp`
-  - Status: All DupFinder references removed from source code
+  - Status: All CloneClean references removed from source code
 
 #### Acceptance Criteria:
 - [ ] GitHub URLs in About dialog point to actual CloneClean repository
@@ -189,7 +189,7 @@ Complete modern build system with profile-based orchestration implemented. Suppo
 **Assignee:** Development Team
 
 #### Summary:
-Complete rebranding from DupFinder to CloneClean with critical UI performance fixes implemented.
+Complete rebranding from CloneClean to CloneClean with critical UI performance fixes implemented.
 
 ## Sprint Metrics
 

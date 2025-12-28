@@ -1,4 +1,4 @@
-# UI Wiring Audit - DupFinder (UPDATED)
+# UI Wiring Audit - CloneClean (UPDATED)
 
 ## Date: October 13, 2025
 ## Status: ALL CRITICAL ISSUES RESOLVED ✅
@@ -74,7 +74,7 @@ void MainWindow::onHelpRequested()
     LOG_INFO(LogCategories::UI, "User clicked 'Help' button");
     
     QString helpText = tr(
-        "<h2>DupFinder - Duplicate File Finder</h2>"
+        "<h2>CloneClean - Duplicate File Finder</h2>"
         "<p><b>Quick Start:</b></p>"
         "<ol>"
         "<li>Click 'New Scan' to configure a scan</li>"
@@ -90,10 +90,10 @@ void MainWindow::onHelpRequested()
         // ... (13 shortcuts listed)
         "<p><b>Safety Features:</b></p>"
         // ... (3 safety features)
-        "<p>For more information, visit: <a href='https://dupfinder.org/docs'>dupfinder.org/docs</a></p>"
+        "<p>For more information, visit: <a href='https://cloneclean.org/docs'>cloneclean.org/docs</a></p>"
     );
     
-    QMessageBox::information(this, tr("DupFinder Help"), helpText);
+    QMessageBox::information(this, tr("CloneClean Help"), helpText);
 }
 ```
 

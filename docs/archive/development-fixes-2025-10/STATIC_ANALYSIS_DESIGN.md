@@ -76,7 +76,7 @@ Application Code ──> Runtime Behavior ──> Runs for users
 ### Tool Structure
 
 ```
-dupfinder/
+cloneclean/
 ├── tools/
 │   ├── theme_compliance_checker.cpp  # Standalone tool
 │   ├── CMakeLists.txt                # Build configuration

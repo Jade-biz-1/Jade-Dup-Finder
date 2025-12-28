@@ -14,7 +14,7 @@
 TestDatabaseManager::TestDatabaseManager() {
     // Set up temporary database directory
     QString tempLocation = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
-    m_tempDatabaseDirectory = QDir(tempLocation).absoluteFilePath("dupfinder_test_databases");
+    m_tempDatabaseDirectory = QDir(tempLocation).absoluteFilePath("cloneclean_test_databases");
     QDir().mkpath(m_tempDatabaseDirectory);
 }
 
@@ -309,14 +309,14 @@ QString TestDatabaseManager::createScenarioDatabase(DatabaseScenario scenario, c
 QList<TestDatabaseManager::TableSchema> TestDatabaseManager::getScenarioSchema(DatabaseScenario scenario) {
     switch (scenario) {
         case DatabaseScenario::Configuration:
-            return getDupFinderConfigSchema();
+            return getCloneCleanConfigSchema();
         case DatabaseScenario::ScanResults:
-            return getDupFinderScanResultsSchema();
+            return getCloneCleanScanResultsSchema();
         case DatabaseScenario::UserPreferences:
-            return getDupFinderUserPreferencesSchema();
+            return getCloneCleanUserPreferencesSchema();
         default:
             // Return basic schema for other scenarios
-            return getDupFinderConfigSchema();
+            return getCloneCleanConfigSchema();
     }
 }
 
@@ -585,8 +585,8 @@ int TestDatabaseManager::getTableRecordCount(const QString& connectionName, cons
     return 0;
 }
 
-// Schema definitions for DupFinder
-QList<TestDatabaseManager::TableSchema> TestDatabaseManager::getDupFinderConfigSchema() {
+// Schema definitions for CloneClean
+QList<TestDatabaseManager::TableSchema> TestDatabaseManager::getCloneCleanConfigSchema() {
     QList<TableSchema> schema;
     
     TableSchema settingsTable;
@@ -604,7 +604,7 @@ QList<TestDatabaseManager::TableSchema> TestDatabaseManager::getDupFinderConfigS
     return schema;
 }
 
-QList<TestDatabaseManager::TableSchema> TestDatabaseManager::getDupFinderScanResultsSchema() {
+QList<TestDatabaseManager::TableSchema> TestDatabaseManager::getCloneCleanScanResultsSchema() {
     QList<TableSchema> schema;
     
     TableSchema scanResultsTable;
@@ -622,7 +622,7 @@ QList<TestDatabaseManager::TableSchema> TestDatabaseManager::getDupFinderScanRes
     return schema;
 }
 
-QList<TestDatabaseManager::TableSchema> TestDatabaseManager::getDupFinderUserPreferencesSchema() {
+QList<TestDatabaseManager::TableSchema> TestDatabaseManager::getCloneCleanUserPreferencesSchema() {
     QList<TableSchema> schema;
     
     TableSchema preferencesTable;

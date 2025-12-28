@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `TestHarness` class is the central component for test execution and coordination in the DupFinder testing framework. It provides a unified interface for running tests, managing test suites, and generating comprehensive reports.
+The `TestHarness` class is the central component for test execution and coordination in the CloneClean testing framework. It provides a unified interface for running tests, managing test suites, and generating comprehensive reports.
 
 ## Class Declaration
 

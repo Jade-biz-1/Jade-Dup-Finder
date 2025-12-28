@@ -79,7 +79,7 @@
 ## Core Functionality Validation
 
 ### ✅ Application Startup
-- **Test:** Run ./build/dupfinder
+- **Test:** Run ./build/cloneclean
 - **Result:** PASS - Application starts without errors
 - **Details:** All core components initialize correctly
 
@@ -94,7 +94,7 @@
 - **Details:** No qDebug() statements, proper log categories used
 
 ### ✅ Build System
-- **Test:** cmake --build build --target dupfinder
+- **Test:** cmake --build build --target cloneclean
 - **Result:** PASS - Application builds successfully
 - **Details:** No compilation errors or warnings
 

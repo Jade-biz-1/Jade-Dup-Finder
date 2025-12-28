@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Load and Stress Testing Framework provides comprehensive capabilities for validating system performance under various load conditions, stress scenarios, and scalability requirements. It enables automated testing of high-volume scenarios, concurrent operations, resource limits, and system scalability for the DupFinder application.
+The Load and Stress Testing Framework provides comprehensive capabilities for validating system performance under various load conditions, stress scenarios, and scalability requirements. It enables automated testing of high-volume scenarios, concurrent operations, resource limits, and system scalability for the CloneClean application.
 
 ## Key Features
 
@@ -188,7 +188,7 @@ bool success = loadTester.runFileCountScalabilityTest(fileCounts, [](int fileCou
 
 // Comprehensive scalability analysis
 LoadStressTesting::ScalabilityTestConfig scalabilityConfig;
-scalabilityConfig.name = "DupFinder Scalability Analysis";
+scalabilityConfig.name = "CloneClean Scalability Analysis";
 scalabilityConfig.fileCounts = {100, 500, 1000};
 scalabilityConfig.fileSizes = {1024, 10240, 102400}; // 1KB, 10KB, 100KB
 scalabilityConfig.threadCounts = {1, 2, 4, 8};
@@ -206,13 +206,13 @@ success = loadTester.runScalabilityTest(scalabilityConfig,
     });
 
 // Analyze scaling results
-auto scalabilityResult = loadTester.getScalabilityTestResult("DupFinder Scalability Analysis");
+auto scalabilityResult = loadTester.getScalabilityTestResult("CloneClean Scalability Analysis");
 qDebug() << "Scaling analysis:" << scalabilityResult.scalingAnalysis;
 qDebug() << "Linear time scaling:" << scalabilityResult.linearTimeScaling;
 qDebug() << "Linear memory scaling:" << scalabilityResult.linearMemoryScaling;
 ```
 
-### DupFinder-Specific Load Tests
+### CloneClean-Specific Load Tests
 
 ```cpp
 // Duplicate detection load test
@@ -517,15 +517,15 @@ See `example_load_stress_testing.cpp` for a comprehensive example that demonstra
 - High volume file processing
 - Memory and CPU stress testing
 - Scalability analysis
-- DupFinder-specific load scenarios
+- CloneClean-specific load scenarios
 - Performance requirement validation
 - Result analysis and reporting
 
 This example serves as both documentation and a working test suite that can be adapted for specific load and stress testing needs.
 
-## Integration with DupFinder
+## Integration with CloneClean
 
-The load and stress testing framework is specifically designed to validate DupFinder's performance under various conditions:
+The load and stress testing framework is specifically designed to validate CloneClean's performance under various conditions:
 
 - **File Processing Load**: Test with thousands of files of varying sizes
 - **Duplicate Detection Stress**: Validate performance with high duplicate ratios
@@ -534,4 +534,4 @@ The load and stress testing framework is specifically designed to validate DupFi
 - **UI Responsiveness**: Validate user interface performance under load
 - **Scalability Analysis**: Understand how performance scales with data size and complexity
 
-This framework ensures that DupFinder maintains optimal performance and stability under all expected usage scenarios and can handle extreme conditions gracefully.
+This framework ensures that CloneClean maintains optimal performance and stability under all expected usage scenarios and can handle extreme conditions gracefully.

@@ -1,4 +1,4 @@
-# DupFinder C++ Code Style Configuration
+# CloneClean C++ Code Style Configuration
 # Based on Google style with modifications
 
 BasedOnStyle: Google

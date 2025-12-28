@@ -113,7 +113,7 @@ Remaining at root (8):
 
 ### Root Directory (Clean)
 ```
-dupfinder/
+cloneclean/
 ├── README.md
 ├── MANUAL_TESTING_GUIDE.md
 ├── NEXT_PRIORITY_ITEMS.md

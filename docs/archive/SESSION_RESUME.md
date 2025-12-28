@@ -1,14 +1,14 @@
-# Session Resume - DupFinder Development
+# Session Resume - CloneClean Development
 
 **Last Session:** January 24, 2025  
-**Project:** DupFinder - Duplicate File Finder  
-**Location:** `/home/deepak/Public/dupfinder`
+**Project:** CloneClean - Duplicate File Finder  
+**Location:** `/home/deepak/Public/cloneclean`
 
 ---
 
 ## 📋 Quick Summary
 
-You've been working on UI improvements and code cleanup for the DupFinder project, following tasks from `Oct_23_tasks_warp.md`. Significant progress has been made on:
+You've been working on UI improvements and code cleanup for the CloneClean project, following tasks from `Oct_23_tasks_warp.md`. Significant progress has been made on:
 
 1. **Section 1.5** - UI Completeness and Polish (~79% complete)
 2. **Section 2.1** - Code Quality & Cleanup (~40% complete)
@@ -223,7 +223,7 @@ QString path = UIEnhancements::formatPathWithEllipsis(longPath, 50);
 
 ### Build Project (if needed)
 ```bash
-cd /home/deepak/Public/dupfinder
+cd /home/deepak/Public/cloneclean
 # Add your build commands here
 ```
 

@@ -1,6 +1,6 @@
 # Volume 3: Advanced Features
 
-**DupFinder User Guide - Volume 3**  
+**CloneClean User Guide - Volume 3**  
 **Last Updated:** October 17, 2025
 
 ---
@@ -139,7 +139,7 @@ Smart Selection
 
 ### Advanced Filters
 
-Beyond basic search, DupFinder offers sophisticated filtering:
+Beyond basic search, CloneClean offers sophisticated filtering:
 
 #### Filter Panel
 ```
@@ -358,7 +358,7 @@ Visualization Settings
 
 ### Export Formats
 
-DupFinder supports multiple export formats for different use cases:
+CloneClean supports multiple export formats for different use cases:
 
 #### CSV (Spreadsheet)
 **Best for:** Data analysis, spreadsheet applications
@@ -553,7 +553,7 @@ Preset Manager
 
 ### Operation Queue
 
-DupFinder uses an operation queue system for managing file operations:
+CloneClean uses an operation queue system for managing file operations:
 
 #### Queue Management
 ```

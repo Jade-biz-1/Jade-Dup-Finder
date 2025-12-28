@@ -1,10 +1,10 @@
 # Product Requirements Document (PRD)
-# DupFinder - Cross-Platform Duplicate File Finder
+# CloneClean - Cross-Platform Duplicate File Finder
 
 **Document Version:** 1.1  
 **Created:** 2025-10-03  
 **Last Updated:** 2025-10-14  
-**Project Code:** DupFinder  
+**Project Code:** CloneClean  
 **Implementation Status:** Phase 1 Complete, Phase 2 In Progress
 
 ---
@@ -39,7 +39,7 @@ See detailed implementation status in [Section 12: Implementation Status](#12-im
 ## 1. Executive Summary
 
 ### 1.1 Product Overview
-DupFinder is a modern, cross-platform desktop application designed to help general home users identify and manage duplicate files on their systems. The application features an intuitive interface, sophisticated duplicate detection algorithms, and comprehensive safety features to help users reclaim disk space while protecting their data.
+CloneClean is a modern, cross-platform desktop application designed to help general home users identify and manage duplicate files on their systems. The application features an intuitive interface, sophisticated duplicate detection algorithms, and comprehensive safety features to help users reclaim disk space while protecting their data.
 
 ### 1.2 Target Market
 **Primary Users:** General home users (non-technical consumers) who need to:
@@ -1319,9 +1319,9 @@ All 10 original requirements successfully implemented:
 - `ENHANCEMENTS_LINUX_MERGE_SUMMARY.md` - Merge documentation
 
 **Build Artifacts Generated:**
-- Linux: `dupfinder-1.0.0-linux-x86_64-cpu.{deb,rpm,tgz}`
-- Windows: `dupfinder-1.0.0-win64-msvc-{cpu,cuda}.exe` (ready for testing)
-- macOS: `dupfinder-1.0.0-macos-{x86_64,arm64}.dmg` (ready for testing)
+- Linux: `cloneclean-1.0.0-linux-x86_64-cpu.{deb,rpm,tgz}`
+- Windows: `cloneclean-1.0.0-win64-msvc-{cpu,cuda}.exe` (ready for testing)
+- macOS: `cloneclean-1.0.0-macos-{x86_64,arm64}.dmg` (ready for testing)
 
 ### 12.10 Next Steps
 

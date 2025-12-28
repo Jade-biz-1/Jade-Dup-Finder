@@ -1,6 +1,6 @@
 # Theme Compliance Checker
 
-A **static analysis tool** for validating theme compliance in the DupFinder codebase.
+A **static analysis tool** for validating theme compliance in the CloneClean codebase.
 
 ## Why Static Analysis?
 
@@ -99,7 +99,7 @@ make check-theme-compliance > theme_report.txt
 Theme Compliance Checker
 ========================
 
-Scanning directory: /home/user/dupfinder/src
+Scanning directory: /home/user/cloneclean/src
 
 Scan Complete
 =============
@@ -114,7 +114,7 @@ Severity breakdown:
 Sample violations (first 20):
 ==============================
 
-[CRITICAL] /home/user/dupfinder/src/gui/main_window.cpp:523
+[CRITICAL] /home/user/cloneclean/src/gui/main_window.cpp:523
   Type: hardcoded-color
   Line: button->setStyleSheet("background: #ff0000;");
   Fix:  Use ThemeManager::getCurrentThemeData().colors instead

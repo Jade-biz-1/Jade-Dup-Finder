@@ -48,7 +48,7 @@ PerformanceMonitoring::PerformanceMonitoring(QObject* parent)
     , m_networkManager(new QNetworkAccessManager(this))
 {
     // Set default configuration
-    m_config.name = "DupFinder Performance Monitoring";
+    m_config.name = "CloneClean Performance Monitoring";
     m_config.samplingIntervalMs = 1000;
     m_config.retentionPeriodMs = 86400000; // 24 hours
     m_config.maxDataPoints = 10000;
@@ -58,7 +58,7 @@ PerformanceMonitoring::PerformanceMonitoring(QObject* parent)
     m_config.enableReporting = true;
     m_config.trendAnalysisWindowMs = 3600000; // 1 hour
     m_config.regressionThreshold = 10.0;
-    m_config.reportOutputDirectory = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + "/DupFinder/Reports";
+    m_config.reportOutputDirectory = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + "/CloneClean/Reports";
     
     // Setup timers
     connect(m_monitoringTimer, &QTimer::timeout, this, &PerformanceMonitoring::onMonitoringTimer);

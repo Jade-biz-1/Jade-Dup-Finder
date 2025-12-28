@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This specification defines the requirements for a comprehensive automated testing suite for the DupFinder application. The testing suite will provide multi-layered testing coverage including unit tests, integration tests, UI tests, end-to-end tests, performance tests, and accessibility tests.
+This specification defines the requirements for a comprehensive automated testing suite for the CloneClean application. The testing suite will provide multi-layered testing coverage including unit tests, integration tests, UI tests, end-to-end tests, performance tests, and accessibility tests.
 
 ## Glossary
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide helps you diagnose and resolve common issues encountered when working with the DupFinder testing suite. Issues are organized by category with step-by-step solutions.
+This guide helps you diagnose and resolve common issues encountered when working with the CloneClean testing suite. Issues are organized by category with step-by-step solutions.
 
 ## Quick Diagnosis
 

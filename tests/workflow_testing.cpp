@@ -112,8 +112,8 @@ UserWorkflow WorkflowTesting::createScanToDeleteWorkflow() {
     // Step 1: Launch application
     WorkflowStep launchStep;
     launchStep.id = "launch_app";
-    launchStep.name = "Launch DupFinder Application";
-    launchStep.description = "Start the DupFinder application";
+    launchStep.name = "Launch CloneClean Application";
+    launchStep.description = "Start the CloneClean application";
     launchStep.type = WorkflowStepType::Setup;
     launchStep.parameters["action"] = "launch_application";
     launchStep.postconditions = {"main_window_visible"};

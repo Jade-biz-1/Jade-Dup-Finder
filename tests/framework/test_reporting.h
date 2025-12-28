@@ -28,7 +28,7 @@ enum class ReportFormat {
 struct ReportConfig {
     QList<ReportFormat> formats = {ReportFormat::HTML, ReportFormat::JUnit};
     QString outputDirectory = "test_reports";
-    QString reportTitle = "DupFinder Test Results";
+    QString reportTitle = "CloneClean Test Results";
     bool includeScreenshots = true;
     bool includeMetrics = true;
     bool includeCodeCoverage = true;

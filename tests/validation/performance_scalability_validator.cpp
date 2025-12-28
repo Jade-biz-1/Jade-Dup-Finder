@@ -89,8 +89,8 @@ bool PerformanceScalabilityValidator::validateLargeCodebaseExecution(Scalability
     // Set environment for large dataset testing
     QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
     env.insert("QT_QPA_PLATFORM", "offscreen");
-    env.insert("DUPFINDER_TEST_LARGE_DATASET", "1");
-    env.insert("DUPFINDER_TEST_DATASET_SIZE", "10000"); // 10k files
+    env.insert("CLONECLEAN_TEST_LARGE_DATASET", "1");
+    env.insert("CLONECLEAN_TEST_DATASET_SIZE", "10000"); // 10k files
     process.setProcessEnvironment(env);
     
     // Execute with extended timeout for large dataset
@@ -269,7 +269,7 @@ bool PerformanceScalabilityValidator::createLargeTestDataset()
     qDebug() << "Creating large test dataset...";
     
     // Create a temporary directory with many test files
-    QString testDataDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + "/dupfinder_large_test";
+    QString testDataDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + "/cloneclean_large_test";
     QDir dir;
     
     if (!dir.mkpath(testDataDir)) {
@@ -445,7 +445,7 @@ ParallelExecutionResult PerformanceScalabilityValidator::executeParallelTests(in
     // Set environment for parallel testing
     QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
     env.insert("QT_QPA_PLATFORM", "offscreen");
-    env.insert("DUPFINDER_TEST_PARALLEL_LEVEL", QString::number(parallelLevel));
+    env.insert("CLONECLEAN_TEST_PARALLEL_LEVEL", QString::number(parallelLevel));
     process.setProcessEnvironment(env);
     
     process.start(testExecutable, QStringList());

@@ -6,7 +6,7 @@
 
 ## Overview
 
-DupFinder provides comprehensive keyboard shortcuts for efficient navigation and operation. This guide covers all available shortcuts across the main window and results window, enabling power users to work quickly without relying on mouse interactions.
+CloneClean provides comprehensive keyboard shortcuts for efficient navigation and operation. This guide covers all available shortcuts across the main window and results window, enabling power users to work quickly without relying on mouse interactions.
 
 ## User Story Fulfilled
 

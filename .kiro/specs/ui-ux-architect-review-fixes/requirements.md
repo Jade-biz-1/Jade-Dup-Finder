@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This specification addresses the comprehensive UI/UX issues identified in the senior architect's final review of the DupFinder application. The review revealed that while significant progress has been made on UI implementation, critical issues remain that prevent proper theme application and affect user experience. This spec consolidates all remaining UI/UX issues into a systematic approach for resolution, ensuring the application meets professional standards for theme consistency, component visibility, and user experience.
+This specification addresses the comprehensive UI/UX issues identified in the senior architect's final review of the CloneClean application. The review revealed that while significant progress has been made on UI implementation, critical issues remain that prevent proper theme application and affect user experience. This spec consolidates all remaining UI/UX issues into a systematic approach for resolution, ensuring the application meets professional standards for theme consistency, component visibility, and user experience.
 
 ## Glossary
 

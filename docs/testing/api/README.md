@@ -2,7 +2,7 @@
 
 ## Overview
 
-This directory contains comprehensive API documentation for all components of the DupFinder testing framework. The documentation is organized by component and includes detailed class references, method signatures, and usage examples.
+This directory contains comprehensive API documentation for all components of the CloneClean testing framework. The documentation is organized by component and includes detailed class references, method signatures, and usage examples.
 
 ## API Documentation Structure
 

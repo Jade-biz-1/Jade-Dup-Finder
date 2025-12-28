@@ -1,7 +1,7 @@
 # Future GPU Implementation Guide
 
 ## Overview
-This document provides a roadmap for implementing GPU acceleration features in DupFinder when GPU support is planned for development.
+This document provides a roadmap for implementing GPU acceleration features in CloneClean when GPU support is planned for development.
 
 ## Current State
 - **GPU Code**: Present but disabled via conditional compilation
@@ -84,10 +84,10 @@ endif()
 # Test GPU detection:
 cd build
 cmake -DENABLE_GPU_ACCELERATION=ON ..
-make dupfinder-1.0.0
+make cloneclean-1.0.0
 
 # Verify GPU capabilities:
-./dupfinder-1.0.0 --gpu-info
+./cloneclean-1.0.0 --gpu-info
 ```
 
 ### Phase 2: Core Implementation (Week 2)
@@ -124,8 +124,8 @@ make dupfinder-1.0.0
 #### Testing and Validation
 ```bash
 # Run GPU vs CPU benchmarks:
-./dupfinder-1.0.0 --benchmark --gpu-enabled
-./dupfinder-1.0.0 --benchmark --gpu-disabled
+./cloneclean-1.0.0 --benchmark --gpu-enabled
+./cloneclean-1.0.0 --benchmark --gpu-disabled
 
 # Compare performance results
 ```
@@ -167,7 +167,7 @@ make test_gpu_performance
 make test_gpu_fallback
 
 # Stress testing:
-./dupfinder-1.0.0 --stress-test --gpu-enabled
+./cloneclean-1.0.0 --stress-test --gpu-enabled
 ```
 
 #### Performance Validation

@@ -2,7 +2,7 @@
 #include <QDebug>
 
 /**
- * @brief Integration test runner for DupFinder
+ * @brief Integration test runner for CloneClean
  * 
  * This file runs integration tests for end-to-end functionality.
  * Currently contains placeholder tests to verify the test framework.
@@ -13,7 +13,7 @@ class IntegrationTest : public QObject {
 
 private slots:
     void initTestCase() {
-        qDebug() << "Starting DupFinder integration tests...";
+        qDebug() << "Starting CloneClean integration tests...";
     }
 
     void testSystemReadiness() {

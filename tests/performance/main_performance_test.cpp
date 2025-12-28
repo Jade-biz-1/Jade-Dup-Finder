@@ -13,10 +13,10 @@
 // #include "test_comprehensive_integration.h"
 
 /**
- * @brief Main performance test runner for DupFinder
+ * @brief Main performance test runner for CloneClean
  * 
  * This application runs comprehensive performance benchmarks for all
- * optimized components of the DupFinder system, including:
+ * optimized components of the CloneClean system, including:
  * 
  * - Thread pool management benchmarks
  * - Batch processing performance tests
@@ -48,7 +48,7 @@ public:
         config.enableRegressionDetection = false; // Disable for initial run
         
         // Set up results directory
-        QString resultsPath = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + "/dupfinder_performance";
+        QString resultsPath = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + "/cloneclean_performance";
         QDir().mkpath(resultsPath);
         config.resultsPath = resultsPath;
         
@@ -62,7 +62,7 @@ public:
 private slots:
     void initTestCase() {
         qDebug() << "==========================================================";
-        qDebug() << "        DupFinder Performance Test Suite";
+        qDebug() << "        CloneClean Performance Test Suite";
         qDebug() << "==========================================================";
         qDebug() << "Start Time:" << QDateTime::currentDateTime().toString();
         qDebug() << "";
@@ -151,7 +151,7 @@ private:
         QTextStream stream(&report);
         
         stream << "==========================================================\n";
-        stream << "          DupFinder Performance Test Report\n";
+        stream << "          CloneClean Performance Test Report\n";
         stream << "==========================================================\n";
         stream << "Test Date: " << QDateTime::currentDateTime().toString() << "\n";
         stream << "System: " << SystemProfiler::getSystemSummary() << "\n";
@@ -319,7 +319,7 @@ private:
 
 int main(int argc, char* argv[]) {
     QCoreApplication app(argc, argv);
-    app.setApplicationName("DupFinder Performance Tests");
+    app.setApplicationName("CloneClean Performance Tests");
     app.setApplicationVersion("2.0");
     
     // Set up high precision timing

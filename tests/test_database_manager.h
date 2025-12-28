@@ -12,7 +12,7 @@
 #include <QTemporaryFile>
 
 /**
- * @brief Test database management system for DupFinder testing
+ * @brief Test database management system for CloneClean testing
  * 
  * Provides utilities for creating, populating, and managing test databases
  * including configuration databases, metadata storage, and test data scenarios.
@@ -68,7 +68,7 @@ public:
         Small,                    ///< Small dataset (< 1000 records)
         Medium,                   ///< Medium dataset (1000-10000 records)
         Large,                    ///< Large dataset (10000+ records)
-        Configuration,            ///< DupFinder configuration data
+        Configuration,            ///< CloneClean configuration data
         ScanResults,             ///< File scan results and metadata
         UserPreferences,         ///< User settings and preferences
         PerformanceTest,         ///< Large dataset for performance testing
@@ -106,7 +106,7 @@ public:
     QList<TableSchema> getScenarioSchema(DatabaseScenario scenario);
     QList<TestDataSpec> getScenarioData(DatabaseScenario scenario);
 
-    // DupFinder-specific database utilities
+    // CloneClean-specific database utilities
     QString createConfigurationDatabase();
     QString createScanResultsDatabase();
     QString createUserPreferencesDatabase();
@@ -181,10 +181,10 @@ private:
     QList<TestDataSpec> generatePerformanceTestData(int recordCount = 10000);
     QList<TestDataSpec> generateCorruptedData();
 
-    // DupFinder schema definitions
-    QList<TableSchema> getDupFinderConfigSchema();
-    QList<TableSchema> getDupFinderScanResultsSchema();
-    QList<TableSchema> getDupFinderUserPreferencesSchema();
+    // CloneClean schema definitions
+    QList<TableSchema> getCloneCleanConfigSchema();
+    QList<TableSchema> getCloneCleanScanResultsSchema();
+    QList<TableSchema> getCloneCleanUserPreferencesSchema();
 };
 
 /**

@@ -1,14 +1,14 @@
-# DupFinder Development Workflow Guide
+# CloneClean Development Workflow Guide
 
 **Version:** 1.0  
 **Created:** 2025-10-03  
-**Team:** DupFinder Development Team  
+**Team:** CloneClean Development Team  
 
 ---
 
 ## Overview
 
-This document establishes the development workflow, coding standards, review processes, and best practices for the DupFinder project. Following these guidelines ensures code consistency, quality, and maintainability across the entire development lifecycle.
+This document establishes the development workflow, coding standards, review processes, and best practices for the CloneClean project. Following these guidelines ensures code consistency, quality, and maintainability across the entire development lifecycle.
 
 ### Workflow Principles
 - **Quality First:** Code quality and safety over speed
@@ -200,14 +200,14 @@ enum class DetectionMode {
 
 // Constants: ALL_CAPS with underscores
 constexpr int MAX_THREAD_COUNT = 16;
-constexpr const char* DEFAULT_CONFIG_FILE = "dupfinder.conf";
+constexpr const char* DEFAULT_CONFIG_FILE = "cloneclean.conf";
 
 // Functions: camelCase
 bool validateFilePath(const QString& path);
 QStringList getSystemPaths();
 
 // Namespaces: lowercase
-namespace dupfinder {
+namespace cloneclean {
 namespace utils {
     // ...
 }
@@ -692,7 +692,7 @@ jobs:
 # CMakeLists.txt - Quality gates
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     # Enable all warnings
-    target_compile_options(dupfinder PRIVATE
+    target_compile_options(cloneclean PRIVATE
         $<$<CXX_COMPILER_ID:GNU>:-Wall -Wextra -Werror -pedantic>
         $<$<CXX_COMPILER_ID:Clang>:-Wall -Wextra -Werror -pedantic>
         $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
@@ -700,8 +700,8 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     
     # Enable sanitizers
     if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-        target_compile_options(dupfinder PRIVATE -fsanitize=address)
-        target_link_options(dupfinder PRIVATE -fsanitize=address)
+        target_compile_options(cloneclean PRIVATE -fsanitize=address)
+        target_link_options(cloneclean PRIVATE -fsanitize=address)
     endif()
 endif()
 ```
@@ -1151,7 +1151,7 @@ private:
 /**
  * @file duplicate_detector.h
  * @brief Core duplicate detection algorithms and data structures
- * @author DupFinder Team
+ * @author CloneClean Team
  * @date 2025-10-03
  * @version 1.0.0
  * 
@@ -1192,7 +1192,7 @@ namespace DuplicateUtils {
 
 #### README Structure
 ```markdown
-# DupFinder
+# CloneClean
 
 Brief description of what the project does.
 
@@ -1276,4 +1276,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
-This development workflow guide establishes the foundation for consistent, high-quality development of the DupFinder application. Following these guidelines will ensure code maintainability, team collaboration, and successful project delivery.
+This development workflow guide establishes the foundation for consistent, high-quality development of the CloneClean application. Following these guidelines will ensure code maintainability, team collaboration, and successful project delivery.

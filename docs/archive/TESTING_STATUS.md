@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-This document provides an accurate assessment of the current testing status for DupFinder. While the documentation previously suggested a fully functional test suite, there are currently known issues that prevent tests from running successfully.
+This document provides an accurate assessment of the current testing status for CloneClean. While the documentation previously suggested a fully functional test suite, there are currently known issues that prevent tests from running successfully.
 
 ### Current Status: ✅ **TESTS WORKING - SIGNALS FIXED**
 
@@ -192,12 +192,12 @@ ctest -R UnitTests        # ✅ WORKS
 ctest -R IntegrationTests # ✅ WORKS
 
 # Build individual components
-make dupfinder      # ✅ WORKS
+make cloneclean      # ✅ WORKS
 make unit_tests     # ✅ WORKS
 make integration_tests # ✅ WORKS
 
 # Manual testing
-./dupfinder     # ✅ WORKS
+./cloneclean     # ✅ WORKS
 ```
 
 ### Updated Testing Approach

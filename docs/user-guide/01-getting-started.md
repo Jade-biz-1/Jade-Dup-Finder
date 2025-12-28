@@ -1,6 +1,6 @@
 # Volume 1: Getting Started
 
-**DupFinder User Guide - Volume 1**
+**CloneClean User Guide - Volume 1**
 **Last Updated:** November 7, 2025
 
 ---
@@ -35,22 +35,22 @@
 **For Large File Sets (100,000+ files):**
 - **RAM:** 16 GB or more recommended
 - **Storage:** SSD strongly recommended for optimal performance
-- **Note:** DupFinder has been tested with 378,000+ files using ~500 MB RAM
+- **Note:** CloneClean has been tested with 378,000+ files using ~500 MB RAM
 
 ### Installation Steps
 
 #### Linux Installation
-1. **Download** DupFinder from the official website (DEB, RPM, or TGZ)
+1. **Download** CloneClean from the official website (DEB, RPM, or TGZ)
 2. **Install package:**
-   - Debian/Ubuntu: `sudo dpkg -i dupfinder-*.deb`
-   - Fedora/RHEL: `sudo rpm -i dupfinder-*.rpm`
-   - Manual: Extract TGZ and run `./dupfinder`
-3. **Run:** Launch from applications menu or run `dupfinder` in terminal
+   - Debian/Ubuntu: `sudo dpkg -i cloneclean-*.deb`
+   - Fedora/RHEL: `sudo rpm -i cloneclean-*.rpm`
+   - Manual: Extract TGZ and run `./cloneclean`
+3. **Run:** Launch from applications menu or run `cloneclean` in terminal
 
 #### macOS Installation
 1. **Download** the DMG installer from the official website
 2. **Open** the DMG file
-3. **Drag** DupFinder to your Applications folder
+3. **Drag** CloneClean to your Applications folder
 4. **Launch** from Applications folder or Launchpad
 5. **Note:** On first launch, you may need to right-click and select "Open" to bypass Gatekeeper
 
@@ -62,8 +62,8 @@
 
 ### First-Time Setup
 
-DupFinder requires no special configuration and works out of the box. On first launch, it will:
-- Create configuration directories in `~/.config/dupfinder/`
+CloneClean requires no special configuration and works out of the box. On first launch, it will:
+- Create configuration directories in `~/.config/cloneclean/`
 - Initialize default settings
 - Set up safety features automatically
 
@@ -73,10 +73,10 @@ DupFinder requires no special configuration and works out of the box. On first l
 
 ### Welcome Screen
 
-When you launch DupFinder for the first time, you'll see the main dashboard:
+When you launch CloneClean for the first time, you'll see the main dashboard:
 
 ```
-┌─ DupFinder - Main Dashboard ───────────────────────────────────┐
+┌─ CloneClean - Main Dashboard ───────────────────────────────────┐
 │ 📁 New Scan    ⚙️ Settings    ❓ Help    🔄 Restore           │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
@@ -199,7 +199,7 @@ The Results Window uses a professional 3-panel layout:
 
 ### What Are Duplicates?
 
-DupFinder identifies duplicates using multiple methods:
+CloneClean identifies duplicates using multiple methods:
 
 1. **Identical Files:** Exact byte-for-byte copies
 2. **Hash Matching:** Files with identical content but possibly different names
@@ -222,7 +222,7 @@ Group 2: document.pdf
 
 ### Selection Logic
 
-DupFinder uses smart algorithms to recommend which files to keep:
+CloneClean uses smart algorithms to recommend which files to keep:
 
 - **✅ Keep (Recommended):** Usually the original or best-located file
 - **☑️ Delete (Selected):** Duplicates that can be safely removed
@@ -230,7 +230,7 @@ DupFinder uses smart algorithms to recommend which files to keep:
 
 ### Safety First
 
-DupFinder prioritizes safety:
+CloneClean prioritizes safety:
 - **No permanent deletion:** All files go to system trash
 - **Backup system:** Automatic backups before operations
 - **Protected paths:** System files are automatically protected
@@ -260,7 +260,7 @@ For your first experience, use the Quick Scan option:
 
 5. **Wait for completion** (usually 1-5 minutes for typical folders)
 
-**⚡ Performance Note:** DupFinder has been optimized for large file sets. Recent improvements allow efficient processing of 100,000+ files:
+**⚡ Performance Note:** CloneClean has been optimized for large file sets. Recent improvements allow efficient processing of 100,000+ files:
 - File scanning: Processes thousands of files per minute
 - Memory efficient: ~500 MB for 378,000 files
 - No freezing: Application remains responsive throughout
@@ -268,7 +268,7 @@ For your first experience, use the Quick Scan option:
 
 ### What Happens During Scanning
 
-1. **File Discovery:** DupFinder finds all files in selected locations
+1. **File Discovery:** CloneClean finds all files in selected locations
 2. **Size Filtering:** Applies minimum size filter
 3. **Hash Calculation:** Calculates unique fingerprints for files (optimized single-instance calculator)
 4. **Duplicate Detection:** Groups files with identical content using efficient batch processing
@@ -318,7 +318,7 @@ When duplicates are found, the Results Window opens showing:
 
 For each group, you can:
 
-1. **Accept recommendations:** DupFinder's smart suggestions (recommended for beginners)
+1. **Accept recommendations:** CloneClean's smart suggestions (recommended for beginners)
 2. **Review manually:** Check each file using preview and details
 3. **Modify selection:** Change which files to keep or delete
 4. **Skip group:** Leave all files unchanged
@@ -346,7 +346,7 @@ After completing your first scan:
 ### Quick Tips for New Users
 
 - **Start small:** Begin with Downloads or a specific folder
-- **Use recommendations:** DupFinder's suggestions are usually safe
+- **Use recommendations:** CloneClean's suggestions are usually safe
 - **Preview before deleting:** When in doubt, preview the file
 - **Check trash:** Remember that deleted files go to trash, not permanent deletion
 - **Take your time:** It's better to be careful than to make mistakes

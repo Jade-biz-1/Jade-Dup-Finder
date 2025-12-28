@@ -146,7 +146,7 @@ UI enhancements for new features postponed to focus on critical implementation t
 
 #### Subtasks:
 - [x] **T32.1:** Complete CloneClean Rebrand ✅ COMPLETE
-  - [x] Update all window titles from "DupFinder" to "CloneClean"
+  - [x] Update all window titles from "CloneClean" to "CloneClean"
   - [x] Update QSettings organization name to "CloneClean"
   - [x] Update About dialog with tagline "One File. One Place."
   - [x] Update Help dialog and keyboard shortcuts
@@ -160,4 +160,4 @@ UI enhancements for new features postponed to focus on critical implementation t
 - [x] Help information updated
 
 #### Notes:
-Complete rebranding from DupFinder to CloneClean implemented successfully.
+Complete rebranding from CloneClean to CloneClean implemented successfully.

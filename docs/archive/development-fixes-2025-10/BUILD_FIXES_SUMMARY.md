@@ -45,8 +45,8 @@ options.enableAsyncIO = true;
 
 ### ✅ **Main Application: SUCCESS**
 ```bash
-$ make dupfinder-1.0.0
-# Built successfully: dupfinder-1.0.0 (29.2 MB)
+$ make cloneclean-1.0.0
+# Built successfully: cloneclean-1.0.0 (29.2 MB)
 ```
 
 ### ⚠️ **Tests: Partial Success**
@@ -73,7 +73,7 @@ $ make dupfinder-1.0.0
 
 ## Key Accomplishments
 
-1. **✅ Main Application Builds Successfully**: The core DupFinder application with all UI/UX fixes compiles without errors
+1. **✅ Main Application Builds Successfully**: The core CloneClean application with all UI/UX fixes compiles without errors
 2. **✅ Qt Dependency Issues Resolved**: All Qt6::Widgets linking problems fixed
 3. **✅ API Compatibility Fixed**: Test code updated to use current HashCalculator API
 4. **✅ UI/UX Fixes Preserved**: All the light theme contrast fixes and other UI improvements are intact
@@ -88,7 +88,7 @@ The main application is fully functional. If you want to fix the remaining test 
 
 ## Verification
 
-The main application (`dupfinder-1.0.0`) is ready to run with all UI/UX fixes applied:
+The main application (`cloneclean-1.0.0`) is ready to run with all UI/UX fixes applied:
 - ✅ Light theme contrast issues fixed
 - ✅ Group selection checkboxes working
 - ✅ File thumbnails visible

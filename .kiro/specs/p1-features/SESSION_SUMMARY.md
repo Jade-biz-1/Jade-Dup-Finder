@@ -123,7 +123,7 @@ CMakeLists.txt                          (+2 lines)
 ### Scan History Manager
 - ✅ Singleton pattern for global access
 - ✅ JSON serialization/deserialization
-- ✅ File-based storage (~/.local/share/DupFinder/history/)
+- ✅ File-based storage (~/.local/share/CloneClean/history/)
 - ✅ CRUD operations (save, load, list, delete)
 - ✅ Automatic directory creation
 - ✅ Error handling for all operations
@@ -202,7 +202,7 @@ CMakeLists.txt                          (+2 lines)
 ### Quick Smoke Test (5 minutes)
 ```bash
 # 1. Build and run
-cd build && make dupfinder && ./dupfinder-1.0.0
+cd build && make cloneclean && ./cloneclean-1.0.0
 
 # 2. Click "Downloads" preset
 # 3. Start scan
@@ -344,8 +344,8 @@ cd build && make dupfinder && ./dupfinder-1.0.0
 - All code is in `.kiro/specs/p1-features/`
 - Read `IMPLEMENTATION_COMPLETE.md` first
 - Use `MANUAL_TESTING_GUIDE.md` for testing
-- Check logs in `~/.local/share/DupFinder/logs/`
-- History files in `~/.local/share/DupFinder/history/`
+- Check logs in `~/.local/share/CloneClean/logs/`
+- History files in `~/.local/share/CloneClean/history/`
 
 ### For Testing
 - Start with quick smoke test

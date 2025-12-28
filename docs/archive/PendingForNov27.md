@@ -14,21 +14,21 @@ This document outlines pending tasks identified during the end-of-day review on 
 **Priority:** P2 (Medium)
 **Estimated Effort:** 30 minutes
 
-Remaining branding items to finalize the transition from DupFinder to CloneClean:
+Remaining branding items to finalize the transition from CloneClean to CloneClean:
 
 - [ ] **Update GitHub URLs in About Dialog**
   - Location: `src/gui/about_dialog.cpp`
-  - Current: Placeholder `github.com/dupfinder/dupfinder`
+  - Current: Placeholder `github.com/cloneclean/cloneclean`
   - Action: Update to actual CloneClean repository URL once repository is renamed/created
 
 - [ ] **Database Filename Migration** (Optional)
-  - Current: Settings stored as `dupfinder.db`
+  - Current: Settings stored as `cloneclean.db`
   - Consideration: Migrate to `cloneclean.db` for consistency
   - Impact: Need migration logic for existing users
   - Decision: Low priority - existing users may prefer continuity
 
 - [ ] **Code Comment Updates**
-  - Found: `include/performance_benchmark.h:10` still references "DupFinder"
+  - Found: `include/performance_benchmark.h:10` still references "CloneClean"
   - Action: Update any remaining code comments with old branding
 
 ### 2. Cross-Platform Testing
@@ -71,11 +71,11 @@ CloneClean has been developed and tested primarily on Linux. Before declaring Ph
   - Solution: Added `m_isTreePopulated` flag to skip unnecessary rebuilds
 
 ### CloneClean Branding (95% Complete)
-- ✅ Updated all window titles from "DupFinder" to "CloneClean"
+- ✅ Updated all window titles from "CloneClean" to "CloneClean"
 - ✅ Updated QSettings organization name
 - ✅ Updated Help dialog content and title
 - ✅ Updated HTML export footer
-- ✅ Cleaned build folder of old DupFinder artifacts
+- ✅ Cleaned build folder of old CloneClean artifacts
 - ✅ Updated IMPLEMENTATION_TASKS.md with CloneClean branding
 
 ### Documentation Improvements

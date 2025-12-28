@@ -2,7 +2,7 @@
 
 ## Introduction
 
-The DupFinder application currently contains hardcoded colors, styling, and theme elements throughout the GUI components that prevent proper theme application. These hardcoded styles override the comprehensive theme system, causing inconsistent appearance when users switch between light and dark themes. This specification addresses the systematic removal of all hardcoded styling to ensure complete theme compliance.
+The CloneClean application currently contains hardcoded colors, styling, and theme elements throughout the GUI components that prevent proper theme application. These hardcoded styles override the comprehensive theme system, causing inconsistent appearance when users switch between light and dark themes. This specification addresses the systematic removal of all hardcoded styling to ensure complete theme compliance.
 
 ## Glossary
 

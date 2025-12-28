@@ -22,7 +22,7 @@
 #include <QStandardPaths>
 
 /**
- * @brief Performance testing framework for DupFinder components
+ * @brief Performance testing framework for CloneClean components
  * 
  * This framework provides comprehensive performance testing capabilities including:
  * - High-precision timing measurements

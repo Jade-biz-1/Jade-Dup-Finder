@@ -1,6 +1,6 @@
 # Test Data Management System
 
-This document describes the comprehensive test data management system for DupFinder, which provides utilities for creating realistic test datasets, managing test environments, and handling test databases.
+This document describes the comprehensive test data management system for CloneClean, which provides utilities for creating realistic test datasets, managing test environments, and handling test databases.
 
 ## Overview
 
@@ -244,7 +244,7 @@ Create a `test_data_config.json` file to configure default test data generation:
 ```json
 {
   "dataGeneration": {
-    "defaultTempDirectory": "/tmp/dupfinder_test_data",
+    "defaultTempDirectory": "/tmp/cloneclean_test_data",
     "cleanupOnExit": true,
     "maxDatasetSize": "1GB",
     "defaultFileTypes": ["txt", "jpg", "pdf", "doc"],
@@ -256,7 +256,7 @@ Create a `test_data_config.json` file to configure default test data generation:
   },
   "environmentIsolation": {
     "enableResourceMonitoring": true,
-    "isolationDirectory": "/tmp/dupfinder_isolation",
+    "isolationDirectory": "/tmp/cloneclean_isolation",
     "maxEnvironments": 10,
     "cleanupDelaySeconds": 30
   },
@@ -273,11 +273,11 @@ Create a `test_data_config.json` file to configure default test data generation:
 
 The test data management system respects these environment variables:
 
-- `DUPFINDER_TEST_DATA_DIR`: Override default test data directory
-- `DUPFINDER_TEST_DB_DIR`: Override default test database directory
-- `DUPFINDER_TEST_CLEANUP`: Set to "false" to disable automatic cleanup
-- `DUPFINDER_TEST_ISOLATION`: Set to "false" to disable environment isolation
-- `DUPFINDER_TEST_PERFORMANCE`: Set to "true" to enable performance datasets
+- `CLONECLEAN_TEST_DATA_DIR`: Override default test data directory
+- `CLONECLEAN_TEST_DB_DIR`: Override default test database directory
+- `CLONECLEAN_TEST_CLEANUP`: Set to "false" to disable automatic cleanup
+- `CLONECLEAN_TEST_ISOLATION`: Set to "false" to disable environment isolation
+- `CLONECLEAN_TEST_PERFORMANCE`: Set to "true" to enable performance datasets
 
 ## Best Practices
 

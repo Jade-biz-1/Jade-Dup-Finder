@@ -1,4 +1,4 @@
-# DupFinder API Design Document
+# CloneClean API Design Document
 
 **Version:** 1.0  
 **Created:** 2025-10-03  
@@ -23,7 +23,7 @@ The FileScanner section below represents the original design. The actual impleme
 
 ## Overview
 
-This document defines the public APIs and interfaces for all major components in the DupFinder application. These APIs serve as contracts between components and provide the foundation for testing, maintainability, and future extensibility.
+This document defines the public APIs and interfaces for all major components in the CloneClean application. These APIs serve as contracts between components and provide the foundation for testing, maintainability, and future extensibility.
 
 ### API Design Principles
 - **Interface Segregation:** Small, focused interfaces with specific responsibilities
@@ -1408,4 +1408,4 @@ private:
 };
 ```
 
-This comprehensive API design provides the foundation for implementing all components of the DupFinder application. Each interface is designed to be testable, maintainable, and extensible, following modern C++ and Qt best practices.
+This comprehensive API design provides the foundation for implementing all components of the CloneClean application. Each interface is designed to be testable, maintainable, and extensible, following modern C++ and Qt best practices.

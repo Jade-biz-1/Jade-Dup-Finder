@@ -1,4 +1,4 @@
-# DupFinder UI Design Specification
+# CloneClean UI Design Specification
 
 **Version:** 1.0  
 **Created:** 2025-10-04  
@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-This document defines the complete user interface design for DupFinder, a cross-platform duplicate file finder application. The design focuses on creating an intuitive, modern interface that serves non-technical users while providing powerful functionality for duplicate file management.
+This document defines the complete user interface design for CloneClean, a cross-platform duplicate file finder application. The design focuses on creating an intuitive, modern interface that serves non-technical users while providing powerful functionality for duplicate file management.
 
 ### Design Principles
 - **Safety First:** Clear visual feedback, confirmation dialogs, no permanent deletion
@@ -26,7 +26,7 @@ This document defines the complete user interface design for DupFinder, a cross-
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│ DupFinder                                            [─] [□] [✕]                 │
+│ CloneClean                                            [─] [□] [✕]                 │
 ├─────────────────────────────────────────────────────────────────────────────────┤
 │ 📁 New Scan    ⚙️ Settings    ❓ Help                    🔔    👤 Free Plan      │
 ├─────────────────────────────────────────────────────────────────────────────────┤
@@ -272,7 +272,7 @@ signals:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│ 🔍 Duplicate Files Found - DupFinder                                  [─][□][✕] │
+│ 🔍 Duplicate Files Found - CloneClean                                  [─][□][✕] │
 ├─────────────────────────────────────────────────────────────────────────────────┤
 │ ┌─ HEADER PANEL ──────────────────────────────────────────────────────────────┐ │
 │ │ 🔍 Duplicate Files Results        2 groups found, 3.1 GB potential savings │ │
@@ -824,7 +824,7 @@ void MainWindowTest::testQuickActionButtons() {
 
 ## 9. Conclusion
 
-This UI specification provides a comprehensive foundation for implementing the DupFinder user interface. The design emphasizes:
+This UI specification provides a comprehensive foundation for implementing the CloneClean user interface. The design emphasizes:
 
 - **User-Centric Design:** Simple, intuitive interfaces for non-technical users
 - **Safety First:** Clear confirmations and reversible operations

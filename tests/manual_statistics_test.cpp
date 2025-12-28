@@ -3,7 +3,7 @@
  * 
  * This is a simple program to manually verify the statistics feature works correctly.
  * Compile and run with: 
- *   g++ -o manual_stats_test manual_statistics_test.cpp -I../include -L../build -ldupfinder $(pkg-config --cflags --libs Qt6Core)
+ *   g++ -o manual_stats_test manual_statistics_test.cpp -I../include -L../build -lcloneclean $(pkg-config --cflags --libs Qt6Core)
  */
 
 #include <QCoreApplication>

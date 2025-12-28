@@ -84,14 +84,14 @@ Modern build system successfully implemented. Provides comprehensive cross-platf
 
 #### Subtasks:
 - [x] **T32.3:** Build System Cleanup ✅ COMPLETE
-  - [x] Remove old DupFinder build artifacts
+  - [x] Remove old CloneClean build artifacts
   - [x] Generate CloneClean Release packages (DEB, RPM, TGZ)
   - [x] Update resource files (cloneclean.qrc)
   - [x] Add CloneClean icon set (16px to 512px + SVG)
 
 #### Acceptance Criteria:
 - [x] Build generates CloneClean-branded packages
-- [x] No old DupFinder artifacts remain
+- [x] No old CloneClean artifacts remain
 - [x] Resources properly updated for CloneClean
 
 #### Notes:
@@ -151,7 +151,7 @@ Cross-platform testing in progress. Build system infrastructure complete, now fo
 
 - [x] **Code Comment Updates**
   - Found and updated: `tests/performance_benchmark.h`, `tests/CMakeLists.txt`, `tests/example_load_stress_testing.cpp`
-  - Action: All DupFinder references removed from source code
+  - Action: All CloneClean references removed from source code
 
 #### Acceptance Criteria:
 - [ ] GitHub URLs in About dialog point to actual CloneClean repository

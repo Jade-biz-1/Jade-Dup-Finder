@@ -1,6 +1,6 @@
 {
   "_comment": "Windows 64-bit build profile for MSVC toolchain with NVIDIA CUDA GPU acceleration",
-  "_description": "This profile builds DupFinder for Windows x64 using Visual Studio 2022 MSVC compiler with CUDA GPU support",
+  "_description": "This profile builds CloneClean for Windows x64 using Visual Studio 2022 MSVC compiler with CUDA GPU support",
   "_local_setup_notes": [
     "IMPORTANT: Update paths below to match YOUR local installation",
     "See LOCAL_SETTINGS.md for this machine's configuration",
@@ -38,10 +38,10 @@
         "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.5\\bin"
       ],
       "cmake_args": [
-        "-DDUPFINDER_BUILD_VARIANT=gpu",
+        "-DCLONECLEAN_BUILD_VARIANT=gpu",
         "-DCLONECLEAN_PACKAGE_SUFFIX=win64-msvc-cuda",
         "-DENABLE_GPU_ACCELERATION=ON",
-        "-DDUPFINDER_WARNINGS_AS_ERRORS=OFF",
+        "-DCLONECLEAN_WARNINGS_AS_ERRORS=OFF",
         "-DQT_FORCE_MIN_CMAKE_VERSION_FOR_USING_QT=3.20",
         "-DCMAKE_CUDA_COMPILER=C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.5\\bin\\nvcc.exe"
       ],

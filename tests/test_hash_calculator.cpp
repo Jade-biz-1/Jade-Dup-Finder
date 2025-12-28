@@ -73,7 +73,7 @@ void TestHashCalculator::initTestCase()
     // Create temporary directory for test files
     QTemporaryFile tempDir;
     tempDir.open();
-    m_testDataDir = QFileInfo(tempDir.fileName()).absolutePath() + "/dupfinder_hash_test";
+    m_testDataDir = QFileInfo(tempDir.fileName()).absolutePath() + "/cloneclean_hash_test";
     QDir().mkpath(m_testDataDir);
     
     qDebug() << "Test data directory:" << m_testDataDir;
@@ -106,7 +106,7 @@ void TestHashCalculator::testBasicHashCalculation()
     qDebug() << "Testing basic hash calculation";
     
     // Create test file with known content
-    QByteArray testData = "Hello, DupFinder! This is a test file for hash calculation.";
+    QByteArray testData = "Hello, CloneClean! This is a test file for hash calculation.";
     QString testFile = createTestFile("basic_test.txt", testData);
     
     // Calculate expected hash

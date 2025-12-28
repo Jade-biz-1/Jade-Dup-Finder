@@ -7,11 +7,11 @@
 int main(int argc, char *argv[])
 {
     QCoreApplication app(argc, argv);
-    app.setApplicationName("DupFinder Performance Scalability Validator");
+    app.setApplicationName("CloneClean Performance Scalability Validator");
     app.setApplicationVersion("1.0");
     
     QCommandLineParser parser;
-    parser.setApplicationDescription("Performance and scalability validation for DupFinder test suite");
+    parser.setApplicationDescription("Performance and scalability validation for CloneClean test suite");
     parser.addHelpOption();
     parser.addVersionOption();
     
@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
     QString outputDir = parser.value(outputOption);
     QDir::setCurrent(outputDir);
     
-    qDebug() << "DupFinder Performance Scalability Validator";
+    qDebug() << "CloneClean Performance Scalability Validator";
     qDebug() << "==========================================";
     qDebug() << "Output directory:" << QDir::currentPath();
     

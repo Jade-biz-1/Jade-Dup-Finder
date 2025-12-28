@@ -1,4 +1,4 @@
-# DupFinder Advanced Features
+# CloneClean Advanced Features
 
 **Version:** 1.0  
 **Date:** October 27, 2025  
@@ -8,7 +8,7 @@
 
 ## Overview
 
-This document describes the advanced features implemented in Phase 2 of DupFinder development. These features extend the application beyond basic hash-based duplicate detection to provide intelligent, flexible, and deeply integrated functionality.
+This document describes the advanced features implemented in Phase 2 of CloneClean development. These features extend the application beyond basic hash-based duplicate detection to provide intelligent, flexible, and deeply integrated functionality.
 
 ---
 
@@ -16,7 +16,7 @@ This document describes the advanced features implemented in Phase 2 of DupFinde
 
 ### 1.1 Detection Algorithm Framework
 
-DupFinder now supports multiple detection algorithms through a pluggable architecture.
+CloneClean now supports multiple detection algorithms through a pluggable architecture.
 
 **Base Interface:** `DetectionAlgorithm`
 
@@ -168,15 +168,15 @@ Benchmarks based on actual use cases:
 
 ```bash
 # Run all benchmarks
-dupfinder --benchmark
+cloneclean --benchmark
 
 # Run specific category
-dupfinder --benchmark hash
-dupfinder --benchmark scan
-dupfinder --benchmark detection
+cloneclean --benchmark hash
+cloneclean --benchmark scan
+cloneclean --benchmark detection
 
 # Generate reports
-dupfinder --benchmark --report benchmark_results/
+cloneclean --benchmark --report benchmark_results/
 ```
 
 **Output Formats:**
@@ -190,9 +190,9 @@ dupfinder --benchmark --report benchmark_results/
 
 ### 3.1 Application Menu Integration
 
-**File:** `packaging/linux/dupfinder.desktop`
+**File:** `packaging/linux/cloneclean.desktop`
 
-Adds DupFinder to application menu with:
+Adds CloneClean to application menu with:
 - Application launcher
 - Search integration
 - Recent files support
@@ -209,14 +209,14 @@ sudo ./packaging/linux/install-desktop-integration.sh
 
 ### 3.2 File Manager Integration
 
-**Nautilus Extension:** `packaging/linux/nautilus-dupfinder.py`
+**Nautilus Extension:** `packaging/linux/nautilus-cloneclean.py`
 
 Adds context menu items to Nautilus (GNOME Files):
 
 **Available Actions:**
-1. **Find Duplicates with DupFinder**
+1. **Find Duplicates with CloneClean**
    - Right-click any folder
-   - Launches DupFinder with selected folder
+   - Launches CloneClean with selected folder
 
 2. **Quick Scan for Duplicates**
    - Right-click any folder
@@ -243,7 +243,7 @@ Desktop notifications for:
 **Example:**
 ```
 ┌─────────────────────────────────────┐
-│ DupFinder - Scan Complete           │
+│ CloneClean - Scan Complete           │
 ├─────────────────────────────────────┤
 │ Found 143 duplicate groups           │
 │ Potential space savings: 2.4 GB      │
@@ -258,29 +258,29 @@ Desktop notifications for:
 
 ```bash
 # Scan specific directory
-dupfinder --scan /path/to/directory
+cloneclean --scan /path/to/directory
 
 # Quick scan (common locations)
-dupfinder --quick-scan /path/to/directory
+cloneclean --quick-scan /path/to/directory
 
 # Use perceptual hashing for images
-dupfinder --scan --mode perceptual /path/to/photos
+cloneclean --scan --mode perceptual /path/to/photos
 
 # Set similarity threshold
-dupfinder --scan --mode perceptual --threshold 0.90 /path/to/photos
+cloneclean --scan --mode perceptual --threshold 0.90 /path/to/photos
 
 # Run benchmarks
-dupfinder --benchmark
+cloneclean --benchmark
 
 # Generate benchmark report
-dupfinder --benchmark --output benchmark_results/
+cloneclean --benchmark --output benchmark_results/
 ```
 
 ### 3.5 D-Bus Service
 
 Enables inter-process communication and automation:
 
-**Service Name:** `org.dupfinder.DupFinder`
+**Service Name:** `org.cloneclean.CloneClean`
 
 **Available Methods:**
 - `StartScan(path: string) → scan_id: string`
@@ -291,9 +291,9 @@ Enables inter-process communication and automation:
 **Example Usage:**
 ```bash
 # Using busctl
-busctl --user call org.dupfinder.DupFinder \
-    /org/dupfinder/DupFinder \
-    org.dupfinder.DupFinder \
+busctl --user call org.cloneclean.CloneClean \
+    /org/cloneclean/CloneClean \
+    org.cloneclean.CloneClean \
     StartScan s "/home/user/Downloads"
 ```
 
@@ -504,7 +504,7 @@ update-desktop-database ~/.local/share/applications
 
 ## 10. Conclusion
 
-Phase 2 advanced features transform DupFinder from a basic duplicate finder into a sophisticated, intelligent file management tool. The pluggable algorithm architecture, comprehensive benchmarking, and deep desktop integration provide a solid foundation for future enhancements while delivering immediate value to users.
+Phase 2 advanced features transform CloneClean from a basic duplicate finder into a sophisticated, intelligent file management tool. The pluggable algorithm architecture, comprehensive benchmarking, and deep desktop integration provide a solid foundation for future enhancements while delivering immediate value to users.
 
 **Key Achievements:**
 - ✅ Perceptual hashing for images

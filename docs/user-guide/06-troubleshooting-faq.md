@@ -1,6 +1,6 @@
 # Volume 6: Troubleshooting & FAQ
 
-**DupFinder User Guide - Volume 6**  
+**CloneClean User Guide - Volume 6**  
 **Last Updated:** October 17, 2025
 
 ---
@@ -21,7 +21,7 @@
 
 ### Application Won't Start
 
-#### Symptom: DupFinder crashes on startup
+#### Symptom: CloneClean crashes on startup
 **Possible Causes:**
 - Corrupted configuration files
 - Missing system dependencies
@@ -31,12 +31,12 @@
 1. **Reset configuration:**
    ```bash
    # Linux/macOS
-   rm -rf ~/.config/DupFinder/
-   rm -rf ~/.local/share/dupfinder/
+   rm -rf ~/.config/CloneClean/
+   rm -rf ~/.local/share/cloneclean/
    
    # Windows
-   # Delete: %APPDATA%\DupFinder\
-   # Delete: %LOCALAPPDATA%\dupfinder\
+   # Delete: %APPDATA%\CloneClean\
+   # Delete: %LOCALAPPDATA%\cloneclean\
    ```
 
 2. **Check system requirements:**
@@ -46,7 +46,7 @@
 
 3. **Run with debug output:**
    ```bash
-   dupfinder --debug --log-level=debug
+   cloneclean --debug --log-level=debug
    ```
 
 #### Symptom: "Cannot find Qt libraries" error
@@ -66,19 +66,19 @@ brew install qt5
 #### Symptom: "Database corruption detected"
 **Solutions:**
 1. **Automatic repair:**
-   - DupFinder will offer automatic repair on startup
+   - CloneClean will offer automatic repair on startup
    - Choose "Automatic repair (recommended)"
    - Wait for repair to complete
 
 2. **Manual database reset:**
    ```bash
    # Backup current database
-   cp ~/.local/share/dupfinder/database.db ~/.local/share/dupfinder/database.db.backup
+   cp ~/.local/share/cloneclean/database.db ~/.local/share/cloneclean/database.db.backup
    
    # Remove corrupted database
-   rm ~/.local/share/dupfinder/database.db
+   rm ~/.local/share/cloneclean/database.db
    
-   # Restart DupFinder (creates new database)
+   # Restart CloneClean (creates new database)
    ```
 
 3. **Restore from backup:**
@@ -151,7 +151,7 @@ ates
 1. 
    ```bash
    # For system directories (use ly)
-   sudo dupfinder
+   sudo cloneclean
    ```
 
 2. **Ss:**
@@ -233,8 +233,8 @@ ngs:**
 
 ### General Questions
 
-**Q: Is DupFinder safe to use?**
-A: Yes, DupFinders:
+**Q: Is CloneClean safe to use?**
+A: Yes, CloneCleans:
 - Fdeleted
 - Automatic backups before operations
 - Protected paths prevent system file deletion
@@ -246,7 +246,7 @@ A: Very accurate - uses SHA-256 cryptographic hliable.
 **Q: Can I recover deleted files?**
 :
 - System trash/recycle bin
-- DupFinderon
+- CloneCleanon
 - Automatic backups
 - System file recovery tools
 
@@ -317,7 +317,7 @@ s:**
 g Logs
 ```bash
 # Linux/macS
-~/.local/share/dupfinder/logs/
+~/.local/share/cloneclean/logs/
 
 # Windows
 \
@@ -332,7 +332,7 @@ g Logs
 #### Debug Mode
 ```bash
 g
-dupfinder --debug --log-level=debu
+cloneclean --debug --log-level=debu
 ```
 
 ### Reporting Issues
@@ -374,16 +374,16 @@ ilable
 
 ### Application Recovery
 
-If DupFinder becomes unusable:
+If CloneClean becomes unusable:
 
 1. **Backup current data:**
    ```bash
-   cp -r ~/.local/share/dupfinder/ckup/
+   cp -r ~/.local/share/cloneclean/ckup/
    ```
 
 2. **Reset to defaults:**
    ```bash
-   rm -rf ~/.config/DupFinder/
+   rm -rf ~/.config/CloneClean/
    ```
 
 3. **Reinstall if necessa*

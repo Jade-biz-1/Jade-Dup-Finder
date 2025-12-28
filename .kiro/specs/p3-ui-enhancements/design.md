@@ -708,7 +708,7 @@ QCache<QString, QPixmap> m_thumbnailCache;
 
 **Disk Cache** (optional, for persistence):
 ```
-~/.cache/dupfinder/thumbnails/
+~/.cache/cloneclean/thumbnails/
   ├── [hash1].png
   ├── [hash2].png
   └── ...

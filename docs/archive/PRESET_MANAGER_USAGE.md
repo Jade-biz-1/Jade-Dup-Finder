@@ -101,9 +101,9 @@ When you select a preset in the Preset Manager, the right panel shows:
 Presets are stored in your system's application settings and persist across sessions. They are automatically loaded when you open the Preset Manager.
 
 **Storage Location**: 
-- Linux: `~/.config/DupFinder/presets/scan/`
-- Windows: Registry or `%APPDATA%/DupFinder/presets/scan/`
-- macOS: `~/Library/Preferences/com.dupfinder.presets/scan/`
+- Linux: `~/.config/CloneClean/presets/scan/`
+- Windows: Registry or `%APPDATA%/CloneClean/presets/scan/`
+- macOS: `~/Library/Preferences/com.cloneclean.presets/scan/`
 
 ## Best Practices
 

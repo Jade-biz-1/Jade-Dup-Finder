@@ -485,4 +485,4 @@ private:
 
 **Last Updated:** 2025-10-04  
 **Next Review:** 2025-10-11  
-**Maintained By:** DupFinder Development Team
+**Maintained By:** CloneClean Development Team

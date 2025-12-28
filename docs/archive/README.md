@@ -1,6 +1,6 @@
 # Documentation Archive
 
-This directory contains archived documentation from the DupFinder project development process.
+This directory contains archived documentation from the CloneClean project development process.
 
 ## Archive Organization
 

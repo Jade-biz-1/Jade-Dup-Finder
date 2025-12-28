@@ -7,7 +7,7 @@
 By the end of this module, you will be able to:
 - Explain why software testing is essential for quality development
 - Identify different types of testing and their purposes
-- Understand the testing pyramid and how it applies to DupFinder
+- Understand the testing pyramid and how it applies to CloneClean
 - Recognize the benefits of automated testing over manual testing
 - Apply basic testing principles to real-world scenarios
 
@@ -18,7 +18,7 @@ By the end of this module, you will be able to:
 3. [The Testing Pyramid](#the-testing-pyramid)
 4. [Manual vs Automated Testing](#manual-vs-automated-testing)
 5. [Testing in the Development Lifecycle](#testing-in-the-development-lifecycle)
-6. [DupFinder Testing Strategy](#dupfinder-testing-strategy)
+6. [CloneClean Testing Strategy](#cloneclean-testing-strategy)
 7. [Hands-on Exercise](#hands-on-exercise)
 8. [Knowledge Check](#knowledge-check)
 9. [Next Steps](#next-steps)
@@ -36,7 +36,7 @@ Software bugs are expensive. The cost of fixing a bug increases exponentially th
 
 ### Real-World Impact
 
-Consider these scenarios in DupFinder:
+Consider these scenarios in CloneClean:
 - A bug in file deletion could permanently lose user data
 - Performance issues could make the application unusable with large datasets
 - UI bugs could make features inaccessible to users with disabilities
@@ -170,9 +170,9 @@ The testing pyramid is a fundamental concept that guides testing strategy:
 |__________________| - Foundation of test suite
 ```
 
-### DupFinder Testing Pyramid
+### CloneClean Testing Pyramid
 
-For DupFinder, our pyramid looks like:
+For CloneClean, our pyramid looks like:
 
 - **70% Unit Tests**: Core algorithms, utilities, individual classes
 - **20% Integration Tests**: Component interactions, file operations
@@ -285,11 +285,11 @@ int FileProcessor::countLines(const QString& filename) {
 }
 ```
 
-## DupFinder Testing Strategy
+## CloneClean Testing Strategy
 
 ### Our Testing Approach
 
-DupFinder uses a comprehensive testing strategy:
+CloneClean uses a comprehensive testing strategy:
 
 1. **Unit Tests**: Test individual classes and functions
 2. **Integration Tests**: Test component interactions
@@ -334,7 +334,7 @@ We maintain quality through:
 
 ### Exercise 1: Identify Testing Scenarios
 
-For the following DupFinder features, identify what types of tests would be appropriate:
+For the following CloneClean features, identify what types of tests would be appropriate:
 
 1. **File Hash Calculation**
    - What unit tests would you write?
@@ -422,7 +422,7 @@ List all the ways this function could fail or behave unexpectedly:
    - Testing file scanner integration with the database
    - Testing UI button click behavior
 
-3. **Risk Assessment**: For DupFinder, rank these risks by testing priority:
+3. **Risk Assessment**: For CloneClean, rank these risks by testing priority:
    - Data loss during file operations
    - Slow performance with large datasets
    - UI inconsistencies across themes
@@ -442,7 +442,7 @@ Now that you understand testing fundamentals, you're ready to:
 
 1. **Continue to Module 2**: [Qt Test Framework Basics](02-qt-test-basics.md)
 2. **Practice**: Try the hands-on exercises
-3. **Explore**: Look at existing DupFinder tests in the `tests/` directory
+3. **Explore**: Look at existing CloneClean tests in the `tests/` directory
 4. **Discuss**: Join the testing discussion forum
 
 ## Additional Resources

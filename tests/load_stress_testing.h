@@ -22,7 +22,7 @@ class PerformanceBenchmark;
 class TestDataGenerator;
 
 /**
- * @brief Comprehensive load and stress testing framework for DupFinder
+ * @brief Comprehensive load and stress testing framework for CloneClean
  * 
  * Provides advanced load testing, stress testing, and scalability validation
  * capabilities including concurrent operations, high-volume scenarios, and
@@ -203,7 +203,7 @@ public:
     bool runFileSizeScalabilityTest(const QList<qint64>& fileSizes, std::function<void(qint64)> operation);
     bool runThreadScalabilityTest(const QList<int>& threadCounts, std::function<void(int)> operation);
 
-    // DupFinder-specific load tests
+    // CloneClean-specific load tests
     bool runDuplicateDetectionLoadTest(const QString& testDirectory, int fileCount, double duplicateRatio);
     bool runHashCalculationLoadTest(const QStringList& filePaths, int concurrentHashers);
     bool runFileScanningLoadTest(const QString& rootDirectory, int concurrentScanners);

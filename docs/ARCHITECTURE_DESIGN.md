@@ -1,4 +1,4 @@
-# DupFinder Architecture Design Document
+# CloneClean Architecture Design Document
 
 **Version:** 1.0  
 **Created:** 2025-10-03  
@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-This document defines the technical architecture for DupFinder, a cross-platform duplicate file finder application. The architecture follows modern C++/Qt6 best practices with a focus on modularity, testability, and maintainability across Linux, Windows, and macOS platforms.
+This document defines the technical architecture for CloneClean, a cross-platform duplicate file finder application. The architecture follows modern C++/Qt6 best practices with a focus on modularity, testability, and maintainability across Linux, Windows, and macOS platforms.
 
 ### Architecture Principles
 - **Separation of Concerns:** Clear boundaries between core logic, UI, and platform-specific code
@@ -482,25 +482,25 @@ private:
 
 ```cpp
 // Custom exception hierarchy
-class DupFinderException : public std::exception {
+class CloneCleanException : public std::exception {
 public:
-    explicit DupFinderException(const QString& message);
+    explicit CloneCleanException(const QString& message);
     const char* what() const noexcept override;
     
 protected:
     QString m_message;
 };
 
-class FileAccessException : public DupFinderException { /* ... */ };
-class HashCalculationException : public DupFinderException { /* ... */ };
-class PlatformException : public DupFinderException { /* ... */ };
+class FileAccessException : public CloneCleanException { /* ... */ };
+class HashCalculationException : public CloneCleanException { /* ... */ };
+class PlatformException : public CloneCleanException { /* ... */ };
 
 // Error handling policy
 class ErrorHandler {
 public:
     enum class ErrorLevel { Info, Warning, Error, Critical };
     
-    static void handleError(const DupFinderException& ex, ErrorLevel level);
+    static void handleError(const CloneCleanException& ex, ErrorLevel level);
     static void logError(const QString& component, const QString& message);
     static QStringList getRecentErrors();
     
@@ -657,7 +657,7 @@ private:
 
 ```cpp
 // Test fixture base class
-class DupFinderTestBase : public QObject {
+class CloneCleanTestBase : public QObject {
     Q_OBJECT
     
 protected:
@@ -673,7 +673,7 @@ protected:
 };
 
 // Component-specific test classes
-class FileScannerTest : public DupFinderTestBase {
+class FileScannerTest : public CloneCleanTestBase {
     Q_OBJECT
     
 private slots:
@@ -720,11 +720,11 @@ private slots:
 if(WIN32)
     # Windows-specific settings
     set(PLATFORM_SOURCES src/platform/windows/*)
-    target_link_libraries(dupfinder shell32 ole32)
+    target_link_libraries(cloneclean shell32 ole32)
 elseif(APPLE)
     # macOS-specific settings  
     set(PLATFORM_SOURCES src/platform/macos/*)
-    target_link_libraries(dupfinder ${FOUNDATION_LIB} ${APPKIT_LIB})
+    target_link_libraries(cloneclean ${FOUNDATION_LIB} ${APPKIT_LIB})
 elseif(UNIX)
     # Linux-specific settings
     set(PLATFORM_SOURCES src/platform/linux/*)

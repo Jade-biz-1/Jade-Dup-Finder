@@ -6,7 +6,7 @@
 
 ## Overview
 
-Comprehensive logging has been successfully added to all core components of the DupFinder application. This completes the Logger-4 task and provides full logging coverage across the entire application architecture.
+Comprehensive logging has been successfully added to all core components of the CloneClean application. This completes the Logger-4 task and provides full logging coverage across the entire application architecture.
 
 ## Components Enhanced
 
@@ -190,22 +190,22 @@ The following logging categories are now fully utilized across core components:
 ### **Viewing Logs by Category**
 ```bash
 # View all duplicate detection logs
-grep "DUPLICATE" /path/to/logs/dupfinder.log
+grep "DUPLICATE" /path/to/logs/cloneclean.log
 
 # View all file operations
-grep "FILE_OPS" /path/to/logs/dupfinder.log
+grep "FILE_OPS" /path/to/logs/cloneclean.log
 
 # View all safety operations
-grep "SAFETY" /path/to/logs/dupfinder.log
+grep "SAFETY" /path/to/logs/cloneclean.log
 ```
 
 ### **Filtering by Log Level**
 ```bash
 # View only errors and warnings
-grep -E "(ERROR|WARNING)" /path/to/logs/dupfinder.log
+grep -E "(ERROR|WARNING)" /path/to/logs/cloneclean.log
 
 # View operation progress
-grep "INFO" /path/to/logs/dupfinder.log
+grep "INFO" /path/to/logs/cloneclean.log
 ```
 
 ## Testing Verification

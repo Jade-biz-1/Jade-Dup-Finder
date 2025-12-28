@@ -233,7 +233,7 @@ Successfully completed implementation of tasks T9-T20 from IMPLEMENTATION_TASKS.
 - `src/gui/restore_dialog.cpp` - Fixed SafetyManager integration
 
 ### Build Status
-- ✅ **dupfinder target:** Builds successfully
+- ✅ **cloneclean target:** Builds successfully
 - ✅ **All new files:** Compile cleanly
 - ✅ **CMakeLists.txt:** Properly configured
 - ✅ **Qt MOC:** Processing headers correctly

@@ -26,7 +26,7 @@ class LoadStressTesting;
  * 
  * Provides comprehensive real-time performance metrics collection, trend analysis,
  * regression detection, alerting, and interactive reporting dashboard capabilities
- * for continuous performance monitoring of DupFinder operations.
+ * for continuous performance monitoring of CloneClean operations.
  */
 class PerformanceMonitoring : public QObject {
     Q_OBJECT

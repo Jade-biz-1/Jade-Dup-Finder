@@ -1,6 +1,6 @@
 {
   "_comment": "Windows 64-bit build profile for MinGW-w64 toolchain with CPU-only support",
-  "_description": "This profile builds DupFinder for Windows x64 using LLVM-MinGW compiler without GPU acceleration",
+  "_description": "This profile builds CloneClean for Windows x64 using LLVM-MinGW compiler without GPU acceleration",
   "_local_setup_notes": [
     "IMPORTANT: Update paths below to match YOUR local installation",
     "See LOCAL_SETTINGS.md for this machine's configuration",
@@ -29,7 +29,7 @@
         "C:\\Qt\\6.9.3\\llvm-mingw_64\\bin"
       ],
       "cmake_args": [
-        "-DDUPFINDER_BUILD_VARIANT=cpu",
+        "-DCLONECLEAN_BUILD_VARIANT=cpu",
         "-DCLONECLEAN_PACKAGE_SUFFIX=win64-mingw-cpu",
         "-DENABLE_GPU_ACCELERATION=OFF"
       ],

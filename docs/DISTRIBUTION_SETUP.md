@@ -8,7 +8,7 @@
 
 ## Overview
 
-DupFinder now includes automated checksum generation and comprehensive distribution documentation to enable secure distribution of pre-built binaries through the repository.
+CloneClean now includes automated checksum generation and comprehensive distribution documentation to enable secure distribution of pre-built binaries through the repository.
 
 ## Changes Implemented
 
@@ -85,9 +85,9 @@ Checksums are generated automatically during the build process:
 python scripts/build.py --target linux-ninja-cpu --build-type Release
 
 # Output includes:
-# - Package: dist/Linux/Release/dupfinder-1.0.0-linux-x86_64-cpu.deb
-# - Checksum: dist/Linux/Release/dupfinder-1.0.0-linux-x86_64-cpu.deb.sha256
-# - Checksum: dist/Linux/Release/dupfinder-1.0.0-linux-x86_64-cpu.deb.md5
+# - Package: dist/Linux/Release/cloneclean-1.0.0-linux-x86_64-cpu.deb
+# - Checksum: dist/Linux/Release/cloneclean-1.0.0-linux-x86_64-cpu.deb.sha256
+# - Checksum: dist/Linux/Release/cloneclean-1.0.0-linux-x86_64-cpu.deb.md5
 ```
 
 ### Verifying Checksums
@@ -95,14 +95,14 @@ python scripts/build.py --target linux-ninja-cpu --build-type Release
 **Linux/macOS:**
 ```bash
 cd dist/Linux/Release
-sha256sum -c dupfinder-1.0.0-linux-x86_64-cpu.deb.sha256
+sha256sum -c cloneclean-1.0.0-linux-x86_64-cpu.deb.sha256
 ```
 
 **Windows (PowerShell):**
 ```powershell
 cd dist\Win64\Release
-$expected = Get-Content dupfinder-1.0.0-win64-msvc-cpu.exe.sha256 | Select-Object -First 1 | ForEach-Object { $_.Split()[0] }
-$actual = (Get-FileHash dupfinder-1.0.0-win64-msvc-cpu.exe -Algorithm SHA256).Hash
+$expected = Get-Content cloneclean-1.0.0-win64-msvc-cpu.exe.sha256 | Select-Object -First 1 | ForEach-Object { $_.Split()[0] }
+$actual = (Get-FileHash cloneclean-1.0.0-win64-msvc-cpu.exe -Algorithm SHA256).Hash
 $expected -eq $actual
 ```
 
@@ -140,8 +140,8 @@ $expected -eq $actual
 
 1. **Clone Repository or Download Release:**
    ```bash
-   git clone https://github.com/yourusername/dupfinder.git
-   cd dupfinder/dist
+   git clone https://github.com/yourusername/cloneclean.git
+   cd cloneclean/dist
    ```
 
 2. **Verify Checksum:**
@@ -161,39 +161,39 @@ dist/
 ├── README.md                          # Distribution guide
 ├── Win64/
 │   ├── Debug/
-│   │   ├── dupfinder-1.0.0-win64-msvc-cpu.exe
-│   │   ├── dupfinder-1.0.0-win64-msvc-cpu.exe.sha256
-│   │   └── dupfinder-1.0.0-win64-msvc-cpu.exe.md5
+│   │   ├── cloneclean-1.0.0-win64-msvc-cpu.exe
+│   │   ├── cloneclean-1.0.0-win64-msvc-cpu.exe.sha256
+│   │   └── cloneclean-1.0.0-win64-msvc-cpu.exe.md5
 │   └── Release/
-│       ├── dupfinder-1.0.0-win64-msvc-cpu.exe
-│       ├── dupfinder-1.0.0-win64-msvc-cpu.exe.sha256
-│       └── dupfinder-1.0.0-win64-msvc-cpu.exe.md5
+│       ├── cloneclean-1.0.0-win64-msvc-cpu.exe
+│       ├── cloneclean-1.0.0-win64-msvc-cpu.exe.sha256
+│       └── cloneclean-1.0.0-win64-msvc-cpu.exe.md5
 ├── Linux/
 │   ├── Debug/
-│   │   ├── dupfinder-1.0.0-linux-x86_64-cpu.deb
-│   │   ├── dupfinder-1.0.0-linux-x86_64-cpu.deb.sha256
-│   │   ├── dupfinder-1.0.0-linux-x86_64-cpu.deb.md5
-│   │   ├── dupfinder-1.0.0-linux-x86_64-cpu.rpm
-│   │   ├── dupfinder-1.0.0-linux-x86_64-cpu.rpm.sha256
-│   │   ├── dupfinder-1.0.0-linux-x86_64-cpu.rpm.md5
-│   │   ├── dupfinder-1.0.0-linux-x86_64-cpu.tgz
-│   │   ├── dupfinder-1.0.0-linux-x86_64-cpu.tgz.sha256
-│   │   └── dupfinder-1.0.0-linux-x86_64-cpu.tgz.md5
+│   │   ├── cloneclean-1.0.0-linux-x86_64-cpu.deb
+│   │   ├── cloneclean-1.0.0-linux-x86_64-cpu.deb.sha256
+│   │   ├── cloneclean-1.0.0-linux-x86_64-cpu.deb.md5
+│   │   ├── cloneclean-1.0.0-linux-x86_64-cpu.rpm
+│   │   ├── cloneclean-1.0.0-linux-x86_64-cpu.rpm.sha256
+│   │   ├── cloneclean-1.0.0-linux-x86_64-cpu.rpm.md5
+│   │   ├── cloneclean-1.0.0-linux-x86_64-cpu.tgz
+│   │   ├── cloneclean-1.0.0-linux-x86_64-cpu.tgz.sha256
+│   │   └── cloneclean-1.0.0-linux-x86_64-cpu.tgz.md5
 │   └── Release/
 │       └── (same structure as Debug)
 └── MacOS/
     ├── X64/
     │   ├── Debug/
-    │   │   ├── dupfinder-1.0.0-macos-x86_64.dmg
-    │   │   ├── dupfinder-1.0.0-macos-x86_64.dmg.sha256
-    │   │   └── dupfinder-1.0.0-macos-x86_64.dmg.md5
+    │   │   ├── cloneclean-1.0.0-macos-x86_64.dmg
+    │   │   ├── cloneclean-1.0.0-macos-x86_64.dmg.sha256
+    │   │   └── cloneclean-1.0.0-macos-x86_64.dmg.md5
     │   └── Release/
     │       └── (same structure as Debug)
     └── ARM/
         ├── Debug/
-        │   ├── dupfinder-1.0.0-macos-arm64.dmg
-        │   ├── dupfinder-1.0.0-macos-arm64.dmg.sha256
-        │   └── dupfinder-1.0.0-macos-arm64.dmg.md5
+        │   ├── cloneclean-1.0.0-macos-arm64.dmg
+        │   ├── cloneclean-1.0.0-macos-arm64.dmg.sha256
+        │   └── cloneclean-1.0.0-macos-arm64.dmg.md5
         └── Release/
             └── (same structure as Debug)
 ```
@@ -322,4 +322,4 @@ Future: Add CI/CD pipeline to:
 ---
 
 **Last Updated:** November 2025  
-**Maintainer:** DupFinder Team
+**Maintainer:** CloneClean Team

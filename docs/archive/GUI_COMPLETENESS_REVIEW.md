@@ -252,7 +252,7 @@ Let me check other GUI components for completeness.
 
 ### Compilation Test
 ```bash
-cmake --build build --target dupfinder -j$(nproc)
+cmake --build build --target cloneclean -j$(nproc)
 ```
 
 **Result:** ✅ SUCCESS

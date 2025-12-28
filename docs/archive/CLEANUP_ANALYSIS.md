@@ -76,7 +76,7 @@ git rm test_gpu.cmake
 
 **Current Status**:
 - Tool is complete and functional
-- Not built by default when building DupFinder
+- Not built by default when building CloneClean
 - Not referenced in build documentation
 - Not integrated into CI/CD or git hooks
 

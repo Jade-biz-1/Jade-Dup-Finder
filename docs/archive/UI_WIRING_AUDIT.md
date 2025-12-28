@@ -1,4 +1,4 @@
-# UI Wiring Audit - DupFinder
+# UI Wiring Audit - CloneClean
 
 ## Date: October 14, 2025 (Updated)
 ## Purpose: Comprehensive audit of all UI components and their wiring
@@ -126,7 +126,7 @@ void MainWindow::onHelpRequested()
     LOG_INFO("User clicked 'Help' button");
     
     QString helpText = tr(
-        "<h2>DupFinder - Duplicate File Finder</h2>"
+        "<h2>CloneClean - Duplicate File Finder</h2>"
         "<p><b>Quick Start:</b></p>"
         "<ol>"
         "<li>Click 'New Scan' to configure a scan</li>"
@@ -152,7 +152,7 @@ void MainWindow::onHelpRequested()
         "</ul>"
     );
     
-    QMessageBox::information(this, tr("DupFinder Help"), helpText);
+    QMessageBox::information(this, tr("CloneClean Help"), helpText);
 }
 ```
 
@@ -685,7 +685,7 @@ All UI wiring issues identified in the original audit have been successfully res
 
 ### Current State
 
-The DupFinder application now has **complete UI functionality** with all buttons, dialogs, and workflows properly wired and tested. No known UI wiring issues remain.
+The CloneClean application now has **complete UI functionality** with all buttons, dialogs, and workflows properly wired and tested. No known UI wiring issues remain.
 
 ### Next Steps
 

@@ -20,7 +20,7 @@
 **Objective:** Verify Downloads preset button works
 
 **Steps:**
-1. Launch DupFinder application
+1. Launch CloneClean application
 2. Click "Downloads" preset button
 3. Verify scan dialog opens
 4. Verify Downloads folder is pre-selected
@@ -293,7 +293,7 @@
 
 **Steps:**
 1. Run a scan
-2. Navigate to `~/.local/share/DupFinder/history/`
+2. Navigate to `~/.local/share/CloneClean/history/`
 3. Check for JSON files
 
 **Expected Results:**
@@ -486,7 +486,7 @@ If all 5 pass, core functionality is working!
 
 ## Logging Verification
 
-Check logs at: `~/.local/share/DupFinder/logs/`
+Check logs at: `~/.local/share/CloneClean/logs/`
 
 Look for:
 - ✅ "ScanHistoryManager created"

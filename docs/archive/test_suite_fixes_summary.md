@@ -1,7 +1,7 @@
 # Test Suite Signal Issues - Fixed
 
 ## Summary
-Successfully fixed the failing signal timing tests in the DupFinder test suite, achieving 100% test stability for the core unit tests.
+Successfully fixed the failing signal timing tests in the CloneClean test suite, achieving 100% test stability for the core unit tests.
 
 ## Issues Fixed
 

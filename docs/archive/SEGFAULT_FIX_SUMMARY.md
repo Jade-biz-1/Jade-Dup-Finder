@@ -93,10 +93,10 @@ connect(m_detectionMode, QOverload<int>::of(&QComboBox::currentIndexChanged),
 ### **Test Commands:**
 ```bash
 # Build test
-cmake --build build --target dupfinder --parallel
+cmake --build build --target cloneclean --parallel
 
 # Runtime test
-./build/dupfinder  # No crash on startup
+./build/cloneclean  # No crash on startup
 # Click preset buttons # No crash on preset selection
 ```
 

@@ -1,10 +1,10 @@
-# DupFinder — Complete Understanding / Reference
+# CloneClean — Complete Understanding / Reference
 
-This document provides a comprehensive understanding of the DupFinder codebase, based on thorough review of all documentation, source code, and build system. Use this as the authoritative reference for any development tasks.
+This document provides a comprehensive understanding of the CloneClean codebase, based on thorough review of all documentation, source code, and build system. Use this as the authoritative reference for any development tasks.
 
 ## 1) Project Overview & Business Context
 
-DupFinder is a Qt6 + C++ cross-platform desktop application for finding and managing duplicate files. It's designed as a freemium product with a free tier (scanning up to 10,000 files or 100GB) and unlimited premium tier.
+CloneClean is a Qt6 + C++ cross-platform desktop application for finding and managing duplicate files. It's designed as a freemium product with a free tier (scanning up to 10,000 files or 100GB) and unlimited premium tier.
 
 **Key Business Goals:**
 - Help users reclaim disk space (target: 2-5GB average savings)
@@ -159,7 +159,7 @@ find_package(Qt6 REQUIRED COMPONENTS
 
 ### Directory Structure
 ```
-dupfinder/
+cloneclean/
 ├── CMakeLists.txt              # Main build configuration
 ├── src/
 │   ├── main.cpp               # Application entry point
@@ -298,7 +298,7 @@ src/platform/windows/
 # Prerequisites: MSVC + Qt6 installed
 cmake -B build -G "Visual Studio 17 2022" -A x64 ..
 cmake --build build --config Release --parallel
-# Result: dupfinder.exe + required Qt6 DLLs
+# Result: cloneclean.exe + required Qt6 DLLs
 ```
 
 ### Windows Integration Requirements
@@ -400,5 +400,5 @@ cmake --build build --config Release --parallel
 **Last Updated:** November 2, 2025  
 **Next Review:** December 1, 2025 (Phase 2 completion)  
 **Prepared By:** AI Assistant (Grok)  
-**Purpose:** Authoritative reference for all DupFinder development tasks</content>
+**Purpose:** Authoritative reference for all CloneClean development tasks</content>
 <parameter name="filePath">c:\Public\Jade-Dup-Finder\docs\UNDERSTANDING_GROK.md

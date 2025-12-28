@@ -52,10 +52,10 @@ mkdir -p "$NAUTILUS_EXT_DIR"
 
 # Install .desktop file
 print_info "Installing .desktop file..."
-if [ -f "$SCRIPT_DIR/dupfinder.desktop" ]; then
-    cp "$SCRIPT_DIR/dupfinder.desktop" "$DESKTOP_DIR/"
-    chmod 644 "$DESKTOP_DIR/dupfinder.desktop"
-    print_info "Installed: $DESKTOP_DIR/dupfinder.desktop"
+if [ -f "$SCRIPT_DIR/cloneclean.desktop" ]; then
+    cp "$SCRIPT_DIR/cloneclean.desktop" "$DESKTOP_DIR/"
+    chmod 644 "$DESKTOP_DIR/cloneclean.desktop"
+    print_info "Installed: $DESKTOP_DIR/cloneclean.desktop"
 else
     print_error ".desktop file not found!"
     exit 1
@@ -63,11 +63,11 @@ fi
 
 # Install icon (if available)
 print_info "Installing application icon..."
-if [ -f "$SCRIPT_DIR/../../resources/icons/dupfinder.svg" ]; then
-    cp "$SCRIPT_DIR/../../resources/icons/dupfinder.svg" "$ICON_DIR/scalable/apps/"
+if [ -f "$SCRIPT_DIR/../../resources/icons/cloneclean.svg" ]; then
+    cp "$SCRIPT_DIR/../../resources/icons/cloneclean.svg" "$ICON_DIR/scalable/apps/"
     print_info "Installed SVG icon"
-elif [ -f "$SCRIPT_DIR/../../resources/icons/dupfinder.png" ]; then
-    cp "$SCRIPT_DIR/../../resources/icons/dupfinder.png" "$ICON_DIR/256x256/apps/"
+elif [ -f "$SCRIPT_DIR/../../resources/icons/cloneclean.png" ]; then
+    cp "$SCRIPT_DIR/../../resources/icons/cloneclean.png" "$ICON_DIR/256x256/apps/"
     print_info "Installed PNG icon"
 else
     print_warn "No application icon found. Using default."
@@ -76,8 +76,8 @@ fi
 # Install Nautilus extension
 if command -v nautilus &> /dev/null; then
     print_info "Installing Nautilus extension..."
-    if [ -f "$SCRIPT_DIR/nautilus-dupfinder.py" ]; then
-        cp "$SCRIPT_DIR/nautilus-dupfinder.py" "$NAUTILUS_EXT_DIR/"
+    if [ -f "$SCRIPT_DIR/nautilus-cloneclean.py" ]; then
+        cp "$SCRIPT_DIR/nautilus-cloneclean.py" "$NAUTILUS_EXT_DIR/"
         chmod 644 "$NAUTILUS_EXT_DIR/nautilus-cloneclean.py"
         print_info "Installed: $NAUTILUS_EXT_DIR/nautilus-cloneclean.py"
         print_info "Restart Nautilus to activate: nautilus -q"

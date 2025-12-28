@@ -1,6 +1,6 @@
-# DupFinder Test Framework
+# CloneClean Test Framework
 
-A comprehensive automated testing framework for the DupFinder application, providing multi-layered testing capabilities including unit tests, integration tests, UI automation, end-to-end workflows, performance testing, and accessibility validation.
+A comprehensive automated testing framework for the CloneClean application, providing multi-layered testing capabilities including unit tests, integration tests, UI automation, end-to-end workflows, performance testing, and accessibility validation.
 
 ## Features
 
@@ -212,7 +212,7 @@ void testApplicationWorkflow() {
     
     // Launch application
     AppLaunchConfig config;
-    config.executablePath = "./dupfinder";
+    config.executablePath = "./cloneclean";
     config.arguments = {"--test-mode"};
     
     TEST_VERIFY(env.launchApplication(config));
@@ -237,7 +237,7 @@ Comprehensive HTML reports with:
 ### JUnit XML
 Standard JUnit XML format for CI/CD integration:
 ```xml
-<testsuites name="DupFinder Tests" tests="150" failures="2" time="45.2">
+<testsuites name="CloneClean Tests" tests="150" failures="2" time="45.2">
     <testsuite name="UnitTests" tests="50" failures="0" time="12.1">
         <testcase name="testCalculation" time="0.001"/>
         <!-- ... -->
@@ -520,4 +520,4 @@ void MyTestSuite::tearDown() override {
 
 ## License
 
-This test framework is part of the DupFinder project and follows the same licensing terms.
+This test framework is part of the CloneClean project and follows the same licensing terms.

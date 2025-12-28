@@ -1,6 +1,6 @@
-# DupFinder Testing Documentation
+# CloneClean Testing Documentation
 
-Welcome to the comprehensive testing documentation for DupFinder. This documentation provides everything you need to understand, use, and contribute to our automated testing suite.
+Welcome to the comprehensive testing documentation for CloneClean. This documentation provides everything you need to understand, use, and contribute to our automated testing suite.
 
 ## Quick Start
 
@@ -82,5 +82,5 @@ We welcome contributions to our testing suite! Please read:
 
 ## Version Information
 
-This documentation is for DupFinder Testing Suite v2.0.
+This documentation is for CloneClean Testing Suite v2.0.
 Last updated: October 2025

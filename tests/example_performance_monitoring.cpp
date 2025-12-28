@@ -10,7 +10,7 @@
 #include "load_stress_testing.h"
 
 /**
- * @brief Example performance monitoring and reporting for DupFinder
+ * @brief Example performance monitoring and reporting for CloneClean
  * 
  * This class demonstrates how to use the PerformanceMonitoring framework
  * for real-time performance monitoring, trend analysis, regression detection,
@@ -88,7 +88,7 @@ void ExamplePerformanceMonitoring::initTestCase() {
     
     // Configure monitoring
     PerformanceMonitoring::MonitoringConfig config;
-    config.name = "DupFinder Performance Monitoring Test";
+    config.name = "CloneClean Performance Monitoring Test";
     config.samplingIntervalMs = 100; // Fast sampling for testing
     config.retentionPeriodMs = 3600000; // 1 hour retention
     config.maxDataPoints = 1000;
@@ -819,7 +819,7 @@ void ExamplePerformanceMonitoring::testDashboardGeneration() {
     
     // Test custom dashboard configuration
     PerformanceDashboard customDashboard(m_monitoring);
-    customDashboard.setDashboardTitle("Custom DupFinder Dashboard");
+    customDashboard.setDashboardTitle("Custom CloneClean Dashboard");
     customDashboard.setDashboardTheme("dark");
     customDashboard.addMetricWidget("dashboard_cpu", "gauge");
     customDashboard.addMetricWidget("dashboard_memory", "line");
@@ -1270,12 +1270,12 @@ void ExamplePerformanceMonitoring::testCustomMetrics() {
     
     // Test various custom metric scenarios
     QList<QPair<QString, QString>> customMetrics = {
-        {"dupfinder_files_scanned", "count"},
-        {"dupfinder_duplicates_found", "count"},
-        {"dupfinder_scan_progress", "%"},
-        {"dupfinder_hash_rate", "files/sec"},
-        {"dupfinder_memory_efficiency", "ratio"},
-        {"dupfinder_user_satisfaction", "score"}
+        {"cloneclean_files_scanned", "count"},
+        {"cloneclean_duplicates_found", "count"},
+        {"cloneclean_scan_progress", "%"},
+        {"cloneclean_hash_rate", "files/sec"},
+        {"cloneclean_memory_efficiency", "ratio"},
+        {"cloneclean_user_satisfaction", "score"}
     };
     
     for (const auto& metric : customMetrics) {
@@ -1303,8 +1303,8 @@ void ExamplePerformanceMonitoring::testCustomMetrics() {
         customPoint.value = value;
         customPoint.unit = unit;
         customPoint.timestamp = QDateTime::currentDateTime();
-        customPoint.source = "DupFinderApp";
-        customPoint.description = QString("Custom DupFinder metric: %1").arg(name);
+        customPoint.source = "CloneCleanApp";
+        customPoint.description = QString("Custom CloneClean metric: %1").arg(name);
         customPoint.metadata["category"] = "application";
         customPoint.metadata["component"] = name.split("_")[1];
         
@@ -1318,13 +1318,13 @@ void ExamplePerformanceMonitoring::testCustomMetrics() {
     
     int customMetricCount = 0;
     for (const QString& metricName : availableMetrics) {
-        if (metricName.startsWith("dupfinder_")) {
+        if (metricName.startsWith("cloneclean_")) {
             customMetricCount++;
             
             auto latestMetric = m_monitoring->getLatestMetric(metricName);
             QVERIFY(latestMetric.value >= 0);
             QVERIFY(!latestMetric.unit.isEmpty());
-            QCOMPARE(latestMetric.source, QString("DupFinderApp"));
+            QCOMPARE(latestMetric.source, QString("CloneCleanApp"));
         }
     }
     

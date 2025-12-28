@@ -125,7 +125,7 @@ void ScanSetupDialog::loadPreset(const QString& presetName)
 ### Compilation:
 ✅ **Build Successful**
 ```
-[100%] Built target dupfinder
+[100%] Built target cloneclean
 ```
 
 ### Warnings:

@@ -104,7 +104,7 @@ bool TestReporting::generateJUnitReport(const TestResults& overallResults,
     QTextStream stream(&xml);
     
     stream << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
-    stream << "<testsuites name=\"DupFinder Tests\" ";
+    stream << "<testsuites name=\"CloneClean Tests\" ";
     stream << "tests=\"" << overallResults.totalTests << "\" ";
     stream << "failures=\"" << overallResults.failedTests << "\" ";
     stream << "errors=\"0\" ";

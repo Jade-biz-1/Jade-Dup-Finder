@@ -104,7 +104,7 @@ void MainWindow::onPresetSelected(const QString& preset)
 
 ```bash
 # Run from terminal to see debug output
-./build/dupfinder
+./build/cloneclean
 ```
 
 ### 2. Click a Quick Action Button

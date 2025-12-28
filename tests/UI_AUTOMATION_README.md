@@ -1,6 +1,6 @@
 # UI Automation Framework
 
-This document describes the comprehensive UI automation framework for DupFinder testing, which provides high-level automation capabilities for interacting with Qt widgets and testing user interfaces.
+This document describes the comprehensive UI automation framework for CloneClean testing, which provides high-level automation capabilities for interacting with Qt widgets and testing user interfaces.
 
 ## Overview
 

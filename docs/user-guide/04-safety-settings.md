@@ -1,6 +1,6 @@
 # Volume 4: Safety & Settings
 
-**DupFinder User Guide - Volume 4**  
+**CloneClean User Guide - Volume 4**  
 **Last Updated:** October 17, 2025
 
 ---
@@ -18,7 +18,7 @@
 
 ## Safety Features Overview
 
-DupFinder prioritizes data safety with multiple layers of protection to prevent accidental data loss.
+CloneClean prioritizes data safety with multiple layers of protection to prevent accidental data loss.
 
 ### Core Safety Principles
 
@@ -50,7 +50,7 @@ The main window shows current safety status:
 
 ### Automatic Backup Creation
 
-DupFinder automatically creates backups before major operations:
+CloneClean automatically creates backups before major operations:
 
 #### When Backups Are Created
 - Before deleting files
@@ -61,7 +61,7 @@ DupFinder automatically creates backups before major operations:
 
 #### Backup Storage
 ```
-Backup Location: ~/.local/share/dupfinder/backups/
+Backup Location: ~/.local/share/cloneclean/backups/
 
 Structure:
 ├── 2025-10-17_143022_delete_operation/
@@ -85,7 +85,7 @@ Backup Settings
 ┌─────────────────────────────────────────────────────────────┐
 │ Automatic Backups: ● Enabled ○ Disabled                   │
 │                                                             │
-│ Backup Location: [~/.local/share/dupfinder/backups/]       │
+│ Backup Location: [~/.local/share/cloneclean/backups/]       │
 │ [Browse...] [Reset to Default]                             │
 │                                                             │
 │ Storage Limits:                                             │
@@ -171,7 +171,7 @@ Restore from Backup
 
 ### Automatic Protection
 
-DupFinder automatically protects critical system paths:
+CloneClean automatically protects critical system paths:
 
 #### System Protected Paths
 - `/bin/`, `/sbin/`, `/usr/bin/` - System binaries
@@ -182,7 +182,7 @@ DupFinder automatically protects critical system paths:
 - `~/.ssh/` - SSH keys and configuration
 
 #### Application Protected Paths
-- DupFinder configuration directory
+- CloneClean configuration directory
 - Active backup directories
 - Currently open files
 - Files in use by other applications
@@ -382,7 +382,7 @@ Advanced Settings
 │ ☑️ Log errors and warnings                                  │
 │                                                             │
 │ Database:                                                   │
-│ Database location: [~/.local/share/dupfinder/] [Browse]    │
+│ Database location: [~/.local/share/cloneclean/] [Browse]    │
 │ ☑️ Auto-vacuum database                                     │
 │ ☑️ Compress database                                        │
 │ Backup frequency: Weekly ▼                                 │
@@ -407,7 +407,7 @@ Advanced Settings
 
 ### Safety Levels
 
-DupFinder offers different safety levels:
+CloneClean offers different safety levels:
 
 #### Maximum Safety (Default)
 - All operations require confirmation
@@ -496,7 +496,7 @@ Emergency Settings
    - Navigate to Trash/Recycle Bin
    - Restore files if found
 
-2. **Use DupFinder Restore:**
+2. **Use CloneClean Restore:**
    - Click "🔄 Restore" in main window
    - Find the relevant backup
    - Select files to restore
@@ -515,7 +515,7 @@ Emergency Settings
    ┌─────────────────────────────────────────────────────────┐
    │ ⚠️ Database corruption detected                         │
    │                                                         │
-   │ DupFinder has detected issues with the main database.  │
+   │ CloneClean has detected issues with the main database.  │
    │ This may cause scan results to be incomplete or        │
    │ incorrect.                                              │
    │                                                         │
@@ -530,10 +530,10 @@ Emergency Settings
    ```
 
 2. **Manual Recovery:**
-   - Close DupFinder
-   - Navigate to `~/.local/share/dupfinder/`
+   - Close CloneClean
+   - Navigate to `~/.local/share/cloneclean/`
    - Rename `database.db` to `database.db.backup`
-   - Restart DupFinder (creates new database)
+   - Restart CloneClean (creates new database)
    - Import settings and scan history if needed
 
 #### Lost Configuration
@@ -552,12 +552,12 @@ Emergency Settings
 #### System Crash During Operation
 
 1. **Automatic Recovery:**
-   - DupFinder detects incomplete operations on startup
+   - CloneClean detects incomplete operations on startup
    - Offers to complete, rollback, or ignore
    - Shows recovery dialog with options
 
 2. **Manual Recovery:**
-   - Check operation logs in `~/.local/share/dupfinder/logs/`
+   - Check operation logs in `~/.local/share/cloneclean/logs/`
    - Review backup directory for recent backups
    - Use restore function to recover files if needed
 
@@ -575,9 +575,9 @@ If something goes wrong during an operation:
    - Restore from backup
 
 #### Safe Mode
-If DupFinder is behaving unexpectedly:
+If CloneClean is behaving unexpectedly:
 
-1. **Start in safe mode:** `dupfinder --safe-mode`
+1. **Start in safe mode:** `cloneclean --safe-mode`
 2. **Limited functionality:** Read-only operations only
 3. **Diagnostic tools:** Access to logs and diagnostics
 4. **Recovery options:** Backup and restore functions available
