@@ -594,7 +594,8 @@ def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Cross-platform build and packaging helper for CloneClean.")
     parser.add_argument("--config", type=Path, help="Path to build profile configuration JSON.")
     parser.add_argument("--target", help="Explicit build target id to use.")
-    parser.add_argument("--build-type", choices=DEFAULT_BUILD_TYPES, help="Override build type (Debug or Release).")
+    parser.add_argument("--build-type", choices=DEFAULT_BUILD_TYPES, help="Build only a specific type (Debug or Release). Default: build both.")
+    parser.add_argument("--build-both", action="store_true", help="Explicitly build both Debug and Release (default behavior).")
     parser.add_argument("--skip-package", action="store_true", help="Build binaries without running the CPack packaging step.")
     parser.add_argument("--clean", action="store_true", help="Delete the target build directory before configuring.")
     parser.add_argument("--dry-run", action="store_true", help="Show planned actions without executing commands.")
@@ -671,9 +672,25 @@ def main() -> None:
         print("No build target selected.")
         return
 
-    build_type = args.build_type or selected.default_build_type
-    if not args.non_interactive and not args.build_type:
-        build_type = prompt_build_type(selected)
+    # Determine which build types to build
+    build_types_to_build: List[str] = []
+    if args.build_type:
+        # User explicitly specified a single build type
+        build_types_to_build = [args.build_type]
+    elif args.build_both:
+        # User explicitly requested both
+        build_types_to_build = list(DEFAULT_BUILD_TYPES)
+    else:
+        # Default behavior: build both Debug and Release
+        if args.non_interactive:
+            build_types_to_build = list(DEFAULT_BUILD_TYPES)
+        else:
+            # In interactive mode, ask if they want both or just one
+            choice = input("Build both Debug and Release? [Y/n]: ").strip().lower()
+            if not choice or choice in ("y", "yes"):
+                build_types_to_build = list(DEFAULT_BUILD_TYPES)
+            else:
+                build_types_to_build = [prompt_build_type(selected)]
 
     print("\nEnvironment summary:")
     print(f"  Operating system : {context.display_system}")
@@ -689,7 +706,7 @@ def main() -> None:
     print(f"  Target           : {selected.display_name} [{selected.id}]")
     if selected.notes:
         print(f"  Notes            : {selected.notes}")
-    print(f"  Build type       : {build_type}")
+    print(f"  Build types      : {', '.join(build_types_to_build)}")
     print(f"  Generator        : {selected.generator or 'Default'}")
     print(f"  Multi-config     : {'Yes' if selected.multi_config else 'No'}")
 
@@ -702,37 +719,49 @@ def main() -> None:
     ensure_dist_structure()
 
     build_dir = compute_build_directory(selected, context)
-    dist_dir = compute_dist_directory(selected, build_type)
     env = prepare_environment(selected)
 
-    try:
-        artifacts = build_and_package(
-            target=selected,
-            build_type=build_type,
-            build_dir=build_dir,
-            dist_dir=dist_dir,
-            env=env,
-            setup_scripts=selected.setup_scripts,
-            skip_package=args.skip_package,
-            clean=args.clean,
-            dry_run=args.dry_run,
-        )
-    except BuildScriptError as exc:
-        print(exc)
-        return
+    # Build each configuration
+    all_copied_artifacts: List[Path] = []
+    for build_type in build_types_to_build:
+        print(f"\n{'='*70}")
+        print(f"Building {build_type} configuration...")
+        print(f"{'='*70}")
 
-    if args.dry_run:
-        print("Dry-run complete. No artifacts were generated.")
-        return
+        dist_dir = compute_dist_directory(selected, build_type)
 
-    if args.skip_package:
-        print("Packaging step skipped as requested.")
-        return
+        try:
+            artifacts = build_and_package(
+                target=selected,
+                build_type=build_type,
+                build_dir=build_dir,
+                dist_dir=dist_dir,
+                env=env,
+                setup_scripts=selected.setup_scripts,
+                skip_package=args.skip_package,
+                clean=args.clean and build_type == build_types_to_build[0],  # Only clean on first build
+                dry_run=args.dry_run,
+            )
+        except BuildScriptError as exc:
+            print(f"Error building {build_type}: {exc}")
+            continue
 
-    copied = copy_artifacts(artifacts, dist_dir)
-    if copied:
-        print("\nDistribution artifacts:")
-        for item in copied:
+        if args.dry_run:
+            print(f"Dry-run complete for {build_type}. No artifacts were generated.")
+            continue
+
+        if args.skip_package:
+            print(f"Packaging step skipped for {build_type}.")
+            continue
+
+        copied = copy_artifacts(artifacts, dist_dir)
+        all_copied_artifacts.extend(copied)
+
+    if not args.dry_run and not args.skip_package and all_copied_artifacts:
+        print(f"\n{'='*70}")
+        print("Distribution artifacts:")
+        print(f"{'='*70}")
+        for item in all_copied_artifacts:
             print(f"  - {item.relative_to(REPO_ROOT)}")
 
 
