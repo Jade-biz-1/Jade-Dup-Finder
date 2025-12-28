@@ -1,8 +1,8 @@
-# DupFinder - Deep Button Handler Analysis
+# CloneClean - Deep Button Handler Analysis
 
 ## Date: 2025-01-12
 
-This document provides a **thorough, line-by-line analysis** of every button handler in the DupFinder application to verify they perform actual functionality, not just logging.
+This document provides a **thorough, line-by-line analysis** of every button handler in the CloneClean application to verify they perform actual functionality, not just logging.
 
 ---
 

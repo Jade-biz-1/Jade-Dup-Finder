@@ -2,7 +2,7 @@
 
 ## Introduction
 
-The DupFinder application has well-implemented individual components (FileScanner, DuplicateDetector, FileManager, SafetyManager, and UI components), but they are not properly integrated. The comprehensive code review identified that the core workflow is broken: scans complete successfully but duplicate detection is never triggered, results are never displayed, and file operations (delete/move) show "coming soon" messages instead of actually performing actions. This feature addresses the critical integration gaps that prevent the application from functioning as a complete duplicate file finder and manager.
+The CloneClean application has well-implemented individual components (FileScanner, DuplicateDetector, FileManager, SafetyManager, and UI components), but they are not properly integrated. The comprehensive code review identified that the core workflow is broken: scans complete successfully but duplicate detection is never triggered, results are never displayed, and file operations (delete/move) show "coming soon" messages instead of actually performing actions. This feature addresses the critical integration gaps that prevent the application from functioning as a complete duplicate file finder and manager.
 
 ## Requirements
 

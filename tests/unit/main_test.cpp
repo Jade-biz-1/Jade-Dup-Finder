@@ -12,7 +12,7 @@
 // We only need to register them at runtime in initTestCase()
 
 /**
- * @brief Unit test runner for DupFinder
+ * @brief Unit test runner for CloneClean
  * 
  * This file runs all unit tests for the core components.
  * Currently contains placeholder tests to verify the test framework.
@@ -23,7 +23,7 @@ class BasicTest : public QObject {
 
 private slots:
     void initTestCase() {
-        qDebug() << "Starting DupFinder unit tests...";
+        qDebug() << "Starting CloneClean unit tests...";
     }
 
     void testBasicFunctionality() {

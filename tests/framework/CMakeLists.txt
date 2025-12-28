@@ -1,7 +1,7 @@
 # Test Framework CMake Configuration
 
 cmake_minimum_required(VERSION 3.16)
-project(DupFinderTestFramework)
+project(CloneCleanTestFramework)
 
 # Find required Qt components
 find_package(Qt6 REQUIRED COMPONENTS Core Widgets Test Concurrent)

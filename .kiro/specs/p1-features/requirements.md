@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This document outlines the requirements for the P1 (High Priority) features of the DupFinder application. These features build upon the successfully completed P0 critical fixes and enhance the user experience by implementing preset loading functionality, verifying the duplicate detection flow, and adding scan history persistence. These features are essential for providing users with a smooth, efficient workflow and the ability to track their scanning activities over time.
+This document outlines the requirements for the P1 (High Priority) features of the CloneClean application. These features build upon the successfully completed P0 critical fixes and enhance the user experience by implementing preset loading functionality, verifying the duplicate detection flow, and adding scan history persistence. These features are essential for providing users with a smooth, efficient workflow and the ability to track their scanning activities over time.
 
 ## Requirements
 

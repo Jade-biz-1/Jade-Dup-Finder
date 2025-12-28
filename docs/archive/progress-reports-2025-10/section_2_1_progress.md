@@ -60,7 +60,7 @@ connect(..., Qt::UniqueConnection);
 
 **Search Command:**
 ```bash
-find /home/deepak/Public/dupfinder -name "*.backup" -o -name "*~" -o -name "*.bak" -o -name "*.old"
+find /home/deepak/Public/cloneclean -name "*.backup" -o -name "*~" -o -name "*.bak" -o -name "*.old"
 ```
 
 **Status:** Clean - no backupfiles present
@@ -73,11 +73,11 @@ find /home/deepak/Public/dupfinder -name "*.backup" -o -name "*~" -o -name "*.ba
 
 **TODOs Found:**
 ```
-/home/deepak/Public/dupfinder/src/gui/advanced_filter_dialog.cpp:717
-/home/deepak/Public/dupfinder/src/gui/main_window.cpp:884
-/home/deepak/Public/dupfinder/src/gui/restore_dialog.cpp:307
-/home/deepak/Public/dupfinder/src/gui/results_window.cpp:3595-3683 (multiple)
-/home/deepak/Public/dupfinder/src/gui/safety_features_dialog.cpp:117
+/home/deepak/Public/cloneclean/src/gui/advanced_filter_dialog.cpp:717
+/home/deepak/Public/cloneclean/src/gui/main_window.cpp:884
+/home/deepak/Public/cloneclean/src/gui/restore_dialog.cpp:307
+/home/deepak/Public/cloneclean/src/gui/results_window.cpp:3595-3683 (multiple)
+/home/deepak/Public/cloneclean/src/gui/safety_features_dialog.cpp:117
 ```
 
 **Analysis:**

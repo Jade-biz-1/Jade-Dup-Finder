@@ -133,9 +133,9 @@ Defined standard categories in `LogCategories` namespace:
 
 #### 5. Log Rotation and Management
 - Automatic rotation when file exceeds size limit
-- Timestamped archived logs (dupfinder_YYYYMMDD_HHMMSS.log)
+- Timestamped archived logs (cloneclean_YYYYMMDD_HHMMSS.log)
 - Automatic cleanup of old logs beyond retention limit
-- Current log always named "dupfinder.log"
+- Current log always named "cloneclean.log"
 
 #### 6. Integration Points
 Added logging to key components:
@@ -334,7 +334,7 @@ The final task involves comprehensive manual testing of the complete workflow:
 9. Verify UI updates correctly
 
 ### Recommendations
-1. **Log Monitoring:** Check `~/.local/share/DupFinder/logs/dupfinder.log` during testing
+1. **Log Monitoring:** Check `~/.local/share/CloneClean/logs/cloneclean.log` during testing
 2. **Preview Testing:** Test with various file types (images, text, binary)
 3. **Performance:** Monitor log file size and rotation behavior
 4. **Error Handling:** Verify error messages are logged appropriately
@@ -343,7 +343,7 @@ The final task involves comprehensive manual testing of the complete workflow:
 
 ## Conclusion
 
-Tasks 17, 18, and 19 have been successfully completed, adding significant functionality and maintainability improvements to the DupFinder application:
+Tasks 17, 18, and 19 have been successfully completed, adding significant functionality and maintainability improvements to the CloneClean application:
 
 - **File Preview:** Users can now preview files before operations
 - **Comprehensive Logging:** Full visibility into application behavior for debugging

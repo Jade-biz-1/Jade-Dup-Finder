@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Performance Monitoring and Reporting Framework provides comprehensive real-time performance monitoring, trend analysis, regression detection, alerting, and interactive reporting capabilities for the DupFinder application. It enables continuous performance validation, proactive issue detection, and detailed performance analytics.
+The Performance Monitoring and Reporting Framework provides comprehensive real-time performance monitoring, trend analysis, regression detection, alerting, and interactive reporting capabilities for the CloneClean application. It enables continuous performance validation, proactive issue detection, and detailed performance analytics.
 
 ## Key Features
 
@@ -54,7 +54,7 @@ PerformanceMonitoring monitor;
 
 // Configure monitoring
 PerformanceMonitoring::MonitoringConfig config;
-config.name = "DupFinder Performance Monitor";
+config.name = "CloneClean Performance Monitor";
 config.samplingIntervalMs = 1000;           // 1 second sampling
 config.retentionPeriodMs = 86400000;        // 24 hour retention
 config.enableTrendAnalysis = true;
@@ -71,7 +71,7 @@ Interactive dashboard generator for real-time performance visualization.
 
 ```cpp
 PerformanceDashboard dashboard(&monitor);
-dashboard.setDashboardTitle("DupFinder Performance Dashboard");
+dashboard.setDashboardTitle("CloneClean Performance Dashboard");
 dashboard.addMetricWidget("cpu_usage", "gauge");
 dashboard.addMetricWidget("memory_usage", "line");
 dashboard.addTrendWidget("response_time");
@@ -206,7 +206,7 @@ PerformanceMonitoring::ReportConfig reportConfig;
 reportConfig.name = "Weekly Performance Report";
 reportConfig.outputPath = "weekly_performance_report.html";
 reportConfig.format = "html";
-reportConfig.title = "DupFinder Weekly Performance Analysis";
+reportConfig.title = "CloneClean Weekly Performance Analysis";
 reportConfig.description = "Comprehensive performance analysis for the past week";
 reportConfig.startTime = QDateTime::currentDateTime().addDays(-7);
 reportConfig.endTime = QDateTime::currentDateTime();
@@ -232,7 +232,7 @@ monitor.generateRegressionReport("regression_analysis.html");
 ```cpp
 // Create interactive dashboard
 PerformanceDashboard dashboard(&monitor);
-dashboard.setDashboardTitle("DupFinder Real-Time Performance");
+dashboard.setDashboardTitle("CloneClean Real-Time Performance");
 dashboard.setDashboardTheme("dark");
 
 // Add metric widgets
@@ -636,9 +636,9 @@ See `example_performance_monitoring.cpp` for a comprehensive example that demons
 
 This example serves as both documentation and a working implementation that can be adapted for specific monitoring needs.
 
-## Integration with DupFinder
+## Integration with CloneClean
 
-The performance monitoring framework is specifically designed to monitor DupFinder's performance characteristics:
+The performance monitoring framework is specifically designed to monitor CloneClean's performance characteristics:
 
 - **File Processing Performance**: Monitor file scanning, hash calculation, and duplicate detection rates
 - **Memory Usage Patterns**: Track memory consumption during large file operations
@@ -647,4 +647,4 @@ The performance monitoring framework is specifically designed to monitor DupFind
 - **Error Rate Monitoring**: Track and alert on error rates and failure conditions
 - **Scalability Metrics**: Monitor performance scaling with different dataset sizes
 
-This comprehensive monitoring ensures DupFinder maintains optimal performance and provides early warning of potential issues before they impact users.
+This comprehensive monitoring ensures CloneClean maintains optimal performance and provides early warning of potential issues before they impact users.

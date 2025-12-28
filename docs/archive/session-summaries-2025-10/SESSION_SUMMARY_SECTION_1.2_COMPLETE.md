@@ -292,17 +292,17 @@ Defined in ThemeData (include/theme_manager.h, lines 56-61)
 
 **Final Build Status:**
 ```bash
-cd /home/deepak/Public/dupfinder/build
-cmake --build . --target dupfinder
+cd /home/deepak/Public/cloneclean/build
+cmake --build . --target cloneclean
 ```
 
 **Result:** ✅ Successfully compiled with no errors
 
 **Build Output:**
 ```
-[  0%] Built target dupfinder_autogen_timestamp_deps
-[  0%] Built target dupfinder_autogen
-[100%] Built target dupfinder
+[  0%] Built target cloneclean_autogen_timestamp_deps
+[  0%] Built target cloneclean_autogen
+[100%] Built target cloneclean
 ```
 
 ---
@@ -338,7 +338,7 @@ cmake --build . --target dupfinder
 ## Next Steps
 
 ### Immediate (Runtime Testing)
-1. Run the application: `./build/dupfinder`
+1. Run the application: `./build/cloneclean`
 2. Test checkbox visibility in all dialogs
 3. Test theme switching (light → dark → high contrast)
 4. Verify dialog display on different resolutions

@@ -320,7 +320,7 @@
 ```bash
 ✅ cmake -B build -S .
 ✅ cmake --build build --target test_scan_progress_dialog
-✅ cmake --build build --target dupfinder
+✅ cmake --build build --target cloneclean
 ```
 
 ### Test Verification

@@ -1,14 +1,14 @@
-# DupFinder Documentation Index
+# CloneClean Documentation Index
 
 **Last Updated:** November 4, 2025
 
-Welcome to the DupFinder documentation! This index helps you find the right documentation for your needs.
+Welcome to the CloneClean documentation! This index helps you find the right documentation for your needs.
 
 ---
 
 ## 🚀 Quick Start
 
-### New to DupFinder?
+### New to CloneClean?
 
 1. **[../README.md](../README.md)** - Start here! Project overview and quick start
 2. **[BUILD_SYSTEM_OVERVIEW.md](BUILD_SYSTEM_OVERVIEW.md)** - Complete build system guide
@@ -229,6 +229,6 @@ If you're new and don't know where to start:
 
 ---
 
-**Maintained by:** DupFinder Development Team
+**Maintained by:** CloneClean Development Team
 **License:** MIT
 **Repository:** [github.com/Jade-biz-1/Jade-Dup-Finder](https://github.com/Jade-biz-1/Jade-Dup-Finder)

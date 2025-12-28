@@ -71,12 +71,12 @@ void MainWindow::onHelpRequested()
     LOG_INFO(LogCategories::UI, "User clicked 'Help' button");
     
     QString helpText = tr(
-        "<h2>DupFinder - Duplicate File Finder</h2>"
+        "<h2>CloneClean - Duplicate File Finder</h2>"
         "<p><b>Quick Start:</b></p>"
         // ... comprehensive help content
     );
     
-    QMessageBox::information(this, tr("DupFinder Help"), helpText);
+    QMessageBox::information(this, tr("CloneClean Help"), helpText);
 }
 ```
 
@@ -291,7 +291,7 @@ The original request to "carry out the tasks that are necessary to complete the 
 
 ### Status: 100% Complete ✅
 
-All UI wiring in the DupFinder application is complete and functional. The audit document has been updated to accurately reflect the current implementation state.
+All UI wiring in the CloneClean application is complete and functional. The audit document has been updated to accurately reflect the current implementation state.
 
 ### What This Means
 

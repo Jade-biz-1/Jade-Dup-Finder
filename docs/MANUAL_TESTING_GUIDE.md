@@ -1,4 +1,4 @@
-# Manual Testing Guide - DupFinder
+# Manual Testing Guide - CloneClean
 
 ## Date: December 10, 2025
 ## Purpose: Step-by-step guide for testing the application manually
@@ -16,7 +16,7 @@ Manual testing means **using the application like a real user** and checking tha
 ### 1. Make Sure Application is Built
 ```bash
 # Build the application
-cmake --build build --target dupfinder -j$(nproc)
+cmake --build build --target cloneclean -j$(nproc)
 
 # Check for errors
 echo $?  # Should output 0 (success)
@@ -25,19 +25,19 @@ echo $?  # Should output 0 (success)
 ### 2. Run the Application
 ```bash
 # Run from workspace root
-./build/dupfinder
+./build/cloneclean
 
 # Or run in background to see logs
-./build/dupfinder > /tmp/dupfinder_test.log 2>&1 &
+./build/cloneclean > /tmp/cloneclean_test.log 2>&1 &
 ```
 
 ### 3. Check Application Started
 ```bash
 # Check if running
-ps aux | grep dupfinder | grep -v grep
+ps aux | grep cloneclean | grep -v grep
 
 # Should show something like:
-# deepak    12345  1.0  0.1 4838508 126992 pts/2  Sl   21:21   0:00 ./build/dupfinder
+# deepak    12345  1.0  0.1 4838508 126992 pts/2  Sl   21:21   0:00 ./build/cloneclean
 ```
 
 ---
@@ -48,18 +48,18 @@ ps aux | grep dupfinder | grep -v grep
 
 ### Test 1.1: Application Starts
 **Steps:**
-1. Run `./build/dupfinder`
+1. Run `./build/cloneclean`
 2. Wait 2-3 seconds
 
 **Expected:**
 - ✅ Application window appears
 - ✅ No error messages
-- ✅ Window title shows "DupFinder - Duplicate File Finder"
+- ✅ Window title shows "CloneClean - Duplicate File Finder"
 - ✅ Main window has header buttons visible
 
 **If it fails:**
 - Check terminal for error messages
-- Check log file: `~/.local/share/DupFinder Team/DupFinder/logs/dupfinder.log`
+- Check log file: `~/.local/share/CloneClean Team/CloneClean/logs/cloneclean.log`
 
 ---
 
@@ -86,7 +86,7 @@ ps aux | grep dupfinder | grep -v grep
 
 **Expected:**
 - ✅ Dialog box appears
-- ✅ Title says "DupFinder Help"
+- ✅ Title says "CloneClean Help"
 - ✅ Content includes:
   - Quick Start section
   - Quick Actions section
@@ -209,8 +209,8 @@ ps aux | grep dupfinder | grep -v grep
 1. Create a test folder with some duplicate files:
 ```bash
 # Create test directory
-mkdir -p ~/dupfinder_test
-cd ~/dupfinder_test
+mkdir -p ~/cloneclean_test
+cd ~/cloneclean_test
 
 # Create some duplicate files
 echo "test content" > file1.txt
@@ -223,9 +223,9 @@ mkdir subfolder
 cp file1.txt subfolder/file1_duplicate.txt
 ```
 
-2. In DupFinder, click "📁 New Scan"
+2. In CloneClean, click "📁 New Scan"
 3. Click "Add Folder" button
-4. Navigate to `~/dupfinder_test`
+4. Navigate to `~/cloneclean_test`
 5. Select the folder
 6. Click "Open" or "Select Folder"
 
@@ -325,7 +325,7 @@ cp file1.txt subfolder/file1_duplicate.txt
 **Steps:**
 1. Click "Export" button
 2. Choose "CSV" format
-3. Choose a location (e.g., ~/dupfinder_export.csv)
+3. Choose a location (e.g., ~/cloneclean_export.csv)
 4. Click "Save"
 
 **Expected:**
@@ -335,10 +335,10 @@ cp file1.txt subfolder/file1_duplicate.txt
 **Verify:**
 ```bash
 # Check file exists
-ls -lh ~/dupfinder_export.csv
+ls -lh ~/cloneclean_export.csv
 
 # View contents
-cat ~/dupfinder_export.csv
+cat ~/cloneclean_export.csv
 ```
 
 ---
@@ -365,13 +365,13 @@ cat ~/dupfinder_export.csv
 **Verify files are deleted:**
 ```bash
 # Check if files are gone
-ls -la ~/dupfinder_test/
+ls -la ~/cloneclean_test/
 ```
 
 **Verify backups were created:**
 ```bash
 # Check backup directory
-ls -la ~/.local/share/DupFinder\ Team/DupFinder/backups/
+ls -la ~/.local/share/CloneClean\ Team/CloneClean/backups/
 ```
 
 ---
@@ -382,7 +382,7 @@ ls -la ~/.local/share/DupFinder\ Team/DupFinder/backups/
 **Steps:**
 ```bash
 # View the log file
-tail -50 ~/.local/share/DupFinder\ Team/DupFinder/logs/dupfinder.log
+tail -50 ~/.local/share/CloneClean\ Team/CloneClean/logs/cloneclean.log
 ```
 
 **Expected:**
@@ -400,11 +400,11 @@ tail -50 ~/.local/share/DupFinder\ Team/DupFinder/logs/dupfinder.log
 **Steps:**
 ```bash
 # Check log directory
-ls -lh ~/.local/share/DupFinder\ Team/DupFinder/logs/
+ls -lh ~/.local/share/CloneClean\ Team/CloneClean/logs/
 ```
 
 **Expected:**
-- ✅ `dupfinder.log` file exists
+- ✅ `cloneclean.log` file exists
 - ✅ File size is reasonable (< 10MB)
 - ✅ May have rotated logs if you've run the app many times
 
@@ -427,13 +427,13 @@ ls -lh ~/.local/share/DupFinder\ Team/DupFinder/logs/
 ### Test 7.2: Clean Up Test Files
 ```bash
 # Remove test directory
-rm -rf ~/dupfinder_test
+rm -rf ~/cloneclean_test
 
 # Remove export file
-rm -f ~/dupfinder_export.csv
+rm -f ~/cloneclean_export.csv
 
 # Optional: Remove backups
-rm -rf ~/.local/share/DupFinder\ Team/DupFinder/backups/*
+rm -rf ~/.local/share/CloneClean\ Team/CloneClean/backups/*
 ```
 
 ---
@@ -441,13 +441,13 @@ rm -rf ~/.local/share/DupFinder\ Team/DupFinder/backups/*
 ## Common Issues & Solutions
 
 ### Issue 1: Application Won't Start
-**Symptoms:** Nothing happens when you run `./build/dupfinder`
+**Symptoms:** Nothing happens when you run `./build/cloneclean`
 
 **Solutions:**
-1. Check if it's already running: `ps aux | grep dupfinder`
-2. Kill existing instance: `pkill -f dupfinder`
-3. Check build succeeded: `cmake --build build --target dupfinder`
-4. Check for errors: `./build/dupfinder` (run in foreground)
+1. Check if it's already running: `ps aux | grep cloneclean`
+2. Kill existing instance: `pkill -f cloneclean`
+3. Check build succeeded: `cmake --build build --target cloneclean`
+4. Check for errors: `./build/cloneclean` (run in foreground)
 
 ---
 
@@ -455,7 +455,7 @@ rm -rf ~/.local/share/DupFinder\ Team/DupFinder/backups/*
 **Symptoms:** Clicking buttons does nothing
 
 **Solutions:**
-1. Check logs: `tail -f ~/.local/share/DupFinder\ Team/DupFinder/logs/dupfinder.log`
+1. Check logs: `tail -f ~/.local/share/CloneClean\ Team/CloneClean/logs/cloneclean.log`
 2. Look for error messages in terminal
 3. Try restarting the application
 
@@ -487,7 +487,7 @@ rm -rf ~/.local/share/DupFinder\ Team/DupFinder/backups/*
 Use this template to record your test results:
 
 ```
-# DupFinder Manual Test Results
+# CloneClean Manual Test Results
 Date: ___________
 Tester: ___________
 Build: ___________
@@ -557,7 +557,7 @@ Notes: ___________
 
 If you're short on time, do this quick smoke test:
 
-1. **Start app:** `./build/dupfinder`
+1. **Start app:** `./build/cloneclean`
 2. **Click Help:** Verify dialog shows
 3. **Click Quick Scan:** Verify dialog opens with presets
 4. **Close dialogs**

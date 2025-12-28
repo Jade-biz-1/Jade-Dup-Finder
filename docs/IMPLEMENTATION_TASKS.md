@@ -434,7 +434,7 @@
 
 #### Subtasks:
 - [x] **T32.1:** Complete CloneClean Rebrand ✅ COMPLETE
-  - [x] Update all window titles from "DupFinder" to "CloneClean"
+  - [x] Update all window titles from "CloneClean" to "CloneClean"
   - [x] Update QSettings organization name to "CloneClean"
   - [x] Update About dialog with tagline "One File. One Place."
   - [x] Update Help dialog and keyboard shortcuts
@@ -448,7 +448,7 @@
   - [x] Implement results tree caching for instant reopening
 
 - [x] **T32.3:** Build System Cleanup ✅ COMPLETE
-  - [x] Remove old DupFinder build artifacts
+  - [x] Remove old CloneClean build artifacts
   - [x] Generate CloneClean Release packages (DEB, RPM, TGZ)
   - [x] Update resource files (cloneclean.qrc)
   - [x] Add CloneClean icon set (16px to 512px + SVG)

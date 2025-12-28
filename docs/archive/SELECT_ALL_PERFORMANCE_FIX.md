@@ -117,7 +117,7 @@ The same performance pattern was already implemented in:
 
 - Build completed: 2025-11-25
 - Build system: python3 scripts/build.py --target linux-ninja-cpu --build-type Debug
-- Artifacts: dist/Linux/Debug/DupFinder-1.0.0-linux-linux-x86_64-cpu.*
+- Artifacts: dist/Linux/Debug/CloneClean-1.0.0-linux-linux-x86_64-cpu.*
 
 ## References
 

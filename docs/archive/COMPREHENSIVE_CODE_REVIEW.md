@@ -1,4 +1,4 @@
-# DupFinder - Comprehensive Code Review
+# CloneClean - Comprehensive Code Review
 
 ## Date: 2025-01-12
 ## Reviewer: Kiro AI Assistant
@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-This document provides a **thorough, systematic review** of the entire DupFinder codebase, examining:
+This document provides a **thorough, systematic review** of the entire CloneClean codebase, examining:
 - Implementation completeness vs placeholders
 - Process flows from UI to backend
 - Missing integrations
@@ -680,7 +680,7 @@ void ResultsWindow::deleteSelectedFiles() {
 
 ### Current State
 
-The DupFinder application has:
+The CloneClean application has:
 - ✅ **Excellent foundation** - Well-designed architecture
 - ✅ **Working UI** - All dialogs and controls work
 - ✅ **Working FileScanner** - Scans files perfectly

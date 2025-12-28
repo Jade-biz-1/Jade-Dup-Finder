@@ -68,7 +68,7 @@ void IntegrationDeploymentTest::initTestCase()
 void IntegrationDeploymentTest::cleanupTestCase()
 {
     // Cleanup any temporary files created during testing
-    QDir tempDir(QDir::tempPath() + "/dupfinder_deployment_test");
+    QDir tempDir(QDir::tempPath() + "/cloneclean_deployment_test");
     if (tempDir.exists()) {
         tempDir.removeRecursively();
     }
@@ -238,7 +238,7 @@ void IntegrationDeploymentTest::testEndToEndDeployment()
     timer.start();
     
     // Create temporary deployment directory
-    QString tempDeployDir = QDir::tempPath() + "/dupfinder_deployment_test";
+    QString tempDeployDir = QDir::tempPath() + "/cloneclean_deployment_test";
     QDir().mkpath(tempDeployDir);
     
     // Run deployment script with dry-run mode

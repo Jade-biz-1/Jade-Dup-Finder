@@ -2,7 +2,7 @@
 
 ## Introduction
 
-The DupFinder Testing Suite is a comprehensive, multi-layered testing framework designed to ensure code quality, prevent regressions, and validate user experience across all supported platforms.
+The CloneClean Testing Suite is a comprehensive, multi-layered testing framework designed to ensure code quality, prevent regressions, and validate user experience across all supported platforms.
 
 ## Architecture
 
@@ -143,10 +143,10 @@ Tests are configured via `test_config.json`:
 ```
 
 ### Environment Variables
-- `DUPFINDER_TEST_DATA_DIR`: Test data directory
-- `DUPFINDER_TEST_TIMEOUT`: Global test timeout
-- `DUPFINDER_TEST_PARALLEL`: Enable parallel execution
-- `DUPFINDER_TEST_VERBOSE`: Enable verbose logging
+- `CLONECLEAN_TEST_DATA_DIR`: Test data directory
+- `CLONECLEAN_TEST_TIMEOUT`: Global test timeout
+- `CLONECLEAN_TEST_PARALLEL`: Enable parallel execution
+- `CLONECLEAN_TEST_VERBOSE`: Enable verbose logging
 
 ## Quality Metrics
 

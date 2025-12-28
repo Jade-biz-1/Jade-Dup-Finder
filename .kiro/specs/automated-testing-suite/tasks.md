@@ -2,7 +2,7 @@
 
 ## Overview
 
-This implementation plan systematically builds a comprehensive automated testing suite for the DupFinder application. The plan is organized into phases with clear dependencies and deliverables.
+This implementation plan systematically builds a comprehensive automated testing suite for the CloneClean application. The plan is organized into phases with clear dependencies and deliverables.
 
 ## Implementation Tasks
 

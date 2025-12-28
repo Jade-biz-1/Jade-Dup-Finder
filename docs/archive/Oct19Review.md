@@ -1,11 +1,11 @@
-# DupFinder Project Review - October 19, 2025
+# CloneClean Project Review - October 19, 2025
 
 **Reviewer:** Gemini AI Assistant
 **Date:** 2025-10-19
 
 ## 1. Executive Summary
 
-This document presents a detailed review of the DupFinder project. The review covers documentation consistency, code quality, UI completeness, and overall project health. The project is a cross-platform duplicate file finder built with C++ and Qt6.
+This document presents a detailed review of the CloneClean project. The review covers documentation consistency, code quality, UI completeness, and overall project health. The project is a cross-platform duplicate file finder built with C++ and Qt6.
 
 **Overall Assessment:** The project has a solid architectural foundation and a significant amount of high-quality work has been completed, especially on the Linux version. The UI, in particular, appears to be well-developed and exceeds original specifications. However, there are significant inconsistencies in the project's documentation regarding its completion status, and the testing framework seems to be a major weak point that needs immediate attention.
 

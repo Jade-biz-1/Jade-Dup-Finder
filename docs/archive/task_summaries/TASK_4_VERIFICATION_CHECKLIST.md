@@ -134,7 +134,7 @@
 
 ```bash
 # Build main application
-cmake --build build --target dupfinder -j$(nproc)
+cmake --build build --target cloneclean -j$(nproc)
 # Result: ✅ SUCCESS
 
 # Build test executable

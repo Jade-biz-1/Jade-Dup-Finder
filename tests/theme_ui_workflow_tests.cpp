@@ -185,7 +185,7 @@ void ThemeUIWorkflowTests::setupTestEnvironment() {
     // Create test main window
     m_testMainWindow = new QMainWindow();
     m_testMainWindow->setObjectName("mainWindow");
-    m_testMainWindow->setWindowTitle("DupFinder - Theme Workflow Test");
+    m_testMainWindow->setWindowTitle("CloneClean - Theme Workflow Test");
     m_testMainWindow->resize(800, 600);
     
     // Create test widget with common UI components

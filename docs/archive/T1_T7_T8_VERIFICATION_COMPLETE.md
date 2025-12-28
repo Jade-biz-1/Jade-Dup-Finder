@@ -153,13 +153,13 @@ void MainWindow::onSettingsRequested()
 
 **Storage Method:**
 - **Technology:** QSettings (Qt's cross-platform settings API)
-- **Organization:** "DupFinder Team"
-- **Application:** "DupFinder"
+- **Organization:** "CloneClean Team"
+- **Application:** "CloneClean"
 
 **Storage Locations:**
-- **Linux:** `~/.config/DupFinder Team/DupFinder.conf`
+- **Linux:** `~/.config/CloneClean Team/CloneClean.conf`
 - **Windows:** Registry or INI file
-- **macOS:** `~/Library/Preferences/com.DupFinder Team.DupFinder.plist`
+- **macOS:** `~/Library/Preferences/com.CloneClean Team.CloneClean.plist`
 
 **Settings Categories:**
 ```
@@ -206,7 +206,7 @@ void SettingsDialog::loadSettings()
 {
     LOG_INFO(LogCategories::CONFIG, "Loading settings");
     
-    QSettings settings("DupFinder Team", "DupFinder");
+    QSettings settings("CloneClean Team", "CloneClean");
     
     // Load all settings from QSettings
     // ... (loads 30+ settings)
@@ -221,7 +221,7 @@ void SettingsDialog::saveSettings()
 {
     LOG_INFO(LogCategories::CONFIG, "Saving settings");
     
-    QSettings settings("DupFinder Team", "DupFinder");
+    QSettings settings("CloneClean Team", "CloneClean");
     
     // Save all settings to QSettings
     // ... (saves 30+ settings)
@@ -256,10 +256,10 @@ void SettingsDialog::saveSettings()
 ### Build Status: ✅ SUCCESS
 
 ```bash
-$ cmake --build build --target dupfinder
-[  0%] Built target dupfinder_autogen_timestamp_deps
-[  7%] Built target dupfinder_autogen
-[100%] Built target dupfinder
+$ cmake --build build --target cloneclean
+[  0%] Built target cloneclean_autogen_timestamp_deps
+[  7%] Built target cloneclean_autogen
+[100%] Built target cloneclean
 ```
 
 **Files in Build:**

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Successfully implemented thumbnail display functionality for the DupFinder results window, allowing users to see visual previews of image files directly in the results tree view.
+Successfully implemented thumbnail display functionality for the CloneClean results window, allowing users to see visual previews of image files directly in the results tree view.
 
 ## Implementation Date
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This design document outlines the implementation approach for the P1 (High Priority) features of the DupFinder application. These features enhance the user experience by implementing preset loading functionality, verifying the duplicate detection flow, and adding scan history persistence.
+This design document outlines the implementation approach for the P1 (High Priority) features of the CloneClean application. These features enhance the user experience by implementing preset loading functionality, verifying the duplicate detection flow, and adding scan history persistence.
 
 The P1 features build upon the successfully completed P0 critical fixes and integrate seamlessly with the existing architecture. The design focuses on:
 
@@ -14,7 +14,7 @@ The P1 features build upon the successfully completed P0 critical fixes and inte
 
 ### System Context
 
-The P1 features integrate with the existing DupFinder architecture:
+The P1 features integrate with the existing CloneClean architecture:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -236,7 +236,7 @@ private:
 **Storage Format:**
 
 Scans will be stored as individual JSON files in:
-- Linux: `~/.local/share/DupFinder/history/`
+- Linux: `~/.local/share/CloneClean/history/`
 - Each file named: `scan_<uuid>.json`
 
 **JSON Structure:**

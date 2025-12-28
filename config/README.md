@@ -1,6 +1,6 @@
 # Build Profile Configuration
 
-This directory contains build profile configurations for the DupFinder multi-platform build system.
+This directory contains build profile configurations for the CloneClean multi-platform build system.
 
 ## Quick Start
 

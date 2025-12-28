@@ -183,7 +183,7 @@ int main(int argc, char* argv[]) {
     QCoreApplication app(argc, argv);
     
     qDebug() << "========================================";
-    qDebug() << "DupFinder Test Framework Example";
+    qDebug() << "CloneClean Test Framework Example";
     qDebug() << "========================================";
     
     // Create test harness

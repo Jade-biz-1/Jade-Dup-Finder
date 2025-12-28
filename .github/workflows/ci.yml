@@ -1,4 +1,4 @@
-name: DupFinder CI/CD Pipeline
+name: CloneClean CI/CD Pipeline
 
 on:
   push:
@@ -115,8 +115,8 @@ jobs:
     - name: Upload build artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: dupfinder-linux-${{ github.sha }}
-        path: build/dupfinder-*.tar.gz
+        name: cloneclean-linux-${{ github.sha }}
+        path: build/cloneclean-*.tar.gz
 
   # Windows build job
   build-windows:
@@ -167,7 +167,7 @@ jobs:
     - name: Upload build artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: dupfinder-windows-${{ github.sha }}
+        name: cloneclean-windows-${{ github.sha }}
         path: build/*.exe
 
   # macOS build job  
@@ -220,7 +220,7 @@ jobs:
     - name: Upload build artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: dupfinder-macos-${{ github.sha }}
+        name: cloneclean-macos-${{ github.sha }}
         path: build/*.dmg
 
   # Documentation build job
@@ -290,16 +290,16 @@ jobs:
       with:
         files: release-assets/*
         tag_name: ${{ github.ref_name }}
-        name: DupFinder ${{ github.ref_name }}
+        name: CloneClean ${{ github.ref_name }}
         draft: false
         prerelease: ${{ contains(github.ref_name, 'rc') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') }}
         body: |
-          ## DupFinder ${{ github.ref_name }}
+          ## CloneClean ${{ github.ref_name }}
           
           ### Downloads
-          - **Linux**: `dupfinder-*-Linux.tar.gz`
-          - **Windows**: `dupfinder-*-win64.exe` 
-          - **macOS**: `dupfinder-*.dmg`
+          - **Linux**: `cloneclean-*-Linux.tar.gz`
+          - **Windows**: `cloneclean-*-win64.exe` 
+          - **macOS**: `cloneclean-*.dmg`
           
           ### Changes
           See [CHANGELOG.md](CHANGELOG.md) for detailed changes.

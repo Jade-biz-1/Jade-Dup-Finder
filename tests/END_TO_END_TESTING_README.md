@@ -2,7 +2,7 @@
 
 ## Overview
 
-The End-to-End Testing Framework provides comprehensive testing capabilities for the DupFinder application through three integrated components:
+The End-to-End Testing Framework provides comprehensive testing capabilities for the CloneClean application through three integrated components:
 
 1. **Workflow Testing** - Complete user journey validation
 2. **User Scenario Testing** - Persona-based testing with UX metrics

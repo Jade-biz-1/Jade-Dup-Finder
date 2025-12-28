@@ -346,7 +346,7 @@ This document summarizes the implementation work on tasks T9 through T20 from th
 - `src/gui/main_window.cpp` - Added keyboard shortcuts and tooltips
 
 ### Build Status
-- ❌ **dupfinder target:** Build fails due to logging conflicts in main_window.cpp
+- ❌ **cloneclean target:** Build fails due to logging conflicts in main_window.cpp
 - ✅ **New files:** Compile successfully individually
 - ✅ **CMakeLists.txt:** Updated correctly
 

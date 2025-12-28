@@ -1,4 +1,4 @@
-# DupFinder - Current Status & Remaining Tasks
+# CloneClean - Current Status & Remaining Tasks
 
 **Date:** November 7, 2025
 **Status:** Phase 2 Advanced Features - COMPLETE | Phase 3 macOS - COMPLETE | Performance Optimizations - COMPLETE
@@ -320,7 +320,7 @@ The application **could not be built** - 25+ core `.cpp` files were missing from
 
 **Testing Status:**
 - ✅ Application builds successfully on macOS
-- ✅ DMG installer created: `dist/MacOS/X64/Debug/DupFinder-1.0.0-macos-macos-x86_64.dmg`
+- ✅ DMG installer created: `dist/MacOS/X64/Debug/CloneClean-1.0.0-macos-macos-x86_64.dmg`
 - ✅ Performance tested with 378,489 files
 - ✅ Trash integration working (Objective-C++ implementation)
 

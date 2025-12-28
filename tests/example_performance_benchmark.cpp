@@ -7,10 +7,10 @@
 #include "test_data_generator.h"
 
 /**
- * @brief Example performance benchmark tests for DupFinder
+ * @brief Example performance benchmark tests for CloneClean
  * 
  * This class demonstrates how to use the PerformanceBenchmark framework
- * to measure and validate performance of various DupFinder operations.
+ * to measure and validate performance of various CloneClean operations.
  */
 class ExamplePerformanceBenchmark : public QObject {
     Q_OBJECT
@@ -65,14 +65,14 @@ void ExamplePerformanceBenchmark::initTestCase() {
     
     // Configure benchmark settings
     PerformanceBenchmark::BenchmarkConfig config;
-    config.name = "DupFinder Performance Tests";
+    config.name = "CloneClean Performance Tests";
     config.iterations = 3;
     config.warmupIterations = 1;
     config.timeoutMs = 30000; // 30 seconds timeout
     config.measureMemory = true;
     config.measureCpu = true;
     config.samplingIntervalMs = 100;
-    config.description = "Performance benchmarks for DupFinder file operations";
+    config.description = "Performance benchmarks for CloneClean file operations";
     config.tags << "file_operations" << "performance" << "automated";
     
     m_benchmark->setBenchmarkConfig(config);

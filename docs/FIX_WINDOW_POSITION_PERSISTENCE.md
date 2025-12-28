@@ -10,7 +10,7 @@ The "Duplicate Files Found" dialog (ResultsWindow) was opening at an invalid pos
 
 1. **WindowStateManager was implemented correctly** - saving and restoring geometry
 2. **QSettings was configured correctly** - organization and app names set in main.cpp
-3. **Settings file exists** at `~/.config/DupFinder Team/DupFinder.conf`
+3. **Settings file exists** at `~/.config/CloneClean Team/CloneClean.conf`
 
 ### The Issue
 
@@ -206,7 +206,7 @@ The fix adds helpful debug logs:
 
 ## Configuration File
 
-Settings stored at: `~/.config/DupFinder Team/DupFinder.conf`
+Settings stored at: `~/.config/CloneClean Team/CloneClean.conf`
 
 Format:
 ```ini

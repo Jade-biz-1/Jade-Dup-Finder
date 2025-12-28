@@ -165,7 +165,7 @@ class ScanSetupDialog;
 
 1. **Launch application**
    ```bash
-   ./build/dupfinder
+   ./build/cloneclean
    ```
 
 2. **Click "New Scan" or any preset button**
@@ -297,8 +297,8 @@ slot:   void handleScanConfiguration(const ScanConfiguration& config);  // ✅
 
 ### Build Status
 ```bash
-$ cmake --build build --target dupfinder
-[100%] Built target dupfinder
+$ cmake --build build --target cloneclean
+[100%] Built target cloneclean
 ```
 **Result:** ✅ SUCCESS
 

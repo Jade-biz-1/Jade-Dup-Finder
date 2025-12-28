@@ -18,7 +18,7 @@
 #include <QImage>
 
 /**
- * @brief Comprehensive test data generation system for DupFinder testing
+ * @brief Comprehensive test data generation system for CloneClean testing
  * 
  * Provides utilities for creating realistic test datasets including:
  * - File hierarchies with various types and sizes

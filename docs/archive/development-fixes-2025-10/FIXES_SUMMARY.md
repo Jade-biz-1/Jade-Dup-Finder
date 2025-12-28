@@ -139,7 +139,7 @@ button->setMinimumSize(buttonMinSize.width() + 20, buttonMinSize.height());
 To apply these fixes:
 
 ```bash
-cd /home/deepak/Public/dupfinder
+cd /home/deepak/Public/cloneclean
 mkdir -p build && cd build
 cmake ..
 make -j$(nproc)
@@ -147,7 +147,7 @@ make -j$(nproc)
 
 Run the application:
 ```bash
-./dupfinder
+./cloneclean
 ```
 
 ---

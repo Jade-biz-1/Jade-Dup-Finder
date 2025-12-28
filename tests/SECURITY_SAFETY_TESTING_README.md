@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Security and Safety Testing Framework provides comprehensive testing capabilities for validating the security and safety features of the DupFinder application. This framework ensures that file operations are performed safely, input is properly validated, and security compliance requirements are met.
+The Security and Safety Testing Framework provides comprehensive testing capabilities for validating the security and safety features of the CloneClean application. This framework ensures that file operations are performed safely, input is properly validated, and security compliance requirements are met.
 
 ## Components
 
@@ -403,4 +403,4 @@ The example demonstrates:
 
 ## Conclusion
 
-The Security and Safety Testing Framework provides comprehensive coverage of security and safety requirements for the DupFinder application. It ensures that file operations are performed safely, inputs are properly validated, and security compliance requirements are met through automated testing and continuous monitoring.
+The Security and Safety Testing Framework provides comprehensive coverage of security and safety requirements for the CloneClean application. It ensures that file operations are performed safely, inputs are properly validated, and security compliance requirements are met through automated testing and continuous monitoring.

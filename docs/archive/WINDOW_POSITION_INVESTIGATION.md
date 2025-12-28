@@ -251,8 +251,8 @@ void MainWindow::saveSettings()
 ## Testing Results on Linux (Wayland)
 
 ### Build System
-- Successfully built using: `cd build/linux/x64/linux-ninja-cpu && ninja dupfinder-1.0.0`
-- Launch using: `/home/deepak/Public/dupfinder/launch.sh`
+- Successfully built using: `cd build/linux/x64/linux-ninja-cpu && ninja cloneclean-1.0.0`
+- Launch using: `/home/deepak/Public/cloneclean/launch.sh`
 
 ### Test Results
 1. ✅ Application now saves window states (logs show "Saved states for 1 windows")
@@ -320,12 +320,12 @@ Unlike Wayland, macOS should report actual window positions. Check that:
 ### 6. Settings File Location
 On macOS, the QSettings file should be at:
 ```
-~/Library/Preferences/com.DupFinderTeam.DupFinder.plist
+~/Library/Preferences/com.CloneCleanTeam.CloneClean.plist
 ```
 
 You can inspect it with:
 ```bash
-defaults read com.DupFinderTeam.DupFinder
+defaults read com.CloneCleanTeam.CloneClean
 ```
 
 Look for `WindowStates/MainWindow/position` values.
@@ -361,7 +361,7 @@ If the fixes work correctly on macOS, you should see:
 
 ## Files Modified
 
-1. `/home/deepak/Public/dupfinder/src/core/window_state_manager.cpp`
+1. `/home/deepak/Public/cloneclean/src/core/window_state_manager.cpp`
    - Lines 66-81: Always restore state during registration
    - Lines 155-174: Save all windows regardless of visibility
    - Lines 256-287: Use geometry() instead of pos()/size()
@@ -369,15 +369,15 @@ If the fixes work correctly on macOS, you should see:
    - Lines 441-462: Cache geometry on Move/Resize events
    - Lines 489-519: Capture geometry in Close event
 
-2. `/home/deepak/Public/dupfinder/src/gui/main_window.cpp`
+2. `/home/deepak/Public/cloneclean/src/gui/main_window.cpp`
    - Lines 1187-1195: Removed duplicate loadSettings() geometry handling
    - Lines 1197-1205: Removed duplicate saveSettings() geometry handling
 
 ## Related Configuration
 
 **QSettings storage:**
-- Linux: `~/.config/DupFinder Team/DupFinder.conf`
-- macOS: `~/Library/Preferences/com.DupFinderTeam.DupFinder.plist`
+- Linux: `~/.config/CloneClean Team/CloneClean.conf`
+- macOS: `~/Library/Preferences/com.CloneCleanTeam.CloneClean.plist`
 
 **Settings group:** `WindowStates`
 

@@ -1,6 +1,6 @@
 # Development Environment Setup
 
-This document provides detailed instructions for setting up the DupFinder development environment on Windows, macOS, and Linux platforms.
+This document provides detailed instructions for setting up the CloneClean development environment on Windows, macOS, and Linux platforms.
 
 ## Prerequisites
 
@@ -214,7 +214,7 @@ source ~/.zshrc
 
 4. **Open Project**
    - File → Open File or Project
-   - Navigate to DupFinder directory and select `CMakeLists.txt`
+   - Navigate to CloneClean directory and select `CMakeLists.txt`
 
 ### Visual Studio Code (Cross-Platform)
 
@@ -228,7 +228,7 @@ source ~/.zshrc
    - GitLens (optional)
 
 3. **Configure CMake**
-   - Open DupFinder folder in VS Code
+   - Open CloneClean folder in VS Code
    - Press `Ctrl+Shift+P` and select "CMake: Configure"
    - Select appropriate kit when prompted
 
@@ -242,7 +242,7 @@ source ~/.zshrc
    - Ensure compiler and CMake are detected
 
 3. **Open Project**
-   - File → Open → Select DupFinder directory
+   - File → Open → Select CloneClean directory
 
 ## Building the Project
 
@@ -279,7 +279,7 @@ Manual invocation remains useful for rapid iteration or debugging:
 ```bash
 # Configure (example: Ninja on Linux)
 cmake -S . -B build/linux/x64/manual-ninja -G "Ninja" \
-   -DDUPFINDER_BUILD_VARIANT=cpu \
+   -DCLONECLEAN_BUILD_VARIANT=cpu \
    -DENABLE_GPU_ACCELERATION=OFF
 
 # Build
@@ -294,11 +294,11 @@ On Windows, open a "x64 Native Tools Command Prompt for VS 2022" and run:
 ```cmd
 cmake -S . -B build/windows/win64/manual-msvc ^
    -G "Visual Studio 17 2022" -A x64 ^
-   -DDUPFINDER_BUILD_VARIANT=cpu
-cmake --build build/windows/win64/manual-msvc --config Release --target dupfinder
+   -DCLONECLEAN_BUILD_VARIANT=cpu
+cmake --build build/windows/win64/manual-msvc --config Release --target cloneclean
 ```
 
-To enable CUDA builds manually, add `-DDUPFINDER_BUILD_VARIANT=gpu -DENABLE_GPU_ACCELERATION=ON` and ensure CUDA libraries are resolvable.
+To enable CUDA builds manually, add `-DCLONECLEAN_BUILD_VARIANT=gpu -DENABLE_GPU_ACCELERATION=ON` and ensure CUDA libraries are resolvable.
 
 ### IDE-Specific Build
 
@@ -312,7 +312,7 @@ To enable CUDA builds manually, add `-DDUPFINDER_BUILD_VARIANT=gpu -DENABLE_GPU_
 1. Open the folder containing `CMakeLists.txt`
 2. Select appropriate configuration (Debug/Release)
 3. Build → Build All
-4. Set dupfinder as startup project and run
+4. Set cloneclean as startup project and run
 
 #### VS Code
 1. Open folder in VS Code
@@ -412,8 +412,8 @@ For debugging, use Debug configuration:
 ```bash
 cmake -DCMAKE_BUILD_TYPE=Debug ..
 make
-gdb ./dupfinder  # Linux
-lldb ./dupfinder  # macOS
+gdb ./cloneclean  # Linux
+lldb ./cloneclean  # macOS
 ```
 
 ## Getting Help

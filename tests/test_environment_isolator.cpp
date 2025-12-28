@@ -12,7 +12,7 @@
 TestEnvironmentIsolator::TestEnvironmentIsolator() {
     // Set up base isolation path
     QString tempLocation = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
-    m_baseIsolationPath = QDir(tempLocation).absoluteFilePath("dupfinder_test_isolation");
+    m_baseIsolationPath = QDir(tempLocation).absoluteFilePath("cloneclean_test_isolation");
     QDir().mkpath(m_baseIsolationPath);
 }
 
@@ -67,8 +67,8 @@ bool TestEnvironmentIsolator::runInIsolatedProcess(const QString& command, const
     
     // Set up isolated environment variables
     QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
-    env.insert("DUPFINDER_TEST_MODE", "1");
-    env.insert("DUPFINDER_ISOLATED", "1");
+    env.insert("CLONECLEAN_TEST_MODE", "1");
+    env.insert("CLONECLEAN_ISOLATED", "1");
     process.setProcessEnvironment(env);
     
     process.start(command, arguments);

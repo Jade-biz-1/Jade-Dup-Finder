@@ -1,6 +1,6 @@
 {
   "_comment": "macOS ARM64 (Apple Silicon) build profile",
-  "_description": "This profile builds DupFinder for macOS on Apple Silicon ARM64 architecture using Ninja. Produces DMG and PKG installers.",
+  "_description": "This profile builds CloneClean for macOS on Apple Silicon ARM64 architecture using Ninja. Produces DMG and PKG installers.",
   "targets": [
     {
       "id": "macos-ninja-arm64",
@@ -17,7 +17,7 @@
       "path": [],
       "cmake_args": [
         "-DCMAKE_OSX_ARCHITECTURES=arm64",
-        "-DDUPFINDER_BUILD_VARIANT=cpu",
+        "-DCLONECLEAN_BUILD_VARIANT=cpu",
         "-DCLONECLEAN_PACKAGE_SUFFIX=macos-arm64",
         "-DENABLE_GPU_ACCELERATION=OFF"
       ],

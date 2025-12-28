@@ -1,6 +1,6 @@
 # Test Templates
 
-This directory contains boilerplate templates for quickly creating new tests in the DupFinder testing suite. Each template provides a complete starting point with proper structure, includes, and placeholder methods.
+This directory contains boilerplate templates for quickly creating new tests in the CloneClean testing suite. Each template provides a complete starting point with proper structure, includes, and placeholder methods.
 
 ## Available Templates
 

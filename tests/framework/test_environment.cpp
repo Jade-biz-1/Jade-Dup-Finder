@@ -17,10 +17,10 @@ TestEnvironment::TestEnvironment(QObject* parent)
     , m_appProcess(std::make_unique<QProcess>(this))
 {
     // Set default test data root
-    m_testDataRoot = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + "/dupfinder_test_data";
+    m_testDataRoot = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + "/cloneclean_test_data";
     
     // Set default config directory
-    m_configDirectory = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + "/dupfinder_test_config";
+    m_configDirectory = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + "/cloneclean_test_config";
     
     // Connect application process signals
     connect(m_appProcess.get(), QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
@@ -385,7 +385,7 @@ bool TestEnvironment::launchApplication(const AppLaunchConfig& config) {
     
     // Set default executable path if not specified
     if (m_appConfig.executablePath.isEmpty()) {
-        m_appConfig.executablePath = QCoreApplication::applicationDirPath() + "/dupfinder";
+        m_appConfig.executablePath = QCoreApplication::applicationDirPath() + "/cloneclean";
 #ifdef Q_OS_WIN
         m_appConfig.executablePath += ".exe";
 #endif

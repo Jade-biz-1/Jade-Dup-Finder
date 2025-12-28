@@ -15,7 +15,7 @@ int main(int argc, char* argv[])
     QCoreApplication app(argc, argv);
     
     qDebug() << "===========================================";
-    qDebug() << "DupFinder Integration Test - Full Workflow";
+    qDebug() << "CloneClean Integration Test - Full Workflow";
     qDebug() << "===========================================";
     qDebug();
     

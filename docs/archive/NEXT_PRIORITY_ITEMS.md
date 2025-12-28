@@ -1,4 +1,4 @@
-# DupFinder - Next Priority Items
+# CloneClean - Next Priority Items
 
 ## Date: December 10, 2025
 ## Status: Post Tasks 1-19 Completion

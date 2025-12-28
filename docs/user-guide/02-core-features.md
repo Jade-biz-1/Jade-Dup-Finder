@@ -1,6 +1,6 @@
 # Volume 2: Core Features
 
-**DupFinder User Guide - Volume 2**  
+**CloneClean User Guide - Volume 2**  
 **Last Updated:** October 17, 2025
 
 ---
@@ -165,7 +165,7 @@ Shows all duplicate groups in a hierarchical view:
 - **Groups:** Each group contains identical files
 - **Checkboxes:** ☑️ = selected for deletion, ☐ = will be kept
 - **Icons:** File type indicators (📸 images, 📄 documents, etc.)
-- **Recommendations:** ✅ indicates DupFinder's recommended file to keep
+- **Recommendations:** ✅ indicates CloneClean's recommended file to keep
 - **Statistics:** Shows total size and potential savings per group
 
 #### Center Panel: File Details
@@ -246,7 +246,7 @@ Provides tools for managing selected files:
 
 ### Automatic Recommendations
 
-DupFinder automatically recommends which files to keep based on:
+CloneClean automatically recommends which files to keep based on:
 
 1. **File Location Priority:**
    - Organized folders (Documents, Pictures) > Temporary locations (Downloads, Desktop)
@@ -274,7 +274,7 @@ You can override recommendations:
 
 #### Bulk Selection Tools
 - **☑️ Select All:** Select all files for deletion (keeps one per group)
-- **📋 Recommended:** Use DupFinder's smart recommendations
+- **📋 Recommended:** Use CloneClean's smart recommendations
 - **🔄 Clear:** Deselect all files
 - **🧠 Smart Select:** Advanced selection with criteria
 
@@ -431,7 +431,7 @@ File Operation Progress
 
 ### Detection Modes
 
-Choose how DupFinder identifies duplicates:
+Choose how CloneClean identifies duplicates:
 
 #### Smart (Recommended)
 - **Method:** Adaptive algorithm based on file types
@@ -522,7 +522,7 @@ Add your own patterns:
 
 ### Viewing Past Scans
 
-DupFinder automatically saves all scan results:
+CloneClean automatically saves all scan results:
 
 #### Recent Scans Widget
 The main dashboard shows your 5 most recent scans:

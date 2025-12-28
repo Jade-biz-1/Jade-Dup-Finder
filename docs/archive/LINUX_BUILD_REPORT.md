@@ -11,9 +11,9 @@
 ## Build Summary
 
 ### ✅ **Main Application: SUCCESS**
-- **Executable:** `build/dupfinder-1.0.0`
+- **Executable:** `build/cloneclean-1.0.0`
 - **Size:** 2.3 MB (Release build, optimized)
-- **Symlink:** `build/dupfinder` → `dupfinder-1.0.0`
+- **Symlink:** `build/cloneclean` → `cloneclean-1.0.0`
 - **Build Time:** ~2 minutes (parallel build)
 
 ### ⚠️ **Test Targets: LINKING ERRORS**
@@ -187,12 +187,12 @@ cmake -B build -GNinja
 
 ### Run the Application
 ```bash
-./build/dupfinder
+./build/cloneclean
 ```
 
 ### Verify Dependencies
 ```bash
-ldd ./build/dupfinder | grep -i qt
+ldd ./build/cloneclean | grep -i qt
 ```
 
 Expected Qt6 libraries:
@@ -218,7 +218,7 @@ Expected Qt6 libraries:
 
 **Main Application Build:** ✅ **SUCCESSFUL**
 
-The DupFinder application builds successfully on Linux with GCC 13.3.0 and Qt 6.4.2. The Release build produces a 2.3 MB optimized executable. Test linking failures are due to incomplete CMakeLists.txt configuration and do not affect the main application.
+The CloneClean application builds successfully on Linux with GCC 13.3.0 and Qt 6.4.2. The Release build produces a 2.3 MB optimized executable. Test linking failures are due to incomplete CMakeLists.txt configuration and do not affect the main application.
 
 **Ready for Linux-specific feature development and testing!** 🐧
 
@@ -269,8 +269,8 @@ Two Linux build profiles are now available:
   "requires_gpu": false,
   "generator": "Ninja",
   "cmake_args": [
-    "-DDUPFINDER_BUILD_VARIANT=cpu",
-    "-DDUPFINDER_PACKAGE_SUFFIX=linux-x86_64-cpu",
+    "-DCLONECLEAN_BUILD_VARIANT=cpu",
+    "-DCLONECLEAN_PACKAGE_SUFFIX=linux-x86_64-cpu",
     "-DENABLE_GPU_ACCELERATION=OFF"
   ]
 }

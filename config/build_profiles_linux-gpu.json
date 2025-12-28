@@ -1,6 +1,6 @@
 {
   "_comment": "Linux x86_64 build profile for GCC/Clang with NVIDIA CUDA GPU acceleration",
-  "_description": "This profile builds DupFinder for Linux x86_64 using Ninja and system GCC/Clang with CUDA GPU support. Produces DEB, RPM, and TGZ packages.",
+  "_description": "This profile builds CloneClean for Linux x86_64 using Ninja and system GCC/Clang with CUDA GPU support. Produces DEB, RPM, and TGZ packages.",
   "targets": [
     {
       "id": "linux-ninja-gpu",
@@ -19,7 +19,7 @@
         "/usr/local/cuda/bin"
       ],
       "cmake_args": [
-        "-DDUPFINDER_BUILD_VARIANT=gpu",
+        "-DCLONECLEAN_BUILD_VARIANT=gpu",
         "-DCLONECLEAN_PACKAGE_SUFFIX=linux-x86_64-gpu",
         "-DENABLE_GPU_ACCELERATION=ON"
       ],

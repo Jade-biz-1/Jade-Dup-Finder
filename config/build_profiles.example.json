@@ -18,7 +18,7 @@
       },
       "path": [],
       "cmake_args": [
-        "-DDUPFINDER_BUILD_VARIANT=cpu",
+        "-DCLONECLEAN_BUILD_VARIANT=cpu",
         "-DCLONECLEAN_PACKAGE_SUFFIX=win64-msvc-cpu",
         "-DENABLE_GPU_ACCELERATION=OFF"
       ],
@@ -50,7 +50,7 @@
         "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.3\\bin"
       ],
       "cmake_args": [
-        "-DDUPFINDER_BUILD_VARIANT=gpu",
+        "-DCLONECLEAN_BUILD_VARIANT=gpu",
         "-DCLONECLEAN_PACKAGE_SUFFIX=win64-msvc-cuda",
         "-DENABLE_GPU_ACCELERATION=ON"
       ],
@@ -78,7 +78,7 @@
         "C:\\mingw64\\bin"
       ],
       "cmake_args": [
-        "-DDUPFINDER_BUILD_VARIANT=cpu",
+        "-DCLONECLEAN_BUILD_VARIANT=cpu",
         "-DCLONECLEAN_PACKAGE_SUFFIX=win64-mingw-cpu",
         "-DENABLE_GPU_ACCELERATION=OFF"
       ],
@@ -104,7 +104,7 @@
       },
       "path": [],
       "cmake_args": [
-        "-DDUPFINDER_BUILD_VARIANT=cpu",
+        "-DCLONECLEAN_BUILD_VARIANT=cpu",
         "-DCLONECLEAN_PACKAGE_SUFFIX=linux-x86_64-cpu",
         "-DENABLE_GPU_ACCELERATION=OFF"
       ],
@@ -133,7 +133,7 @@
         "/usr/local/cuda/bin"
       ],
       "cmake_args": [
-        "-DDUPFINDER_BUILD_VARIANT=gpu",
+        "-DCLONECLEAN_BUILD_VARIANT=gpu",
         "-DCLONECLEAN_PACKAGE_SUFFIX=linux-x86_64-gpu",
         "-DENABLE_GPU_ACCELERATION=ON"
       ],
@@ -160,7 +160,7 @@
       "path": [],
       "cmake_args": [
         "-DCMAKE_OSX_ARCHITECTURES=x86_64",
-        "-DDUPFINDER_BUILD_VARIANT=cpu",
+        "-DCLONECLEAN_BUILD_VARIANT=cpu",
         "-DCLONECLEAN_PACKAGE_SUFFIX=macos-x86_64",
         "-DENABLE_GPU_ACCELERATION=OFF"
       ],
@@ -187,7 +187,7 @@
       "path": [],
       "cmake_args": [
         "-DCMAKE_OSX_ARCHITECTURES=arm64",
-        "-DDUPFINDER_BUILD_VARIANT=cpu",
+        "-DCLONECLEAN_BUILD_VARIANT=cpu",
         "-DCLONECLEAN_PACKAGE_SUFFIX=macos-arm64",
         "-DENABLE_GPU_ACCELERATION=OFF"
       ],

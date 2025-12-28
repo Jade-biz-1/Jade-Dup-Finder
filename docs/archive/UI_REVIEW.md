@@ -1,8 +1,8 @@
-## Detailed UI/UX Discrepancy Report for DupFinder
+## Detailed UI/UX Discrepancy Report for CloneClean
 
 ### I. Introduction
 
-This report identifies discrepancies and areas for improvement in the DupFinder application's frontend, developed using Qt and C++, based on an analysis of the provided documentation. The goal is to enhance the user experience by addressing issues related to event handling, theming, layout, status indication, and general desktop application expectations.
+This report identifies discrepancies and areas for improvement in the CloneClean application's frontend, developed using Qt and C++, based on an analysis of the provided documentation. The goal is to enhance the user experience by addressing issues related to event handling, theming, layout, status indication, and general desktop application expectations.
 
 ### II. Discrepancies and Areas for Improvement
 
@@ -62,7 +62,7 @@ This report identifies discrepancies and areas for improvement in the DupFinder 
 
 ### III. Conclusion & Recommendations
 
-The DupFinder application has a well-defined UI/UX vision, but the documentation reveals several critical discrepancies and areas where the current implementation falls short of these goals. The most pressing issues revolve around the **broken theming system** and the **non-functional Settings button** in the Results window, both of which severely impact the user experience. Layout and visibility problems, particularly in the Scan Setup Dialog and Results window, also need immediate attention.
+The CloneClean application has a well-defined UI/UX vision, but the documentation reveals several critical discrepancies and areas where the current implementation falls short of these goals. The most pressing issues revolve around the **broken theming system** and the **non-functional Settings button** in the Results window, both of which severely impact the user experience. Layout and visibility problems, particularly in the Scan Setup Dialog and Results window, also need immediate attention.
 
 **Recommendations for a Detailed Task List:**
 
@@ -87,4 +87,4 @@ The DupFinder application has a well-defined UI/UX vision, but the documentation
 5.  **Implement P3 UI Enhancements (Ongoing/Medium Priority):**
     *   Systematically work through the planned P3 UI enhancements (thumbnails, smart selection, operation queue, presets, advanced filtering) as detailed in `p3-ui-enhancements` to elevate the overall user experience.
 
-By addressing these discrepancies, the DupFinder application can significantly improve its user experience, aligning more closely with the stated design principles and fulfilling desktop application expectations.
+By addressing these discrepancies, the CloneClean application can significantly improve its user experience, aligning more closely with the stated design principles and fulfilling desktop application expectations.

@@ -1,6 +1,6 @@
 {
   "_comment": "Linux x86_64 build profile for GCC/Clang with CPU-only support",
-  "_description": "This profile builds DupFinder for Linux x86_64 using Ninja and system GCC/Clang without GPU acceleration. Produces DEB, RPM, and TGZ packages.",
+  "_description": "This profile builds CloneClean for Linux x86_64 using Ninja and system GCC/Clang without GPU acceleration. Produces DEB, RPM, and TGZ packages.",
   "targets": [
     {
       "id": "linux-ninja-cpu",
@@ -16,7 +16,7 @@
       },
       "path": [],
       "cmake_args": [
-        "-DDUPFINDER_BUILD_VARIANT=cpu",
+        "-DCLONECLEAN_BUILD_VARIANT=cpu",
         "-DCLONECLEAN_PACKAGE_SUFFIX=x86_64-cpu",
         "-DENABLE_GPU_ACCELERATION=OFF"
       ],

@@ -476,7 +476,7 @@ void EnhancedTestRunner::generateJUnitReport(const QString& outputPath) {
     xml.writeAttribute("time", QString::number(m_executionSummary.totalExecutionTimeMs / 1000.0));
     
     xml.writeStartElement("testsuite");
-    xml.writeAttribute("name", "DupFinder Tests");
+    xml.writeAttribute("name", "CloneClean Tests");
     xml.writeAttribute("tests", QString::number(m_executionSummary.totalTests));
     xml.writeAttribute("failures", QString::number(m_executionSummary.failedTests));
     

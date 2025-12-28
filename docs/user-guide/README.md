@@ -1,4 +1,4 @@
-# DupFinder User Documentation
+# CloneClean User Documentation
 
 **Version:** 2.1
 **Last Updated:** November 7, 2025
@@ -98,11 +98,11 @@ Go to **Volume 6** (Troubleshooting) for solutions to common problems.
 ### Emergency Recovery
 If you accidentally deleted important files:
 1. Check your system trash/recycle bin
-2. Use the **Restore** feature in DupFinder (🔄 button in main window)
+2. Use the **Restore** feature in CloneClean (🔄 button in main window)
 3. See Volume 4 for detailed recovery instructions
 
 ### Performance Issues
-If DupFinder is running slowly:
+If CloneClean is running slowly:
 1. Check Volume 6 for performance troubleshooting
 2. Adjust scan settings to focus on larger files first
 3. Close other resource-intensive applications
@@ -156,7 +156,7 @@ This documentation is updated with each release to reflect new features and impr
 
 ### Getting Help
 1. **Documentation:** Check all 6 volumes for comprehensive coverage
-2. **Built-in Help:** Press F1 or click Help button in DupFinder
+2. **Built-in Help:** Press F1 or click Help button in CloneClean
 3. **Error Messages:** Read error messages carefully - they often contain solutions
 
 ### Providing Feedback
@@ -170,4 +170,4 @@ Help us improve this documentation:
 
 **Happy duplicate hunting!** 🔍✨
 
-*This documentation covers DupFinder v2.0 with all P3 enhancements complete.*
+*This documentation covers CloneClean v2.0 with all P3 enhancements complete.*

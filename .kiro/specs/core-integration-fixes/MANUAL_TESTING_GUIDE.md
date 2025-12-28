@@ -1,10 +1,10 @@
 # Manual Testing Guide - Core Integration Fixes
 
 ## Overview
-This guide provides step-by-step instructions for manually testing the complete DupFinder workflow after implementing core integration fixes.
+This guide provides step-by-step instructions for manually testing the complete CloneClean workflow after implementing core integration fixes.
 
 ## Prerequisites
-- DupFinder application built successfully
+- CloneClean application built successfully
 - Test data prepared (duplicate files for testing)
 - Backup directory accessible
 
@@ -15,7 +15,7 @@ This guide provides step-by-step instructions for manually testing the complete 
 **Objective**: Verify the entire workflow from scan to deletion with backups
 
 **Steps**:
-1. Launch DupFinder application
+1. Launch CloneClean application
 2. Click "New Scan" button
 3. Configure scan:
    - Select target directory with known duplicates
@@ -54,7 +54,7 @@ This guide provides step-by-step instructions for manually testing the complete 
 1. Complete Scenario 1 (delete files with backups)
 2. Navigate to backup directory
 3. Note the backup file paths
-4. In DupFinder, use restore functionality (if available in UI)
+4. In CloneClean, use restore functionality (if available in UI)
    - OR use FileManager::restoreFiles() programmatically
 5. Select backup files to restore
 6. Specify target directory (original location)
@@ -279,26 +279,26 @@ This guide provides step-by-step instructions for manually testing the complete 
 
 ```bash
 # Create test directory
-mkdir -p ~/dupfinder_test/group1
-mkdir -p ~/dupfinder_test/group2
-mkdir -p ~/dupfinder_test/unique
+mkdir -p ~/cloneclean_test/group1
+mkdir -p ~/cloneclean_test/group2
+mkdir -p ~/cloneclean_test/unique
 
 # Create duplicate group 1 (3 copies)
-echo "Duplicate content 1" > ~/dupfinder_test/group1/file1.txt
-cp ~/dupfinder_test/group1/file1.txt ~/dupfinder_test/group1/file1_copy.txt
-cp ~/dupfinder_test/group1/file1.txt ~/dupfinder_test/group1/file1_backup.txt
+echo "Duplicate content 1" > ~/cloneclean_test/group1/file1.txt
+cp ~/cloneclean_test/group1/file1.txt ~/cloneclean_test/group1/file1_copy.txt
+cp ~/cloneclean_test/group1/file1.txt ~/cloneclean_test/group1/file1_backup.txt
 
 # Create duplicate group 2 (2 copies)
-echo "Duplicate content 2" > ~/dupfinder_test/group2/file2.txt
-cp ~/dupfinder_test/group2/file2.txt ~/dupfinder_test/group2/file2_copy.txt
+echo "Duplicate content 2" > ~/cloneclean_test/group2/file2.txt
+cp ~/cloneclean_test/group2/file2.txt ~/cloneclean_test/group2/file2_copy.txt
 
 # Create unique files
-echo "Unique content 1" > ~/dupfinder_test/unique/unique1.txt
-echo "Unique content 2" > ~/dupfinder_test/unique/unique2.txt
+echo "Unique content 1" > ~/cloneclean_test/unique/unique1.txt
+echo "Unique content 2" > ~/cloneclean_test/unique/unique2.txt
 
 # Create image duplicates (if you have test images)
-# cp test_image.jpg ~/dupfinder_test/group1/image1.jpg
-# cp test_image.jpg ~/dupfinder_test/group1/image1_copy.jpg
+# cp test_image.jpg ~/cloneclean_test/group1/image1.jpg
+# cp test_image.jpg ~/cloneclean_test/group1/image1_copy.jpg
 ```
 
 ---

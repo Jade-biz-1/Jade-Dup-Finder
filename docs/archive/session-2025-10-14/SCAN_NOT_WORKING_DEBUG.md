@@ -89,8 +89,8 @@ ls -lh
 
 ```bash
 # Run from terminal to see all debug output
-cd /path/to/dupfinder
-./build/dupfinder 2>&1 | tee scan_debug.log
+cd /path/to/cloneclean
+./build/cloneclean 2>&1 | tee scan_debug.log
 ```
 
 ### Step 3: Perform Scan
@@ -327,7 +327,7 @@ Opening results window...
 
 ### 1. Run Test
 ```bash
-./build/dupfinder 2>&1 | tee scan_debug.log
+./build/cloneclean 2>&1 | tee scan_debug.log
 ```
 
 ### 2. Perform Scan

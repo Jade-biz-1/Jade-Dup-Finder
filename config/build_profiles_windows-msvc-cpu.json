@@ -1,6 +1,6 @@
 {
   "_comment": "Windows 64-bit build profile for MSVC toolchain with CPU-only support",
-  "_description": "This profile builds DupFinder for Windows x64 using Visual Studio 2022 MSVC compiler without GPU acceleration",
+  "_description": "This profile builds CloneClean for Windows x64 using Visual Studio 2022 MSVC compiler without GPU acceleration",
   "_local_setup_notes": [
     "IMPORTANT: Update paths below to match YOUR local installation",
     "See LOCAL_SETTINGS.md for this machine's configuration",
@@ -32,10 +32,10 @@
       },
       "path": [],
       "cmake_args": [
-        "-DDUPFINDER_BUILD_VARIANT=cpu",
+        "-DCLONECLEAN_BUILD_VARIANT=cpu",
         "-DCLONECLEAN_PACKAGE_SUFFIX=win64-msvc-cpu",
         "-DENABLE_GPU_ACCELERATION=OFF",
-        "-DDUPFINDER_WARNINGS_AS_ERRORS=OFF"
+        "-DCLONECLEAN_WARNINGS_AS_ERRORS=OFF"
       ],
       "default_build_type": "Release",
       "supported_build_types": ["Debug", "Release"],

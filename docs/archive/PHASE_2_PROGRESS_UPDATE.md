@@ -184,7 +184,7 @@ This represents a **major technical and user experience achievement**:
 3. **Competitive Advantage:** Features that exceed most commercial duplicate finders
 4. **Foundation for Future:** Architecture supports easy addition of new algorithms
 
-**DupFinder has evolved from a basic hash-based tool into a sophisticated, multi-algorithm duplicate detection system with professional-grade UI and user control.**
+**CloneClean has evolved from a basic hash-based tool into a sophisticated, multi-algorithm duplicate detection system with professional-grade UI and user control.**
 
 ---
 
@@ -210,4 +210,4 @@ This represents a **major technical and user experience achievement**:
 
 ---
 
-*This milestone represents the successful transformation of DupFinder's user interface to support advanced detection capabilities, positioning it as a leading-edge duplicate detection tool.*
+*This milestone represents the successful transformation of CloneClean's user interface to support advanced detection capabilities, positioning it as a leading-edge duplicate detection tool.*

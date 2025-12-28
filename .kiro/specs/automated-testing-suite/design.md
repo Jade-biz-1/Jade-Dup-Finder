@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Automated Testing Suite provides comprehensive testing coverage for the DupFinder application through a multi-layered testing architecture. The suite includes unit tests, integration tests, UI automation, end-to-end workflows, performance testing, and accessibility validation.
+The Automated Testing Suite provides comprehensive testing coverage for the CloneClean application through a multi-layered testing architecture. The suite includes unit tests, integration tests, UI automation, end-to-end workflows, performance testing, and accessibility validation.
 
 ## Architecture
 

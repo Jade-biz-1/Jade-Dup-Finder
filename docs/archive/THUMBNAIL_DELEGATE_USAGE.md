@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `ThumbnailDelegate` class provides thumbnail display functionality for the results tree in the DupFinder application. It integrates with `ThumbnailCache` to efficiently load and display image thumbnails alongside file information.
+The `ThumbnailDelegate` class provides thumbnail display functionality for the results tree in the CloneClean application. It integrates with `ThumbnailCache` to efficiently load and display image thumbnails alongside file information.
 
 ## Features
 

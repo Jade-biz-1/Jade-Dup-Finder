@@ -2,7 +2,7 @@
 
 ## Overview
 
-This specification covers the P1 (High Priority) features for the DupFinder application. These features enhance user experience by implementing preset loading, verifying detection flow, and adding scan history persistence.
+This specification covers the P1 (High Priority) features for the CloneClean application. These features enhance user experience by implementing preset loading, verifying detection flow, and adding scan history persistence.
 
 ## Status
 

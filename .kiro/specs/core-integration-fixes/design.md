@@ -2,7 +2,7 @@
 
 ## Overview
 
-This design addresses the critical integration gaps in the DupFinder application identified in the comprehensive code review. The application has well-implemented individual components but lacks proper integration between them, resulting in a broken core workflow. This design focuses on connecting FileScanner → DuplicateDetector → ResultsWindow → FileManager → SafetyManager to create a functional end-to-end duplicate detection and management system.
+This design addresses the critical integration gaps in the CloneClean application identified in the comprehensive code review. The application has well-implemented individual components but lacks proper integration between them, resulting in a broken core workflow. This design focuses on connecting FileScanner → DuplicateDetector → ResultsWindow → FileManager → SafetyManager to create a functional end-to-end duplicate detection and management system.
 
 The design follows the existing architecture patterns and Qt signal/slot mechanisms already established in the codebase, ensuring consistency and maintainability.
 
@@ -530,4 +530,4 @@ This design addresses all critical integration gaps identified in the code revie
 4. **Maintaining Safety**: Backups created automatically, restore functionality available
 5. **Following Existing Patterns**: Uses established Qt signal/slot architecture, consistent with codebase
 
-The implementation will transform DupFinder from a demonstration application to a functional duplicate file manager while maintaining code quality, safety, and user experience.
+The implementation will transform CloneClean from a demonstration application to a functional duplicate file manager while maintaining code quality, safety, and user experience.

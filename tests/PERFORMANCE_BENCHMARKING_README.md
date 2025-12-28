@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Performance Benchmarking Framework provides comprehensive performance measurement, analysis, and reporting capabilities for the DupFinder application. It enables automated performance testing, baseline management, regression detection, and detailed performance reporting.
+The Performance Benchmarking Framework provides comprehensive performance measurement, analysis, and reporting capabilities for the CloneClean application. It enables automated performance testing, baseline management, regression detection, and detailed performance reporting.
 
 ## Key Features
 
@@ -421,9 +421,9 @@ See `example_performance_benchmark.cpp` for a comprehensive example that demonst
 
 This example serves as both documentation and a working test suite that can be adapted for specific performance testing needs.
 
-## Integration with DupFinder
+## Integration with CloneClean
 
-The performance benchmarking framework is specifically designed to test DupFinder's core operations:
+The performance benchmarking framework is specifically designed to test CloneClean's core operations:
 
 - **File Scanning**: Directory traversal and file discovery performance
 - **Hash Calculation**: Cryptographic hash computation efficiency
@@ -432,4 +432,4 @@ The performance benchmarking framework is specifically designed to test DupFinde
 - **Memory Management**: Memory usage patterns and leak detection
 - **Scalability**: Performance with large datasets and file counts
 
-This framework ensures that DupFinder maintains optimal performance across all supported platforms and use cases.
+This framework ensures that CloneClean maintains optimal performance across all supported platforms and use cases.

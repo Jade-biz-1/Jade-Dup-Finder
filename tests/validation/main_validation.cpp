@@ -7,11 +7,11 @@
 int main(int argc, char *argv[])
 {
     QCoreApplication app(argc, argv);
-    app.setApplicationName("DupFinder Test Suite Validator");
+    app.setApplicationName("CloneClean Test Suite Validator");
     app.setApplicationVersion("1.0");
     
     QCommandLineParser parser;
-    parser.setApplicationDescription("Comprehensive test suite validation for DupFinder");
+    parser.setApplicationDescription("Comprehensive test suite validation for CloneClean");
     parser.addHelpOption();
     parser.addVersionOption();
     
@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
     QString outputDir = parser.value(outputOption);
     QDir::setCurrent(outputDir);
     
-    qDebug() << "DupFinder Test Suite Validator";
+    qDebug() << "CloneClean Test Suite Validator";
     qDebug() << "==============================";
     qDebug() << "Output directory:" << QDir::currentPath();
     

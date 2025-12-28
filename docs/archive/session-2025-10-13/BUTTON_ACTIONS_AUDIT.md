@@ -1,8 +1,8 @@
-# DupFinder UI Button Actions Audit
+# CloneClean UI Button Actions Audit
 
 ## Date: 2025-01-12
 
-This document provides a comprehensive audit of all buttons in the DupFinder UI and their implementation status.
+This document provides a comprehensive audit of all buttons in the CloneClean UI and their implementation status.
 
 ---
 

@@ -166,7 +166,7 @@ docs/
 - **Clean Structure:** Achieved
 
 ### Project Achievement
-The DupFinder project has achieved **100% completion** of all planned features:
+The CloneClean project has achieved **100% completion** of all planned features:
 - **Complete Core Functionality** - All essential features implemented
 - **Advanced UI Enhancements** - Professional-grade user interface
 - **Comprehensive Safety Features** - Robust file protection and backup

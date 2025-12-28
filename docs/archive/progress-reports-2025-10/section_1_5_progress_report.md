@@ -242,7 +242,7 @@ Consider adding unit tests for:
 
 2. **Build Date**: Uses `__DATE__` macro which shows compile date, not necessarily release date.
 
-3. **GitHub Links**: Currently using placeholder URLs (github.com/dupfinder/dupfinder) - update with actual repository URL when available.
+3. **GitHub Links**: Currently using placeholder URLs (github.com/cloneclean/cloneclean) - update with actual repository URL when available.
 
 ### Future Enhancements
 

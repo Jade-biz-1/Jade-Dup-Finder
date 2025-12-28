@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document provides comprehensive guidelines for writing high-quality, maintainable tests in the DupFinder testing suite. Following these guidelines ensures consistency, reliability, and maintainability across our test codebase.
+This document provides comprehensive guidelines for writing high-quality, maintainable tests in the CloneClean testing suite. Following these guidelines ensures consistency, reliability, and maintainability across our test codebase.
 
 ## General Principles
 

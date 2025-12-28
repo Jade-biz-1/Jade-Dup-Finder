@@ -1,4 +1,4 @@
-# DupFinder Build System Guide
+# CloneClean Build System Guide
 
 **Last updated:** 2025-11-04
 **Scope:** Desktop (CPU + optional GPU) builds on Windows, Linux, and macOS
@@ -29,29 +29,29 @@ All build artifacts are organized in `dist/` following this structure:
 dist/
 ├── Win64/
 │   ├── Debug/
-│   │   └── dupfinder-<version>-win64-<variant>.exe
+│   │   └── cloneclean-<version>-win64-<variant>.exe
 │   └── Release/
-│       └── dupfinder-<version>-win64-<variant>.exe
+│       └── cloneclean-<version>-win64-<variant>.exe
 ├── Linux/
 │   ├── Debug/
-│   │   ├── dupfinder-<version>-linux-x86_64-<variant>.deb
-│   │   ├── dupfinder-<version>-linux-x86_64-<variant>.rpm
-│   │   └── dupfinder-<version>-linux-x86_64-<variant>.tgz
+│   │   ├── cloneclean-<version>-linux-x86_64-<variant>.deb
+│   │   ├── cloneclean-<version>-linux-x86_64-<variant>.rpm
+│   │   └── cloneclean-<version>-linux-x86_64-<variant>.tgz
 │   └── Release/
-│       ├── dupfinder-<version>-linux-x86_64-<variant>.deb
-│       ├── dupfinder-<version>-linux-x86_64-<variant>.rpm
-│       └── dupfinder-<version>-linux-x86_64-<variant>.tgz
+│       ├── cloneclean-<version>-linux-x86_64-<variant>.deb
+│       ├── cloneclean-<version>-linux-x86_64-<variant>.rpm
+│       └── cloneclean-<version>-linux-x86_64-<variant>.tgz
 └── MacOS/
     ├── X64/
     │   ├── Debug/
-    │   │   └── dupfinder-<version>-macos-x86_64.dmg
+    │   │   └── cloneclean-<version>-macos-x86_64.dmg
     │   └── Release/
-    │       └── dupfinder-<version>-macos-x86_64.dmg
+    │       └── cloneclean-<version>-macos-x86_64.dmg
     └── ARM/
         ├── Debug/
-        │   └── dupfinder-<version>-macos-arm64.dmg
+        │   └── cloneclean-<version>-macos-arm64.dmg
         └── Release/
-            └── dupfinder-<version>-macos-arm64.dmg
+            └── cloneclean-<version>-macos-arm64.dmg
 ```
 
 Where `<variant>` is one of: `msvc-cpu`, `msvc-cuda`, `mingw-cpu` (Windows) or `cpu`, `gpu` (Linux).
@@ -88,9 +88,9 @@ Understanding the interaction between CMakeLists.txt, build profiles, and build.
 │ 4. build.py INVOKES CMAKE CONFIGURE                            │
 │    Command: cmake -S . -B build/<path>                         │
 │             -G "Visual Studio 17 2022" -A x64                  │
-│             -DDUPFINDER_BUILD_VARIANT=cpu                      │
+│             -DCLONECLEAN_BUILD_VARIANT=cpu                      │
 │             -DENABLE_GPU_ACCELERATION=OFF                      │
-│             -DDUPFINDER_PACKAGE_SUFFIX=win64-msvc-cpu          │
+│             -DCLONECLEAN_PACKAGE_SUFFIX=win64-msvc-cpu          │
 └────────────────────────┬────────────────────────────────────────┘
                          │
                          ▼
@@ -102,7 +102,7 @@ Understanding the interaction between CMakeLists.txt, build profiles, and build.
 │    - If GPU enabled: includes GPU source files                 │
 │    - If GPU enabled: finds and links CUDA/OpenCL               │
 │    - Configures CPack generators (NSIS/DEB/RPM/DMG)            │
-│    - Sets package filename using DUPFINDER_PACKAGE_SUFFIX      │
+│    - Sets package filename using CLONECLEAN_PACKAGE_SUFFIX      │
 │    - Generates build system files                              │
 └────────────────────────┬────────────────────────────────────────┘
                          │
@@ -110,7 +110,7 @@ Understanding the interaction between CMakeLists.txt, build profiles, and build.
 ┌─────────────────────────────────────────────────────────────────┐
 │ 6. build.py INVOKES CMAKE BUILD                               │
 │    Command: cmake --build build/<path>                         │
-│             --target dupfinder --parallel                      │
+│             --target cloneclean --parallel                      │
 │             --config Release                                   │
 │    - Compiles source files                                     │
 │    - Links libraries (Qt6, CUDA if enabled)                    │
@@ -151,7 +151,7 @@ Understanding the interaction between CMakeLists.txt, build profiles, and build.
 
 ### 1.3 Build System Requirements Addressed
 
-The DupFinder build system has been designed to meet the following requirements:
+The CloneClean build system has been designed to meet the following requirements:
 
 ✅ **Requirement 1: Organized Build Folders**
 - Separate build folders per platform: `build/windows/`, `build/linux/`, `build/macos/`
@@ -548,7 +548,7 @@ You can still interact with CMake directly when needed (e.g., custom debugging).
 ```bash
 cmake -S . -B build/windows/win64/manual-msvc ^
   -G "Visual Studio 17 2022" -A x64 ^
-  -DDUPFINDER_BUILD_VARIANT=cpu ^
+  -DCLONECLEAN_BUILD_VARIANT=cpu ^
   -DENABLE_GPU_ACCELERATION=OFF
 ```
 
@@ -557,7 +557,7 @@ Linux/macOS use `-GNinja` or `-G "Unix Makefiles"` and the appropriate Qt, compi
 ### 5.2 Build
 
 ```bash
-cmake --build build/windows/win64/manual-msvc --config Release --target dupfinder
+cmake --build build/windows/win64/manual-msvc --config Release --target cloneclean
 ```
 
 > **Tip:** Run the above from a Visual Studio Developer Command Prompt so the MSVC generator is available; otherwise you will see errors like `Error: could create CMAKE_GENERATOR "Visual Studio 17 2022"`.
@@ -576,8 +576,8 @@ Manual invocations will not copy outputs into `dist/`; do that yourself or re-ru
 
 | Variant | Flag | Behavior |
 |---------|------|----------|
-| CPU only | `-DDUPFINDER_BUILD_VARIANT=cpu` and `-DENABLE_GPU_ACCELERATION=OFF` | Disables CUDA/OpenCL code paths; fastest compile; compatible everywhere. |
-| GPU (CUDA) | `-DDUPFINDER_BUILD_VARIANT=gpu` and `-DENABLE_GPU_ACCELERATION=ON` | Enables CUDA sources, links GPU libraries, and requires a CUDA-ready toolchain/profile. |
+| CPU only | `-DCLONECLEAN_BUILD_VARIANT=cpu` and `-DENABLE_GPU_ACCELERATION=OFF` | Disables CUDA/OpenCL code paths; fastest compile; compatible everywhere. |
+| GPU (CUDA) | `-DCLONECLEAN_BUILD_VARIANT=gpu` and `-DENABLE_GPU_ACCELERATION=ON` | Enables CUDA sources, links GPU libraries, and requires a CUDA-ready toolchain/profile. |
 
 When a GPU profile is chosen, the script verifies CUDA availability (`nvidia-smi`, `nvcc`, environment variables). Use `--force` to override detection (not recommended unless you know CUDA is available).
 
@@ -588,9 +588,9 @@ The build system uses CMake variables to control build variants:
 1. **Build Profile Sets Variables**: Each `build_profiles_*.json` file specifies CMake arguments:
    ```json
    "cmake_args": [
-     "-DDUPFINDER_BUILD_VARIANT=cpu",
+     "-DCLONECLEAN_BUILD_VARIANT=cpu",
      "-DENABLE_GPU_ACCELERATION=OFF",
-     "-DDUPFINDER_PACKAGE_SUFFIX=win64-msvc-cpu"
+     "-DCLONECLEAN_PACKAGE_SUFFIX=win64-msvc-cpu"
    ]
    ```
 
@@ -598,7 +598,7 @@ The build system uses CMake variables to control build variants:
    - Enable/disable GPU source files
    - Link appropriate libraries (CUDA, OpenCL, or none)
    - Configure compiler flags
-   - Set package naming via `DUPFINDER_PACKAGE_SUFFIX`
+   - Set package naming via `CLONECLEAN_PACKAGE_SUFFIX`
 
 3. **Conditional Source Compilation**:
    ```cmake
@@ -611,9 +611,9 @@ The build system uses CMake variables to control build variants:
    endif()
    ```
 
-4. **Package Naming**: The `DUPFINDER_PACKAGE_SUFFIX` from build profiles becomes part of the filename:
-   - `dupfinder-1.0.0-windows-win64-msvc-cpu.exe`
-   - `dupfinder-1.0.0-linux-x86_64-gpu.deb`
+4. **Package Naming**: The `CLONECLEAN_PACKAGE_SUFFIX` from build profiles becomes part of the filename:
+   - `cloneclean-1.0.0-windows-win64-msvc-cpu.exe`
+   - `cloneclean-1.0.0-linux-x86_64-gpu.deb`
 
 ---
 
@@ -628,14 +628,14 @@ The build system uses CPack (part of CMake) to generate platform-specific instal
 ```cmake
 # CMakeLists.txt configures Windows installer
 set(CPACK_GENERATOR "NSIS")
-set(CPACK_NSIS_DISPLAY_NAME "DupFinder")
+set(CPACK_NSIS_DISPLAY_NAME "CloneClean")
 set(CPACK_NSIS_MENU_LINKS
-    "bin/dupfinder.exe" "DupFinder"
-    "https://github.com/Jade-biz-1/Jade-Dup-Finder" "DupFinder on GitHub"
+    "bin/cloneclean.exe" "CloneClean"
+    "https://github.com/Jade-biz-1/Jade-Dup-Finder" "CloneClean on GitHub"
 )
 # Creates Start Menu shortcuts and desktop icon
 set(CPACK_NSIS_CREATE_ICONS_EXTRA
-    "CreateShortCut '$DESKTOP\\\\DupFinder.lnk' '$INSTDIR\\\\bin\\\\dupfinder.exe'"
+    "CreateShortCut '$DESKTOP\\\\CloneClean.lnk' '$INSTDIR\\\\bin\\\\cloneclean.exe'"
 )
 ```
 
@@ -644,14 +644,14 @@ set(CPACK_NSIS_CREATE_ICONS_EXTRA
 - CMake auto-detects NSIS in standard locations
 - If NSIS not found, falls back to ZIP packaging
 
-**Output**: `dupfinder-<version>-windows-<suffix>.exe` (self-extracting installer)
+**Output**: `cloneclean-<version>-windows-<suffix>.exe` (self-extracting installer)
 
 #### Linux Packaging (DEB, RPM, TGZ)
 
 ```cmake
 # CMakeLists.txt configures multi-format Linux packages
 set(CPACK_GENERATOR "DEB;RPM;TGZ")
-set(CPACK_DEBIAN_PACKAGE_MAINTAINER "DupFinder Team")
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "CloneClean Team")
 set(CPACK_RPM_PACKAGE_LICENSE "MIT")
 ```
 
@@ -661,21 +661,21 @@ set(CPACK_RPM_PACKAGE_LICENSE "MIT")
 - TGZ format: Built-in tar/gzip (always available)
 
 **Output**: Three packages per build:
-- `dupfinder-<version>-linux-<suffix>.deb` (Debian/Ubuntu)
-- `dupfinder-<version>-linux-<suffix>.rpm` (RedHat/Fedora/CentOS)
-- `dupfinder-<version>-linux-<suffix>.tgz` (Universal tarball)
+- `cloneclean-<version>-linux-<suffix>.deb` (Debian/Ubuntu)
+- `cloneclean-<version>-linux-<suffix>.rpm` (RedHat/Fedora/CentOS)
+- `cloneclean-<version>-linux-<suffix>.tgz` (Universal tarball)
 
 #### macOS Packaging (DMG)
 
 ```cmake
 # CMakeLists.txt configures macOS disk image
 set(CPACK_GENERATOR "DragNDrop")
-set(CPACK_DMG_VOLUME_NAME "DupFinder")
+set(CPACK_DMG_VOLUME_NAME "CloneClean")
 ```
 
 **Requirements**: macOS native tools (included with Xcode)
 
-**Output**: `dupfinder-<version>-macos-<suffix>.dmg` (disk image for drag-and-drop installation)
+**Output**: `cloneclean-<version>-macos-<suffix>.dmg` (disk image for drag-and-drop installation)
 
 ### 7.2 Package File Naming
 
@@ -686,19 +686,19 @@ Package names are automatically generated using this pattern:
 ```
 
 Components:
-- **PackageName**: `dupfinder` (set by `CPACK_PACKAGE_NAME`)
-- **Version**: `1.0.0` (from `project(DupFinder VERSION 1.0.0)`)
+- **PackageName**: `cloneclean` (set by `CPACK_PACKAGE_NAME`)
+- **Version**: `1.0.0` (from `project(CloneClean VERSION 1.0.0)`)
 - **Platform**: `windows`, `linux`, or `macos` (auto-detected by `CMakeLists.txt`)
-- **Suffix**: From `DUPFINDER_PACKAGE_SUFFIX` in build profile (e.g., `win64-msvc-cpu`, `linux-x86_64-gpu`)
+- **Suffix**: From `CLONECLEAN_PACKAGE_SUFFIX` in build profile (e.g., `win64-msvc-cpu`, `linux-x86_64-gpu`)
 - **Extension**: `.exe`, `.deb`, `.rpm`, `.tgz`, or `.dmg`
 
 Example filenames:
 ```
-dupfinder-1.0.0-windows-win64-msvc-cpu.exe
-dupfinder-1.0.0-windows-win64-msvc-cuda.exe
-dupfinder-1.0.0-linux-x86_64-cpu.deb
-dupfinder-1.0.0-linux-x86_64-gpu.rpm
-dupfinder-1.0.0-macos-arm64.dmg
+cloneclean-1.0.0-windows-win64-msvc-cpu.exe
+cloneclean-1.0.0-windows-win64-msvc-cuda.exe
+cloneclean-1.0.0-linux-x86_64-cpu.deb
+cloneclean-1.0.0-linux-x86_64-gpu.rpm
+cloneclean-1.0.0-macos-arm64.dmg
 ```
 
 ### 7.3 Distribution Layout
@@ -708,12 +708,12 @@ After a successful build, artifacts are automatically copied to the `dist/` dire
 Example artifacts:
 ```
 dist/
-├── Win64/Release/dupfinder-1.0.0-win64-msvc-cpu.exe
+├── Win64/Release/cloneclean-1.0.0-win64-msvc-cpu.exe
 ├── Linux/Release/
-│   ├── dupfinder-1.0.0-linux-x86_64-cpu.deb
-│   ├── dupfinder-1.0.0-linux-x86_64-cpu.rpm
-│   └── dupfinder-1.0.0-linux-x86_64-cpu.tgz
-└── MacOS/ARM/Release/dupfinder-1.0.0-macos-arm64.dmg
+│   ├── cloneclean-1.0.0-linux-x86_64-cpu.deb
+│   ├── cloneclean-1.0.0-linux-x86_64-cpu.rpm
+│   └── cloneclean-1.0.0-linux-x86_64-cpu.tgz
+└── MacOS/ARM/Release/cloneclean-1.0.0-macos-arm64.dmg
 ```
 
 The `build.py` script automatically:
@@ -728,7 +728,7 @@ To modify what gets included in packages, edit `CMakeLists.txt`:
 
 ```cmake
 # Install rules (what goes into the package)
-install(TARGETS dupfinder
+install(TARGETS cloneclean
     RUNTIME DESTINATION bin
     BUNDLE DESTINATION .
 )
@@ -747,24 +747,24 @@ install(DIRECTORY resources/ DESTINATION resources)
 ### 7.5 Package Installation Behavior
 
 **Windows NSIS Installer**:
-- Default install location: `C:\Program Files\DupFinder\`
-- Creates Start Menu shortcuts: "DupFinder" group
+- Default install location: `C:\Program Files\CloneClean\`
+- Creates Start Menu shortcuts: "CloneClean" group
 - Creates Desktop shortcut (optional during install)
 - Adds to Windows "Add/Remove Programs"
 - Uninstaller included: `uninstall.exe`
 
 **Linux DEB Package**:
-- Installs to: `/usr/local/bin/dupfinder`
-- Integration with system package manager: `dpkg -i dupfinder*.deb`
-- Remove with: `sudo apt remove dupfinder`
+- Installs to: `/usr/local/bin/cloneclean`
+- Integration with system package manager: `dpkg -i cloneclean*.deb`
+- Remove with: `sudo apt remove cloneclean`
 
 **Linux RPM Package**:
-- Installs to: `/usr/local/bin/dupfinder`
-- Integration with system package manager: `sudo rpm -i dupfinder*.rpm` or `sudo yum install dupfinder*.rpm`
-- Remove with: `sudo rpm -e dupfinder`
+- Installs to: `/usr/local/bin/cloneclean`
+- Integration with system package manager: `sudo rpm -i cloneclean*.rpm` or `sudo yum install cloneclean*.rpm`
+- Remove with: `sudo rpm -e cloneclean`
 
 **Linux TGZ Archive**:
-- Manual extraction: `tar -xzf dupfinder*.tgz`
+- Manual extraction: `tar -xzf cloneclean*.tgz`
 - Portable installation, run from any directory
 - No system integration
 
@@ -784,7 +784,7 @@ Primary targets:
 
 | Target | Description | Invocation |
 |--------|-------------|------------|
-| `dupfinder` | Main application executable | `cmake --build ... --target dupfinder` or `make dupfinder` |
+| `cloneclean` | Main application executable | `cmake --build ... --target cloneclean` or `make cloneclean` |
 | `unit_tests` | Unit test executable | `cmake --build ... --target unit_tests` |
 | `integration_tests` | Integration test executable | `cmake --build ... --target integration_tests` |
 | `check` | Runs all registered tests (`ctest`) | `cmake --build ... --target check` |
@@ -812,13 +812,13 @@ Standard variables:
 -G "Ninja"                         # Explicit generator
 ```
 
-DupFinder-specific toggles:
+CloneClean-specific toggles:
 
 ```bash
--DDUPFINDER_BUILD_VARIANT=cpu|gpu
+-DCLONECLEAN_BUILD_VARIANT=cpu|gpu
 -DENABLE_GPU_ACCELERATION=ON|OFF   # Auto-toggled by build profiles
--DDUPFINDER_WARNINGS_AS_ERRORS=ON  # Default ON for MSVC /W4 + /WX
--DDUPFINDER_PACKAGE_SUFFIX=<label> # Labels copied into dist outputs
+-DCLONECLEAN_WARNINGS_AS_ERRORS=ON  # Default ON for MSVC /W4 + /WX
+-DCLONECLEAN_PACKAGE_SUFFIX=<label> # Labels copied into dist outputs
 ```
 
 ### 8.3 Platform Quick Starts
@@ -877,17 +877,17 @@ cmake --build <build-dir> --target docs
 
   Win64/
     Release/
-      dupfinder-1.0.0-win64-msvc-cpu.exe
+      cloneclean-1.0.0-win64-msvc-cpu.exe
   Linux/
     Release/
-      dupfinder-1.0.0-linux-x86_64-cpu.deb
-      dupfinder-1.0.0-linux-x86_64-cpu.tgz
+      cloneclean-1.0.0-linux-x86_64-cpu.deb
+      cloneclean-1.0.0-linux-x86_64-cpu.tgz
   MacOS/
     X64/
-      Release/dupfinder-1.0.0-macos-x86_64.dmg
+      Release/cloneclean-1.0.0-macos-x86_64.dmg
 ```
 
-The exact suffix is controlled by `DUPFINDER_PACKAGE_SUFFIX` in each profile. Multi-config generators place binaries under the usual `build/.../<Config>/` folder; the script harvests results before copying to `dist/`.
+The exact suffix is controlled by `CLONECLEAN_PACKAGE_SUFFIX` in each profile. Multi-config generators place binaries under the usual `build/.../<Config>/` folder; the script harvests results before copying to `dist/`.
 
 ---
 
@@ -906,20 +906,20 @@ For a comprehensive option-by-option breakdown, see Section 8 below.
 
 ### Windows-Specific CMake Configuration
 
-DupFinder's CMakeLists.txt includes Windows-specific settings:
+CloneClean's CMakeLists.txt includes Windows-specific settings:
 
 ```cmake
 # Platform detection
 if(WIN32)
     set(PLATFORM_NAME "windows")
-    target_link_libraries(dupfinder shell32 ole32)
-    set_target_properties(dupfinder PROPERTIES WIN32_EXECUTABLE TRUE)  # No console window
+    target_link_libraries(cloneclean shell32 ole32)
+    set_target_properties(cloneclean PROPERTIES WIN32_EXECUTABLE TRUE)  # No console window
 endif()
 
 # Windows packaging
 if(WIN32)
     set(CPACK_GENERATOR "NSIS")
-    set(CPACK_NSIS_DISPLAY_NAME "DupFinder")
+    set(CPACK_NSIS_DISPLAY_NAME "CloneClean")
 endif()
 ```
 
@@ -984,7 +984,7 @@ cmake --build . --config Debug --parallel
 ctest
 
 # Run application
-.\Debug\dupfinder.exe
+.\Debug\cloneclean.exe
 ```
 
 #### Release Build Process
@@ -1063,7 +1063,7 @@ fatal error C1083: Cannot open include file: 'windows.h'
 #### DLL Dependencies at Runtime
 **Solution:** Use `windeployqt` to copy dependencies:
 ```powershell
-& "C:\Qt\6.x.x\msvc2022_64\bin\windeployqt.exe" .\Release\dupfinder.exe
+& "C:\Qt\6.x.x\msvc2022_64\bin\windeployqt.exe" .\Release\cloneclean.exe
 ```
 
 #### NSIS Installer Creation Fails

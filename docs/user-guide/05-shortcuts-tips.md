@@ -1,6 +1,6 @@
 # Volume 5: Keyboard Shortcuts & Tips
 
-**DupFinder User Guide - Volume 5**  
+**CloneClean User Guide - Volume 5**  
 **Last Updated:** October 17, 2025
 
 ---
@@ -26,7 +26,7 @@
 | **Ctrl+N** | New Scan | Open scan configuration dialog |
 | **Ctrl+O** | Open Results | Open existing scan results |
 | **Ctrl+S** | Save/Export | Export current results |
-| **Ctrl+Q** | Quit | Exit DupFinder |
+| **Ctrl+Q** | Quit | Exit CloneClean |
 | **Ctrl+,** | Settings | Open settings dialog |
 | **F11** | Full Screen | Toggle full screen mode |
 | **Ctrl+Shift+R** | Restore | Open backup restore dialog |
@@ -165,7 +165,7 @@ Combine multiple criteria:
 - **CPU:** Multi-core processors benefit from parallel scanning
 - **Network:** Avoid scanning network drives during peak hours
 
-#### DupFinder Settings
+#### CloneClean Settings
 ```
 Optimal Performance Settings:
 - Thread Count: CPU cores - 1
@@ -243,7 +243,7 @@ Create presets for common scenarios:
 - Export results before cleanup
 
 #### Scheduled Operations
-While DupFinder doesn't have built-in scheduling, you can:
+While CloneClean doesn't have built-in scheduling, you can:
 - Use system task scheduler
 - Create batch scripts for common operations
 - Set up automated exports for record-keeping

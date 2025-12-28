@@ -70,7 +70,7 @@ TestHarness::TestHarness(QObject* parent)
 {
     // Set default configuration
     m_config.enabledCategories << "Unit" << "Integration" << "UI";
-    m_config.outputDirectory = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + "/dupfinder_tests";
+    m_config.outputDirectory = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + "/cloneclean_tests";
     
     // Ensure output directory exists
     QDir().mkpath(m_config.outputDirectory);

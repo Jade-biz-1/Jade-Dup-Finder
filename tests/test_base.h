@@ -11,7 +11,7 @@
 #include <QStandardPaths>
 
 /**
- * @brief Base class for all DupFinder tests
+ * @brief Base class for all CloneClean tests
  * 
  * Provides standardized test infrastructure, naming conventions, and common utilities.
  * All test classes should inherit from this base class to ensure consistency.

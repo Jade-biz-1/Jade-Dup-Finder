@@ -113,7 +113,7 @@ jobs:
         cd build
         echo "Running quick memory check..."
         # Quick test with valgrind (limited time)
-        timeout 30 valgrind --error-exitcode=1 --leak-check=summary --show-leak-kinds=definite ./dupfinder --version || {
+        timeout 30 valgrind --error-exitcode=1 --leak-check=summary --show-leak-kinds=definite ./cloneclean --version || {
           echo "⚠️ Memory check found issues (non-blocking for PR)"
         }
         echo "✅ Quick memory check completed"
@@ -152,9 +152,9 @@ jobs:
         echo "- **Compiler**: GCC $(gcc --version | head -1)" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         
-        if [ -f build/dupfinder ]; then
+        if [ -f build/cloneclean ]; then
           echo "✅ **Application**: Built successfully" >> $GITHUB_STEP_SUMMARY
-          echo "📦 **Binary Size**: $(ls -lh build/dupfinder | awk '{print $5}')" >> $GITHUB_STEP_SUMMARY
+          echo "📦 **Binary Size**: $(ls -lh build/cloneclean | awk '{print $5}')" >> $GITHUB_STEP_SUMMARY
         else
           echo "❌ **Application**: Build failed" >> $GITHUB_STEP_SUMMARY
         fi

@@ -18,7 +18,7 @@ void TestConfig::loadConfiguration(const QString& configFile) {
         // Try multiple locations for config file
         QStringList searchPaths = {
             QDir::currentPath() + "/test_config.json",
-            QStandardPaths::writableLocation(QStandardPaths::ConfigLocation) + "/DupFinder/test_config.json",
+            QStandardPaths::writableLocation(QStandardPaths::ConfigLocation) + "/CloneClean/test_config.json",
             QCoreApplication::applicationDirPath() + "/test_config.json"
         };
         
@@ -58,7 +58,7 @@ void TestConfig::loadConfiguration(const QString& configFile) {
 void TestConfig::saveConfiguration(const QString& configFile) {
     QString filePath = configFile;
     if (filePath.isEmpty()) {
-        QString configDir = QStandardPaths::writableLocation(QStandardPaths::ConfigLocation) + "/DupFinder";
+        QString configDir = QStandardPaths::writableLocation(QStandardPaths::ConfigLocation) + "/CloneClean";
         QDir().mkpath(configDir);
         filePath = configDir + "/test_config.json";
     }

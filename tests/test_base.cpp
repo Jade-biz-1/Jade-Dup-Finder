@@ -228,7 +228,7 @@ void TestBase::setupTestEnvironment() {
     // Create test data directory
     QString tempDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
     m_testDataDirectory = QDir(tempDir).absoluteFilePath(
-        QString("dupfinder_test_%1_%2")
+        QString("cloneclean_test_%1_%2")
         .arg(QCoreApplication::applicationPid())
         .arg(QDateTime::currentMSecsSinceEpoch())
     );

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This design addresses critical UI/UX issues in the DupFinder application, focusing on fixing the dark/light theme system, improving component visibility, and ensuring consistent styling across all dialogs. The main issues are theme application failures, missing UI components in results dialog, and layout problems in the scan configuration dialog.
+This design addresses critical UI/UX issues in the CloneClean application, focusing on fixing the dark/light theme system, improving component visibility, and ensuring consistent styling across all dialogs. The main issues are theme application failures, missing UI components in results dialog, and layout problems in the scan configuration dialog.
 
 ## Architecture
 

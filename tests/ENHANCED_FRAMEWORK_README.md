@@ -1,6 +1,6 @@
 # Enhanced Test Framework
 
-This document describes the enhanced test framework for DupFinder, which provides standardized test infrastructure, configuration management, and improved test organization.
+This document describes the enhanced test framework for CloneClean, which provides standardized test infrastructure, configuration management, and improved test organization.
 
 ## Overview
 

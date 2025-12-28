@@ -2,7 +2,7 @@
 
 ## Overview
 
-This design addresses the systematic removal of hardcoded styling throughout the DupFinder GUI components and establishes a comprehensive theme-aware styling system. The solution involves enhancing the existing ThemeManager to provide centralized styling methods, updating all GUI components to use theme-aware properties, and implementing minimum size constraints for UI controls.
+This design addresses the systematic removal of hardcoded styling throughout the CloneClean GUI components and establishes a comprehensive theme-aware styling system. The solution involves enhancing the existing ThemeManager to provide centralized styling methods, updating all GUI components to use theme-aware properties, and implementing minimum size constraints for UI controls.
 
 ## Architecture
 

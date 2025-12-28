@@ -21,8 +21,8 @@
 
 ```bash
 # Create test directory with duplicates
-mkdir -p ~/Downloads/dupfinder_test
-cd ~/Downloads/dupfinder_test
+mkdir -p ~/Downloads/cloneclean_test
+cd ~/Downloads/cloneclean_test
 
 # Create 5 original files
 for i in {1..5}; do
@@ -46,10 +46,10 @@ echo "Total files: $(ls | wc -l)"
 
 ```bash
 # Navigate to project directory
-cd /path/to/dupfinder
+cd /path/to/cloneclean
 
 # Run with debug output
-./build/dupfinder 2>&1 | tee scan_test.log
+./build/cloneclean 2>&1 | tee scan_test.log
 ```
 
 ### Step 3: Start Scan
@@ -302,7 +302,7 @@ To diagnose the issue, please provide:
 ---
 
 **Test Ready:** ✅ Yes  
-**Test Files:** Create in ~/Downloads/dupfinder_test  
+**Test Files:** Create in ~/Downloads/cloneclean_test  
 **Next Action:** Run test and report findings
 
 **Waiting for:** Test results and terminal output

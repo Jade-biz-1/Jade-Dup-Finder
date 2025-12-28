@@ -259,7 +259,7 @@ private slots:
                 QString filePath = dir.absoluteFilePath(fileName);
                 QFileInfo info(filePath);
                 
-                // Get file information (simulating what DupFinder might do)
+                // Get file information (simulating what CloneClean might do)
                 qint64 size = info.size();
                 QDateTime modified = info.lastModified();
                 Q_UNUSED(size)

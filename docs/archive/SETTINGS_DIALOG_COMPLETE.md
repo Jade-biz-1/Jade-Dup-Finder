@@ -88,13 +88,13 @@
 
 ### Storage Method
 - **Technology:** QSettings (Qt's cross-platform settings API)
-- **Organization:** "DupFinder Team"
-- **Application:** "DupFinder"
+- **Organization:** "CloneClean Team"
+- **Application:** "CloneClean"
 
 ### Storage Locations
-- **Linux:** `~/.config/DupFinder Team/DupFinder.conf`
+- **Linux:** `~/.config/CloneClean Team/CloneClean.conf`
 - **Windows:** Registry or INI file
-- **macOS:** `~/Library/Preferences/com.DupFinder Team.DupFinder.plist`
+- **macOS:** `~/Library/Preferences/com.CloneClean Team.CloneClean.plist`
 
 ### Settings Categories
 ```

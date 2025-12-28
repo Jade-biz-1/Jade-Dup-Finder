@@ -101,13 +101,13 @@ LOG_CRITICAL(category, message) // With file/line/function info
 
 ## Log File Location
 
-**Linux:** `~/.local/share/DupFinder Team/DupFinder/logs/dupfinder.log`  
-**Windows:** `%APPDATA%\DupFinder Team\DupFinder\logs\dupfinder.log`  
-**macOS:** `~/Library/Application Support/DupFinder Team/DupFinder/logs/dupfinder.log`
+**Linux:** `~/.local/share/CloneClean Team/CloneClean/logs/cloneclean.log`  
+**Windows:** `%APPDATA%\CloneClean Team\CloneClean\logs\cloneclean.log`  
+**macOS:** `~/Library/Application Support/CloneClean Team/CloneClean/logs/cloneclean.log`
 
 ### Log Rotation
 - **Trigger:** When log file exceeds 10MB
-- **Action:** Current log renamed with timestamp (dupfinder_YYYYMMDD_HHMMSS.log)
+- **Action:** Current log renamed with timestamp (cloneclean_YYYYMMDD_HHMMSS.log)
 - **Retention:** Keeps last 10 log files
 - **Automatic:** Old logs deleted automatically
 
@@ -204,13 +204,13 @@ qDebug() << "Session start:" << stats.sessionStart;
 ### Log Output Verification
 ```bash
 # View current log
-tail -f ~/.local/share/DupFinder\ Team/DupFinder/logs/dupfinder.log
+tail -f ~/.local/share/CloneClean\ Team/CloneClean/logs/cloneclean.log
 
 # Check log file size
-ls -lh ~/.local/share/DupFinder\ Team/DupFinder/logs/
+ls -lh ~/.local/share/CloneClean\ Team/CloneClean/logs/
 
 # Count log entries
-grep -c "\[INFO \]" ~/.local/share/DupFinder\ Team/DupFinder/logs/dupfinder.log
+grep -c "\[INFO \]" ~/.local/share/CloneClean\ Team/CloneClean/logs/cloneclean.log
 ```
 
 ---

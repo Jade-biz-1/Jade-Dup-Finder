@@ -151,7 +151,7 @@ ScanHistoryWidget::refreshHistory()
 
 ### Storage Location
 ```
-~/.local/share/DupFinder/history/
+~/.local/share/CloneClean/history/
 ├── scan_<uuid1>.json
 ├── scan_<uuid2>.json
 ├── scan_<uuid3>.json

@@ -79,7 +79,7 @@ private:
         qDebug() << "\n--- Creating Test Files ---";
         
         m_testDir = QDir::temp();
-        QString testDirName = "dupfinder_io_test";
+        QString testDirName = "cloneclean_io_test";
         
         if (m_testDir.exists(testDirName)) {
             QDir(m_testDir.absoluteFilePath(testDirName)).removeRecursively();
@@ -332,7 +332,7 @@ private:
         }
         
         m_testDir.cdUp();
-        m_testDir.rmdir("dupfinder_io_test");
+        m_testDir.rmdir("cloneclean_io_test");
         
         qDebug() << "Test files cleaned up";
     }

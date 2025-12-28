@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document summarizes the implementation of Task 8 "Advanced Testing Features" for the DupFinder automated testing suite. The implementation includes three major components: parallel test execution, test maintenance tools, and advanced reporting and analytics.
+This document summarizes the implementation of Task 8 "Advanced Testing Features" for the CloneClean automated testing suite. The implementation includes three major components: parallel test execution, test maintenance tools, and advanced reporting and analytics.
 
 ## 8.1 Parallel Test Execution
 
